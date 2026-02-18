@@ -89,11 +89,11 @@ function App() {
             <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <ClipboardList size={18} /> Atenciones
             </NavLink>
-            <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <DollarSign size={18} /> Caja
-            </NavLink>
             <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <BarChart2 size={18} /> Reportes
+            </NavLink>
+            <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <DollarSign size={18} /> Caja
             </NavLink>
             <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Lock size={18} /> Liquidación
