@@ -1,52 +1,67 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock } from 'lucide-react'
+import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
+import { Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings } from 'lucide-react'
 import Peluqueros from './pages/Peluqueros/Peluqueros'
 import Servicios from './pages/Servicios/Servicios'
 import Atenciones from './pages/Atenciones/Atenciones'
 import Caja from './pages/Caja/Caja'
 import Reportes from './pages/Reportes/Reportes'
 import Liquidacion from './pages/Liquidacion/Liquidacion'
+import Configuracion from './pages/Configuracion/Configuracion'
 import Licencia from './pages/Licencia/Licencia'
-import './App.css'
 import Actualizador from './components/Actualizador'
+import './App.css'
 
 function App() {
   const [licenciaValida, setLicenciaValida] = useState(null)
   const [diasRestantes, setDiasRestantes] = useState(null)
   const [fechaVence, setFechaVence] = useState(null)
+  const [nombreApp, setNombreApp] = useState('PeluApp')
+  const [logo, setLogo] = useState(null)
 
   useEffect(() => {
     window.electronAPI.verificarLicencia().then(res => {
       setLicenciaValida(res.valida)
-      if (res.valida && res.vence) {
+      if (res.valida) {
         setFechaVence(res.vence)
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const vence = new Date(res.vence)
-        vence.setHours(0, 0, 0, 0)
-        const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
-        setDiasRestantes(diff)
+        if (res.diasRestantes !== undefined) {
+          setDiasRestantes(res.diasRestantes)
+        } else {
+          const hoy = new Date()
+          hoy.setHours(0, 0, 0, 0)
+          const vence = new Date(res.vence)
+          vence.setHours(23, 59, 59, 0)
+          const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
+          setDiasRestantes(diff)
+        }
       }
     })
+
+    window.electronAPI.getNombreApp().then(nombre => setNombreApp(nombre))
+    window.electronAPI.getLogo().then(logo => setLogo(logo))
+
+    // Los listeners de progreso/descarga los maneja Actualizador.jsx
+    // No duplicarlos acá
   }, [])
 
   if (licenciaValida === null) return null
 
-  if (!licenciaValida) return <Licencia onActivada={() => {
-    window.electronAPI.verificarLicencia().then(res => {
-      setLicenciaValida(res.valida)
-      if (res.valida && res.vence) {
-        setFechaVence(res.vence)
-        const hoy = new Date()
-        hoy.setHours(0, 0, 0, 0)
-        const vence = new Date(res.vence)
-        vence.setHours(0, 0, 0, 0)
-        const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
-        setDiasRestantes(diff)
-      }
-    })
-  }} />
+  if (!licenciaValida) return (
+    <Licencia onActivada={() => {
+      window.electronAPI.verificarLicencia().then(res => {
+        setLicenciaValida(res.valida)
+        if (res.valida && res.vence) {
+          setFechaVence(res.vence)
+          const hoy = new Date()
+          hoy.setHours(0, 0, 0, 0)
+          const vence = new Date(res.vence)
+          vence.setHours(0, 0, 0, 0)
+          const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
+          setDiasRestantes(diff)
+        }
+      })
+    }} />
+  )
 
   const colorDias = diasRestantes <= 5 ? '#fbbf24' : diasRestantes <= 10 ? '#fb923c' : '#4ade80'
   const bgDias = diasRestantes <= 5 ? '#2d1a00' : diasRestantes <= 10 ? '#2d1500' : '#052e16'
@@ -57,31 +72,37 @@ function App() {
       <div className="app-container">
         <aside className="sidebar">
           <div className="sidebar-header">
-            <Scissors size={28} />
-            <span>PeluApp</span>
+            {logo
+              ? <img src={logo} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} />
+              : <Scissors size={28} />
+            }
+            <span>{nombreApp}</span>
           </div>
+
           <nav className="sidebar-nav">
-            <NavLink to="/" end className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Users size={18} /> Peluqueros
             </NavLink>
-            <NavLink to="/servicios" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/servicios" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Scissors size={18} /> Servicios
             </NavLink>
-            <NavLink to="/atenciones" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <ClipboardList size={18} /> Atenciones
             </NavLink>
-            <NavLink to="/caja" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <DollarSign size={18} /> Caja
             </NavLink>
-            <NavLink to="/reportes" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <BarChart2 size={18} /> Reportes
             </NavLink>
-            <NavLink to="/liquidacion" className={({isActive}) => isActive ? 'nav-item active' : 'nav-item'}>
+            <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Lock size={18} /> Liquidación
+            </NavLink>
+            <NavLink to="/configuracion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <Settings size={18} /> Configuración
             </NavLink>
           </nav>
 
-          {/* Indicador de licencia */}
           {diasRestantes !== null && (
             <div style={{
               margin: 'auto 10px 16px 10px',
@@ -96,9 +117,7 @@ function App() {
               <div style={{ color: colorDias, fontWeight: 700, fontSize: 20, marginBottom: 2 }}>
                 {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}
               </div>
-              <div style={{ color: '#555', fontSize: 11 }}>
-                Vence: {fechaVence}
-              </div>
+              <div style={{ color: '#555', fontSize: 11 }}>Vence: {fechaVence}</div>
               {diasRestantes <= 10 && (
                 <div style={{ color: colorDias, fontSize: 11, marginTop: 6, fontWeight: 600 }}>
                   ⚠️ Renovar pronto
@@ -106,12 +125,26 @@ function App() {
               )}
             </div>
           )}
-          <div style={{ padding: '0 10px 16px 10px' }}>
 
+          <div style={{ padding: '0 10px 8px 10px' }}>
             <Actualizador />
+          </div>
 
+          <div style={{ padding: '0 10px 8px 10px' }}>
+            <footer style={{
+              marginTop: 'auto',
+              backgroundColor: '#000000',
+              color: '#95a5a6',
+              textAlign: 'center',
+              padding: '8px',
+              fontSize: '12px'
+            }}>
+              Versión 1.0.5 BETA · Desarrollado por
+              <strong style={{ color: '#bdc3c7' }}> <br />Jorge Tapia Ahumada</strong>
+            </footer>
           </div>
         </aside>
+
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Peluqueros />} />
@@ -120,6 +153,7 @@ function App() {
             <Route path="/caja" element={<Caja />} />
             <Route path="/reportes" element={<Reportes />} />
             <Route path="/liquidacion" element={<Liquidacion />} />
+            <Route path="/configuracion" element={<Configuracion onNombreChange={setNombreApp} onLogoChange={setLogo} />} />
           </Routes>
         </main>
       </div>

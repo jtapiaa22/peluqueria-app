@@ -1,6 +1,16 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Eye } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+
+
+// Movidas fuera del componente para evitar problemas de hoisting
+function hoy() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function horaActual() {
+  return new Date().toTimeString().split(' ')[0].slice(0, 5)
+}
 
 export default function Caja() {
   const [atenciones, setAtenciones] = useState([])
@@ -13,14 +23,6 @@ export default function Caja() {
   const [detalleCierre, setDetalleCierre] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert] = useState(null)
-
-  function hoy() {
-    return new Date().toISOString().split('T')[0]
-  }
-
-  function horaActual() {
-    return new Date().toTimeString().split(' ')[0].slice(0, 5)
-  }
 
   const confirmar = (mensaje, onConfirm) => {
     setModalConfirm({ mensaje, onConfirm })
@@ -57,12 +59,26 @@ export default function Caja() {
   const cerrarCaja = () => {
     confirmar('¿Confirmar cierre de caja?', async () => {
       setModalConfirm(null)
+
+      // Calcular totales filtrando por el turno abierto, no por fechaFiltro
+      // Esto evita que un cambio de fecha en el filtro afecte los totales del cierre
+      const atencionesDelTurno = await window.electronAPI.getAtencionesByFecha(cajaAbierta.fecha)
+      const atencionesEnTurno = atencionesDelTurno.filter(
+        a => a.hora >= cajaAbierta.hora_apertura
+      )
+      const efectivoTurno = atencionesEnTurno
+        .filter(a => a.metodo_pago === 'efectivo')
+        .reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+      const transferenciaTurno = atencionesEnTurno
+        .filter(a => a.metodo_pago === 'transferencia')
+        .reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+
       await window.electronAPI.cerrarCaja({
         id: cajaAbierta.id,
         hora_cierre: horaActual(),
-        total_efectivo: totalEfectivo,
-        total_transferencia: totalTransferencia,
-        total_general: totalGeneral,
+        total_efectivo: efectivoTurno,
+        total_transferencia: transferenciaTurno,
+        total_general: efectivoTurno + transferenciaTurno,
         observaciones
       })
       setObservaciones('')
@@ -93,12 +109,14 @@ export default function Caja() {
     return acc
   }, {})
 
-  const resumenPorPeluqueroCierre = detalleCierre ? detalleCierre.atenciones.reduce((acc, a) => {
-    if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = { total: 0, atenciones: 0 }
-    acc[a.peluquero_nombre].total += Number(a.precio_cobrado)
-    acc[a.peluquero_nombre].atenciones += 1
-    return acc
-  }, {}) : {}
+  const resumenPorPeluqueroCierre = detalleCierre
+    ? detalleCierre.atenciones.reduce((acc, a) => {
+        if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = { total: 0, atenciones: 0 }
+        acc[a.peluquero_nombre].total += Number(a.precio_cobrado)
+        acc[a.peluquero_nombre].atenciones += 1
+        return acc
+      }, {})
+    : {}
 
   return (
     <div>
@@ -156,29 +174,37 @@ export default function Caja() {
             </table>
             <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Todas las atenciones</h4>
             <table className="table">
-              <thead><tr><th>Hora</th><th>Peluquero</th><th>Servicio</th><th>Precio</th><th>Pago</th><th>Transferido por</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Hora</th>
+                  <th>Peluquero</th>
+                  <th>Servicio</th>
+                  <th>Precio</th>
+                  <th>Pago</th>
+                  <th>Transferido por</th>
+                </tr>
+              </thead>
               <tbody>
                 {detalleCierre.atenciones.map(a => (
                   <tr key={a.id}>
                     <td>{a.hora}</td>
                     <td>{a.peluquero_nombre}</td>
                     <td>{a.servicio_nombre}</td>
-                    <td>${Number(a.precio_cobrado).toLocaleString('es-AR')}</td>
-                    <td><span className={`badge badge-${a.metodo_pago}`}>{a.metodo_pago}</span></td>
-                    <td style={{ color: a.nombre_transferencia ? '#c084fc' : '#444' }}>{a.nombre_transferencia || '-'}</td>
+                    <td style={{ color: '#4ade80', fontWeight: 600 }}>${Number(a.precio_cobrado).toLocaleString('es-AR')}</td>
+                    <td>
+                      <span style={{
+                        background: a.metodo_pago === 'efectivo' ? '#052e16' : '#2e1065',
+                        color: a.metodo_pago === 'efectivo' ? '#4ade80' : '#c084fc',
+                        padding: '2px 10px', borderRadius: 99, fontSize: 12
+                      }}>
+                        {a.metodo_pago}
+                      </span>
+                    </td>
+                    <td style={{ color: '#666' }}>{a.nombre_transferencia || '-'}</td>
                   </tr>
                 ))}
-                {detalleCierre.atenciones.length === 0 && (
-                  <tr><td colSpan={6} style={{ textAlign: 'center', color: '#555', padding: 20 }}>Sin atenciones</td></tr>
-                )}
               </tbody>
             </table>
-            {detalleCierre.cierre.observaciones && (
-              <div style={{ marginTop: 20, padding: '12px 16px', background: '#0f0f0f', borderRadius: 8 }}>
-                <span style={{ color: '#888', fontSize: 13 }}>Observaciones: </span>
-                <span style={{ color: '#ddd', fontSize: 13 }}>{detalleCierre.cierre.observaciones}</span>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -224,7 +250,7 @@ export default function Caja() {
               <div style={{ fontSize: 26, fontWeight: 700, color: '#c084fc' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
               <div style={{ color: '#555', fontSize: 12, marginTop: 4 }}>{atenciones.filter(a => a.metodo_pago === 'transferencia').length} atenciones</div>
             </div>
-            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid #4c1d95' }}>
+            <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>Total general</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#a78bfa' }}>${totalGeneral.toLocaleString('es-AR')}</div>
               <div style={{ color: '#555', fontSize: 12, marginTop: 4 }}>{atenciones.length} atenciones en total</div>
@@ -239,13 +265,16 @@ export default function Caja() {
                 {Object.keys(resumenPorPeluquero).length === 0 && (
                   <tr><td colSpan={3} style={{ textAlign: 'center', color: '#555', padding: 30 }}>Sin atenciones para este día</td></tr>
                 )}
-                {Object.entries(resumenPorPeluquero).map(([nombre, total]) => (
-                  <tr key={nombre}>
-                    <td>{nombre}</td>
-                    <td style={{ color: '#4ade80', fontWeight: 600 }}>${total.toLocaleString('es-AR')}</td>
-                    <td>{atenciones.filter(a => a.peluquero_nombre === nombre).length}</td>
-                  </tr>
-                ))}
+                {Object.entries(resumenPorPeluquero)
+                  .sort((a, b) => atenciones.filter(at => at.peluquero_nombre === b[0]).length
+                                - atenciones.filter(at => at.peluquero_nombre === a[0]).length)
+                  .map(([nombre, total]) => (
+                    <tr key={nombre}>
+                      <td>{nombre}</td>
+                      <td style={{ color: '#4ade80', fontWeight: 600 }}>${total.toLocaleString('es-AR')}</td>
+                      <td>{atenciones.filter(a => a.peluquero_nombre === nombre).length}</td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -255,7 +284,12 @@ export default function Caja() {
               <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>Cerrar caja</h3>
               <div className="form-group">
                 <label>Observaciones (opcional)</label>
-                <input className="input" value={observaciones} onChange={e => setObservaciones(e.target.value)} placeholder="Ej: turno mañana, turno tarde, etc." />
+                <input
+                  className="input"
+                  value={observaciones}
+                  onChange={e => setObservaciones(e.target.value)}
+                  placeholder="Ej: turno mañana, turno tarde, etc."
+                />
               </div>
               <button className="btn btn-primary" onClick={cerrarCaja}>Cerrar caja</button>
             </div>
@@ -269,7 +303,13 @@ export default function Caja() {
             <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <label style={{ color: '#aaa', fontSize: 14 }}>Filtrar por fecha:</label>
-              <input className="input" type="date" value={fechaHistorial} onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }} style={{ width: 'auto' }} />
+              <input
+                className="input"
+                type="date"
+                value={fechaHistorial}
+                onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }}
+                style={{ width: 'auto' }}
+              />
               {fechaHistorial && (
                 <button className="btn btn-secondary" onClick={() => { setFechaHistorial(''); cargarCierres('') }}>Ver todos</button>
               )}
@@ -290,7 +330,6 @@ export default function Caja() {
             </thead>
             <tbody>
               {(() => {
-                // Agrupar por fecha para mostrar subtotal del día
                 const porFecha = cierres.reduce((acc, c) => {
                   if (!acc[c.fecha]) acc[c.fecha] = []
                   acc[c.fecha].push(c)
@@ -300,7 +339,8 @@ export default function Caja() {
                 return Object.entries(porFecha).map(([fecha, turnos]) => {
                   const totalDia = turnos.reduce((acc, t) => acc + Number(t.total_general), 0)
                   return (
-                    <>
+                    // key en Fragment corregida — antes faltaba y causaba warnings
+                    <React.Fragment key={fecha}>
                       {turnos.map(c => (
                         <tr key={c.id}>
                           <td>{c.fecha}</td>
@@ -324,7 +364,7 @@ export default function Caja() {
                         </td>
                         <td colSpan={2}></td>
                       </tr>
-                    </>
+                    </React.Fragment>
                   )
                 })
               })()}

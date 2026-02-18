@@ -37,5 +37,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Actualizaciones
   checkUpdate: () => ipcRenderer.invoke('updater:check'),
   downloadUpdate: () => ipcRenderer.invoke('updater:download'),
-})
+  onDownloadProgress: (callback) => ipcRenderer.on('updater:download-progress', (_, data) => callback(data)),
+  onDownloadComplete: (callback) => ipcRenderer.on('updater:download-complete', () => callback()),
 
+  // Personalizar nombre-logo
+  getNombreApp: () => ipcRenderer.invoke('config:getNombreApp'),
+  setNombreApp: (nombre) => ipcRenderer.invoke('config:setNombreApp', nombre),
+  getLogo: () => ipcRenderer.invoke('config:getLogo'),
+  setLogo: (ruta) => ipcRenderer.invoke('config:setLogo', ruta),
+})

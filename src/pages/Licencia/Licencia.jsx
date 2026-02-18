@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShieldCheck, ShieldX, Upload } from 'lucide-react'
+import { ShieldX, Upload } from 'lucide-react'
 
 export default function Licencia({ onActivada }) {
   const [mensaje, setMensaje] = useState('')
@@ -44,7 +44,12 @@ export default function Licencia({ onActivada }) {
           Tu licencia ha vencido o no está activada.<br />
           Cargá el archivo <strong style={{ color: '#a78bfa' }}>.lic</strong> que te enviamos para continuar.
         </p>
-        <button className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: 15 }} onClick={cargarArchivo} disabled={cargando}>
+        <button
+          className="btn btn-primary"
+          style={{ width: '100%', padding: '12px', fontSize: 15 }}
+          onClick={cargarArchivo}
+          disabled={cargando}
+        >
           <Upload size={16} style={{ marginRight: 8 }} />
           {cargando ? 'Verificando...' : 'Cargar archivo de licencia'}
         </button>

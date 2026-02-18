@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
 
+// Movidas fuera del componente para evitar problemas de hoisting
+function hoy() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function primerDiaMes() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
 export default function Reportes() {
   const [atenciones, setAtenciones] = useState([])
   const [desde, setDesde] = useState(primerDiaMes())
   const [hasta, setHasta] = useState(hoy())
-
-  function hoy() {
-    return new Date().toISOString().split('T')[0]
-  }
-
-  function primerDiaMes() {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  }
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByRango({ desde, hasta })
@@ -39,6 +40,8 @@ export default function Reportes() {
     return acc
   }, {})
 
+  const sinDatos = atenciones.length === 0
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -51,6 +54,12 @@ export default function Reportes() {
           <button className="btn btn-primary" onClick={cargar}>Buscar</button>
         </div>
       </div>
+
+      {sinDatos && (
+        <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: '#555', fontSize: 14, textAlign: 'center' }}>
+          No hay atenciones registradas en el rango seleccionado.
+        </div>
+      )}
 
       {/* Tarjetas resumen */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -82,13 +91,15 @@ export default function Reportes() {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(resumenPorPeluquero).sort((a, b) => b[1].total - a[1].total).map(([nombre, data]) => (
-                <tr key={nombre}>
-                  <td>{nombre}</td>
-                  <td>{data.atenciones}</td>
-                  <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
-                </tr>
-              ))}
+              {Object.entries(resumenPorPeluquero)
+                .sort((a, b) => b[1].total - a[1].total)
+                .map(([nombre, data]) => (
+                  <tr key={nombre}>
+                    <td>{nombre}</td>
+                    <td>{data.atenciones}</td>
+                    <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                  </tr>
+                ))}
               {Object.keys(resumenPorPeluquero).length === 0 && (
                 <tr><td colSpan={3} style={{ textAlign: 'center', color: '#555', padding: 20 }}>Sin datos</td></tr>
               )}
@@ -108,13 +119,15 @@ export default function Reportes() {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(resumenPorServicio).sort((a, b) => b[1].cantidad - a[1].cantidad).map(([nombre, data]) => (
-                <tr key={nombre}>
-                  <td>{nombre}</td>
-                  <td>{data.cantidad}</td>
-                  <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
-                </tr>
-              ))}
+              {Object.entries(resumenPorServicio)
+                .sort((a, b) => b[1].cantidad - a[1].cantidad)
+                .map(([nombre, data]) => (
+                  <tr key={nombre}>
+                    <td>{nombre}</td>
+                    <td>{data.cantidad}</td>
+                    <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                  </tr>
+                ))}
               {Object.keys(resumenPorServicio).length === 0 && (
                 <tr><td colSpan={3} style={{ textAlign: 'center', color: '#555', padding: 20 }}>Sin datos</td></tr>
               )}

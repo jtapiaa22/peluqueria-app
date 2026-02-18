@@ -1,34 +1,58 @@
 {
   "name": "peluqueria-app",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Sistema de gestión para peluquería",
+  "author": "Jorge Tapia Ahumada",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build && electron-builder",
+    "publish": "vite build && npx electron-builder --win nsis --publish always",
     "preview": "vite preview"
   },
   "build": {
-  "appId": "com.peluqueria.app",
-  "productName": "PeluApp",
-  "directories": {
-    "output": "dist-electron"
+    "appId": "com.peluqueria.app",
+    "productName": "PeluApp",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/sql.js/**"
+    ],
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist-electron"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "jtapiaa22",
+      "repo": "peluqueria-app",
+      "releaseType": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["es_ES"],
+      "language": "3082",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PeluApp"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office",
+      "icon": "public/icon.png"
+    }
   },
-  "publish": {
-    "provider": "github",
-    "owner": "jtapiaa22",
-    "repo": "peluqueria-app"
-  },
-  "linux": {
-    "target": "AppImage",
-    "category": "Office"
-  },
-  "win": {
-    "target": "nsis"
-  }
-},
   "dependencies": {
-    "crypto": "^1.0.1",
+    "dotenv": "^17.3.1",
     "electron-updater": "^6.1.7",
     "lucide-react": "^0.574.0",
     "react": "^18.2.0",
