@@ -1,0 +1,47 @@
+{
+  "name": "peluqueria-app",
+  "version": "1.0.0",
+  "description": "Sistema de gestión para peluquería",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build && electron-builder",
+    "preview": "vite preview"
+  },
+  "build": {
+  "appId": "com.peluqueria.app",
+  "productName": "PeluApp",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "publish": {
+    "provider": "github",
+    "owner": "jtapiaa22",
+    "repo": "peluqueria-app"
+  },
+  "linux": {
+    "target": "AppImage",
+    "category": "Office"
+  },
+  "win": {
+    "target": "nsis"
+  }
+},
+  "dependencies": {
+    "crypto": "^1.0.1",
+    "electron-updater": "^6.1.7",
+    "lucide-react": "^0.574.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "sql.js": "^1.14.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "vite": "^5.1.4",
+    "wait-on": "^7.2.0"
+  }
+}
