@@ -1,6 +1,6 @@
 {
   "name": "peluqueria-app",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Sistema de gestión para peluquería",
   "author": "Jorge Tapia Ahumada",
   "main": "electron/main.js",
