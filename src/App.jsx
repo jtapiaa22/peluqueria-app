@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, version } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
 import { Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings } from 'lucide-react'
 import Peluqueros from './pages/Peluqueros/Peluqueros'
@@ -18,25 +18,18 @@ function App() {
   const [fechaVence, setFechaVence] = useState(null)
   const [nombreApp, setNombreApp] = useState('PeluApp')
   const [logo, setLogo] = useState(null)
+  const [version, setVersion] = useState(null)
 
   useEffect(() => {
     window.electronAPI.verificarLicencia().then(res => {
       setLicenciaValida(res.valida)
       if (res.valida) {
         setFechaVence(res.vence)
-        if (res.diasRestantes !== undefined) {
-          setDiasRestantes(res.diasRestantes)
-        } else {
-          const hoy = new Date()
-          hoy.setHours(0, 0, 0, 0)
-          const vence = new Date(res.vence)
-          vence.setHours(23, 59, 59, 0)
-          const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
-          setDiasRestantes(diff)
-        }
+        setDiasRestantes(res.diasRestantes)
       }
     })
-
+    
+    window.electronAPI.getVersion().then(v => setVersion(v))
     window.electronAPI.getNombreApp().then(nombre => setNombreApp(nombre))
     window.electronAPI.getLogo().then(logo => setLogo(logo))
 
@@ -50,14 +43,9 @@ function App() {
     <Licencia onActivada={() => {
       window.electronAPI.verificarLicencia().then(res => {
         setLicenciaValida(res.valida)
-        if (res.valida && res.vence) {
+        if(res.valida){
           setFechaVence(res.vence)
-          const hoy = new Date()
-          hoy.setHours(0, 0, 0, 0)
-          const vence = new Date(res.vence)
-          vence.setHours(0, 0, 0, 0)
-          const diff = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24))
-          setDiasRestantes(diff)
+          setDiasRestantes(res.diasRestantes)
         }
       })
     }} />
@@ -139,7 +127,7 @@ function App() {
               padding: '8px',
               fontSize: '12px'
             }}>
-              Versión 1.0.5 BETA · Desarrollado por
+              <span><v>{version}</v></span> BETA · Desarrollado por
               <strong style={{ color: '#bdc3c7' }}> <br />Jorge Tapia Ahumada</strong>
             </footer>
           </div>

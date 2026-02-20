@@ -100,13 +100,16 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    autoHideMenuBar: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       webSecurity: false
     }
-  })
+  });
+
+  
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
@@ -216,7 +219,14 @@ async function verificarLicencia() {
       .digest('hex')
     if (firma !== datos.firma) return { valida: false, mensaje: 'Licencia inválida o modificada.' }
 
-    const hoy = new Date().toISOString().split('T')[0]
+    // Usar fecha LOCAL de la máquina (no UTC) para evitar desfase por zona horaria
+    const ahora = new Date()
+    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
+
+    // Todas las fechas normalizadas a medianoche UTC para comparaciones consistentes
+    const fechaHoy = new Date(hoy + 'T00:00:00Z')
+    const fechaDesde = new Date(datos.desde + 'T00:00:00Z')
+    const fechaVence = new Date(datos.vence + 'T00:00:00Z')
 
     // Verificar que no atrasaron el reloj
     const ultimaFechaResult = query("SELECT valor FROM configuracion WHERE clave = 'ultima_fecha_uso'")
@@ -240,10 +250,8 @@ async function verificarLicencia() {
       run("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('dias_usados', ?)", [JSON.stringify(diasUsados)])
     }
 
-    // Calcular cuántos días tiene la licencia en total
-    const fechaDesde = new Date(datos.desde)
-    const fechaVence = new Date(datos.vence)
-    const totalDiasLicencia = Math.ceil((fechaVence - fechaDesde) / (1000 * 60 * 60 * 24)) + 1
+    // Calcular total de días de la licencia (todas normalizadas a UTC medianoche)
+    const totalDiasLicencia = Math.round((fechaVence - fechaDesde) / (1000 * 60 * 60 * 24)) + 1
 
     // Si usó más días únicos que los que tiene la licencia, bloquear
     if (diasUsados.length > totalDiasLicencia) {
@@ -253,12 +261,11 @@ async function verificarLicencia() {
     // Actualizar última fecha de uso
     run("INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('ultima_fecha_uso', ?)", [hoy])
 
-    if (hoy < datos.desde) return { valida: false, mensaje: `La licencia es válida a partir del ${datos.desde}.` }
-    if (hoy > datos.vence) return { valida: false, mensaje: `Licencia vencida el ${datos.vence}.` }
+    if (fechaHoy < fechaDesde) return { valida: false, mensaje: `La licencia es válida a partir del ${datos.desde}.` }
+    if (fechaHoy > fechaVence) return { valida: false, mensaje: `Licencia vencida el ${datos.vence}.` }
 
-    // +1 para que el día de vencimiento muestre "1 día restante" en lugar de "0"
-    const fechaHoy = new Date(hoy)
-    const diasRestantes = Math.ceil((fechaVence - fechaHoy) / (1000 * 60 * 60 * 24)) + 1
+    // Días restantes: diferencia exacta en días + 1 para incluir el día de vencimiento
+    const diasRestantes = Math.round((fechaVence - fechaHoy) / (1000 * 60 * 60 * 24)) + 1
 
     return {
       valida: true,
@@ -365,4 +372,8 @@ ipcMain.handle('config:setLogo', async (_, rutaArchivo) => {
   } catch (e) {
     return { ok: false }
   }
+})
+
+ipcMain.handle('app:getVersion', () => {
+  return app.getVersion()
 })

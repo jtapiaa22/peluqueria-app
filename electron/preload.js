@@ -45,4 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setNombreApp: (nombre) => ipcRenderer.invoke('config:setNombreApp', nombre),
   getLogo: () => ipcRenderer.invoke('config:getLogo'),
   setLogo: (ruta) => ipcRenderer.invoke('config:setLogo', ruta),
+
+  // Obtener versión
+  getVersion: () => ipcRenderer.invoke('app:getVersion')
 })
