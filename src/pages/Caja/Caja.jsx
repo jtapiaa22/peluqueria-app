@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, Eye } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { div } from 'framer-motion/client'
+import { AnimatePresence, motion } from "framer-motion";
 
 
 // Movidas fuera del componente para evitar problemas de hoisting
@@ -119,7 +121,7 @@ export default function Caja() {
     : {}
 
   return (
-    <div>
+    <div className='page-animation'>
       {modalConfirm && (
         <ModalConfirm
           mensaje={modalConfirm.mensaje}
@@ -135,8 +137,14 @@ export default function Caja() {
         />
       )}
 
+
+      <AnimatePresence>
       {detalleCierre && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
           <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 14, padding: 30, width: '100%', maxWidth: 700, maxHeight: '85vh', overflowY: 'auto', position: 'relative' }}>
             <button onClick={() => setDetalleCierre(null)} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' }}>
               <X size={20} />
@@ -206,8 +214,9 @@ export default function Caja() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
+      </AnimatePresence>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Caja</h1>
@@ -219,7 +228,7 @@ export default function Caja() {
 
       {vistaActiva === 'dia' && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div className="form-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <label style={{ color: '#aaa', fontSize: 14 }}>Fecha:</label>
               <input className="input" type="date" value={fechaFiltro} onChange={e => setFechaFiltro(e.target.value)} style={{ width: 'auto' }} />
@@ -298,81 +307,83 @@ export default function Caja() {
       )}
 
       {vistaActiva === 'historial' && (
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <label style={{ color: '#aaa', fontSize: 14 }}>Filtrar por fecha:</label>
-              <input
-                className="input"
-                type="date"
-                value={fechaHistorial}
-                onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }}
-                style={{ width: 'auto' }}
-              />
-              {fechaHistorial && (
-                <button className="btn btn-secondary" onClick={() => { setFechaHistorial(''); cargarCierres('') }}>Ver todos</button>
-              )}
+        <div className="form-container">
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <label style={{ color: '#aaa', fontSize: 14 }}>Filtrar por fecha:</label>
+                <input
+                  className="input"
+                  type="date"
+                  value={fechaHistorial}
+                  onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }}
+                  style={{ width: 'auto' }}
+                />
+                {fechaHistorial && (
+                  <button className="btn btn-secondary" onClick={() => { setFechaHistorial(''); cargarCierres('') }}>Ver todos</button>
+                )}
+              </div>
             </div>
-          </div>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Apertura</th>
-                <th>Cierre</th>
-                <th>Efectivo</th>
-                <th>Transferencia</th>
-                <th>Total turno</th>
-                <th>Observaciones</th>
-                <th>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                const porFecha = cierres.reduce((acc, c) => {
-                  if (!acc[c.fecha]) acc[c.fecha] = []
-                  acc[c.fecha].push(c)
-                  return acc
-                }, {})
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Apertura</th>
+                  <th>Cierre</th>
+                  <th>Efectivo</th>
+                  <th>Transferencia</th>
+                  <th>Total turno</th>
+                  <th>Observaciones</th>
+                  <th>Detalle</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const porFecha = cierres.reduce((acc, c) => {
+                    if (!acc[c.fecha]) acc[c.fecha] = []
+                    acc[c.fecha].push(c)
+                    return acc
+                  }, {})
 
-                return Object.entries(porFecha).map(([fecha, turnos]) => {
-                  const totalDia = turnos.reduce((acc, t) => acc + Number(t.total_general), 0)
-                  return (
-                    // key en Fragment corregida — antes faltaba y causaba warnings
-                    <React.Fragment key={fecha}>
-                      {turnos.map(c => (
-                        <tr key={c.id}>
-                          <td>{c.fecha}</td>
-                          <td>{c.hora_apertura}hs</td>
-                          <td>{c.hora_cierre}hs</td>
-                          <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
-                          <td style={{ color: '#c084fc' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
-                          <td style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
-                          <td style={{ color: '#666' }}>{c.observaciones || '-'}</td>
-                          <td>
-                            <button className="btn btn-secondary" onClick={() => verDetalle(c)}><Eye size={14} /></button>
+                  return Object.entries(porFecha).map(([fecha, turnos]) => {
+                    const totalDia = turnos.reduce((acc, t) => acc + Number(t.total_general), 0)
+                    return (
+                      // key en Fragment corregida — antes faltaba y causaba warnings
+                      <React.Fragment key={fecha}>
+                        {turnos.map(c => (
+                          <tr key={c.id}>
+                            <td>{c.fecha}</td>
+                            <td>{c.hora_apertura}hs</td>
+                            <td>{c.hora_cierre}hs</td>
+                            <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
+                            <td style={{ color: '#c084fc' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
+                            <td style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
+                            <td style={{ color: '#666' }}>{c.observaciones || '-'}</td>
+                            <td>
+                              <button className="btn btn-secondary" onClick={() => verDetalle(c)}><Eye size={14} /></button>
+                            </td>
+                          </tr>
+                        ))}
+                        <tr style={{ background: '#1f1f1f' }}>
+                          <td colSpan={5} style={{ color: '#888', fontSize: 13, paddingLeft: 14 }}>
+                            Total del día {fecha}
                           </td>
+                          <td style={{ color: '#facc15', fontWeight: 700 }}>
+                            ${totalDia.toLocaleString('es-AR')}
+                          </td>
+                          <td colSpan={2}></td>
                         </tr>
-                      ))}
-                      <tr style={{ background: '#1f1f1f' }}>
-                        <td colSpan={5} style={{ color: '#888', fontSize: 13, paddingLeft: 14 }}>
-                          Total del día {fecha}
-                        </td>
-                        <td style={{ color: '#facc15', fontWeight: 700 }}>
-                          ${totalDia.toLocaleString('es-AR')}
-                        </td>
-                        <td colSpan={2}></td>
-                      </tr>
-                    </React.Fragment>
-                  )
-                })
-              })()}
-              {cierres.length === 0 && (
-                <tr><td colSpan={8} style={{ textAlign: 'center', color: '#555', padding: 30 }}>No hay cierres registrados</td></tr>
-              )}
-            </tbody>
-          </table>
+                      </React.Fragment>
+                    )
+                  })
+                })()}
+                {cierres.length === 0 && (
+                  <tr><td colSpan={8} style={{ textAlign: 'center', color: '#555', padding: 30 }}>No hay cierres registrados</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

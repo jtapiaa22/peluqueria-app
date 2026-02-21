@@ -161,7 +161,7 @@ ipcMain.handle('atenciones:getByFecha', (_, fecha) => query(`
   FROM atenciones a
   JOIN peluqueros p ON a.peluquero_id = p.id
   JOIN servicios s ON a.servicio_id = s.id
-  WHERE a.fecha = ? ORDER BY a.hora DESC
+  WHERE a.fecha = ? ORDER BY a.id DESC
 `, [fecha]))
 ipcMain.handle('atenciones:getByRango', (_, { desde, hasta }) => query(`
   SELECT a.*, p.nombre as peluquero_nombre, s.nombre as servicio_nombre

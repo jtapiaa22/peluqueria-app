@@ -354,3 +354,38 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.page-animation {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    transform: translate(10px);
+  }
+  to{
+    opacity: 1;
+    transform: translate(0);
+  }
+  
+}
+
+
+.form-container {
+  overflow: hidden;
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}

@@ -54,7 +54,7 @@ export default function Configuracion({ onNombreChange, onLogoChange }) {
   }
 
   return (
-    <div>
+    <div className='page-animation'>
       {modalAlert && (
         <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />
       )}

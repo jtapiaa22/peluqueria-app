@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { motion, AnimatePresence } from 'framer-motion'
+
 
 export default function Servicios() {
   const [servicios, setServicios] = useState([])
@@ -51,14 +53,17 @@ export default function Servicios() {
   }
 
   return (
-    <div>
-      {modalConfirm && (
-        <ModalConfirm
-          mensaje={modalConfirm.mensaje}
-          onConfirm={modalConfirm.onConfirm}
-          onCancel={() => setModalConfirm(null)}
-        />
-      )}
+    <div className='page-animation'>
+      <AnimatePresence>
+        {modalConfirm && (
+          <ModalConfirm
+            key="modalConfirm"
+            mensaje={modalConfirm.mensaje}
+            onConfirm={modalConfirm.onConfirm}
+            onCancel={() => setModalConfirm(null)}
+          />
+        )}
+      </AnimatePresence>
       {modalAlert && (
         <ModalAlert
           mensaje={modalAlert.mensaje}
@@ -73,9 +78,14 @@ export default function Servicios() {
           <Plus size={16} style={{ marginRight: 6 }} />Agregar
         </button>
       </div>
-
+      <AnimatePresence>
       {mostrarForm && (
-        <div className="card">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="card"
+        >
           <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>{editando ? 'Editar servicio' : 'Nuevo servicio'}</h3>
           <div className="form-group">
             <label>Nombre del servicio</label>
@@ -89,8 +99,10 @@ export default function Servicios() {
             <button className="btn btn-primary" onClick={guardar}>Guardar</button>
             <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
           </div>
-        </div>
-      )}
+        </motion.div>
+        )}
+        </AnimatePresence>
+      
 
       <div className="card">
         <table className="table">

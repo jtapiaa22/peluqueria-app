@@ -43,7 +43,7 @@ export default function Reportes() {
   const sinDatos = atenciones.length === 0
 
   return (
-    <div>
+    <div className='page-animation'>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Reportes</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

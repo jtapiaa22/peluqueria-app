@@ -1,19 +1,52 @@
+import { motion } from "framer-motion";
+
 export function ModalConfirm({ mensaje, onConfirm, onCancel }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000
-    }}>
-      <div style={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 14, padding: 30, width: 380 }}>
-        <p style={{ color: '#f0f0f0', fontSize: 15, marginBottom: 24, lineHeight: 1.5 }}>{mensaje}</p>
+    <motion.div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2000
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.div
+        style={{
+          background: '#1a1a1a',
+          border: '1px solid #2a2a2a',
+          borderRadius: 14,
+          padding: 30,
+          width: 380
+        }}
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.85, opacity: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <p style={{ color: '#f0f0f0', marginBottom: 24 }}>
+          {mensaje}
+        </p>
+
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button className="btn btn-secondary" onClick={onCancel}>Cancelar</button>
-          <button className="btn btn-primary" onClick={onConfirm}>Confirmar</button>
+          <button className="btn btn-secondary" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className="btn btn-primary" onClick={onConfirm}>
+            Confirmar
+          </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
+
 
 export function ModalAlert({ mensaje, tipo = 'info', onClose }) {
   const colores = {
@@ -40,3 +73,4 @@ export function ModalAlert({ mensaje, tipo = 'info', onClose }) {
     </div>
   )
 }
+

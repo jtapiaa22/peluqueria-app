@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Peluqueros() {
   const [peluqueros, setPeluqueros] = useState([])
@@ -51,7 +52,7 @@ export default function Peluqueros() {
   }
 
   return (
-    <div>
+    <div className='page-animation'>
       {modalConfirm && (
         <ModalConfirm
           mensaje={modalConfirm.mensaje}
@@ -74,8 +75,14 @@ export default function Peluqueros() {
         </button>
       </div>
 
+      <AnimatePresence>
       {mostrarForm && (
-        <div className="card">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+        >
           <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>{editando ? 'Editar peluquero' : 'Nuevo peluquero'}</h3>
           <div className="form-group">
             <label>Nombre</label>
@@ -89,8 +96,9 @@ export default function Peluqueros() {
             <button className="btn btn-primary" onClick={guardar}>Guardar</button>
             <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <div className="card">
         <table className="table">
