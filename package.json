@@ -1,6 +1,6 @@
 {
   "name": "peluqueria-app",
-  "version": "1.0.9",
+  "version": "2.0.3",
   "description": "Sistema de gestión para peluquería",
   "author": "Jorge Tapia Ahumada",
   "main": "electron/main.js",
@@ -14,6 +14,8 @@
     "appId": "com.peluqueria.app",
     "productName": "PeluApp",
     "asar": true,
+    "extraResources": [],
+    "npmRebuild": true,
     "asarUnpack": [
       "node_modules/sql.js/**"
     ],
@@ -54,9 +56,12 @@
     }
   },
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
     "dotenv": "^17.3.1",
     "electron-updater": "^6.1.7",
     "framer-motion": "^12.34.3",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.574.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -68,6 +73,7 @@
     "concurrently": "^8.2.2",
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9",
     "vite": "^5.1.4",
     "wait-on": "^7.2.0"
   }

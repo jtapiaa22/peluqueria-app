@@ -3,17 +3,16 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
-
 export default function Servicios() {
-  const [servicios, setServicios] = useState([])
-  const [form, setForm] = useState({ nombre: '', precio: '' })
-  const [editando, setEditando] = useState(null)
-  const [mostrarForm, setMostrarForm] = useState(false)
+  const [servicios, setServicios]       = useState([])
+  const [form, setForm]                 = useState({ nombre: '', precio: '' })
+  const [editando, setEditando]         = useState(null)
+  const [mostrarForm, setMostrarForm]   = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
-  const [modalAlert, setModalAlert] = useState(null)
+  const [modalAlert, setModalAlert]     = useState(null)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
 
   const cargar = async () => {
     const data = await window.electronAPI.getServicios()
@@ -53,17 +52,14 @@ export default function Servicios() {
   }
 
   return (
-    <div className='page-animation'>
-      <AnimatePresence>
-        {modalConfirm && (
-          <ModalConfirm
-            key="modalConfirm"
-            mensaje={modalConfirm.mensaje}
-            onConfirm={modalConfirm.onConfirm}
-            onCancel={() => setModalConfirm(null)}
-          />
-        )}
-      </AnimatePresence>
+    <div className="page-animation">
+      {modalConfirm && (
+        <ModalConfirm
+          mensaje={modalConfirm.mensaje}
+          onConfirm={modalConfirm.onConfirm}
+          onCancel={() => setModalConfirm(null)}
+        />
+      )}
       {modalAlert && (
         <ModalAlert
           mensaje={modalAlert.mensaje}
@@ -78,31 +74,33 @@ export default function Servicios() {
           <Plus size={16} style={{ marginRight: 6 }} />Agregar
         </button>
       </div>
+
       <AnimatePresence>
-      {mostrarForm && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="card"
-        >
-          <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>{editando ? 'Editar servicio' : 'Nuevo servicio'}</h3>
-          <div className="form-group">
-            <label>Nombre del servicio</label>
-            <input className="input" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Corte de cabello" />
-          </div>
-          <div className="form-group">
-            <label>Precio ($)</label>
-            <input className="input" type="number" value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} placeholder="Ej: 2000" />
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" onClick={guardar}>Guardar</button>
-            <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
-          </div>
-        </motion.div>
+        {mostrarForm && (
+          <motion.div
+            className="card"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+              {editando ? 'Editar servicio' : 'Nuevo servicio'}
+            </h3>
+            <div className="form-group">
+              <label>Nombre del servicio</label>
+              <input className="input" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Ej: Corte de cabello" />
+            </div>
+            <div className="form-group">
+              <label>Precio ($)</label>
+              <input className="input" type="number" value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} placeholder="Ej: 2000" />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button className="btn btn-primary" onClick={guardar}>Guardar</button>
+              <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
+            </div>
+          </motion.div>
         )}
-        </AnimatePresence>
-      
+      </AnimatePresence>
 
       <div className="card">
         <table className="table">
@@ -127,7 +125,11 @@ export default function Servicios() {
               </tr>
             ))}
             {servicios.length === 0 && (
-              <tr><td colSpan={3} style={{ textAlign: 'center', color: '#555', padding: 30 }}>No hay servicios registrados</td></tr>
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
+                  No hay servicios registrados
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

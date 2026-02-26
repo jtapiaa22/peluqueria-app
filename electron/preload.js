@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAtencionesByFecha: (fecha) => ipcRenderer.invoke('atenciones:getByFecha', fecha),
   getAtencionesByRango: (rango) => ipcRenderer.invoke('atenciones:getByRango', rango),
   deleteAtencion: (id) => ipcRenderer.invoke('atenciones:delete', id),
+  updateAtencion: (data) => ipcRenderer.invoke('atenciones:update', data),
 
   // Caja
   abrirCaja: (data) => ipcRenderer.invoke('caja:abrir', data),
@@ -47,5 +48,25 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setLogo: (ruta) => ipcRenderer.invoke('config:setLogo', ruta),
 
   // Obtener versión
-  getVersion: () => ipcRenderer.invoke('app:getVersion')
+  getVersion: () => ipcRenderer.invoke('app:getVersion'),
+
+  //backup automaticos
+  abrirCarpetaBackup: () => ipcRenderer.invoke('backup:abrirCarpeta'),
+  listarBackups: () => ipcRenderer.invoke('backup:listar'),
+
+  // Gastos
+  getGastos: () => ipcRenderer.invoke('gastos:getAll'),
+  getGastosByRango: (rango) => ipcRenderer.invoke('gastos:getByRango', rango),
+  getResumenMensualGastos: () => ipcRenderer.invoke('gastos:getResumenMensual'),
+  createGasto: (data) => ipcRenderer.invoke('gastos:create', data),
+  updateGasto: (data) => ipcRenderer.invoke('gastos:update', data),
+  deleteGasto: (id) => ipcRenderer.invoke('gastos:delete', id),
+
+  //Exportar a PDF
+  guardarPDF: (data) => ipcRenderer.invoke('pdf:guardar', data),
+
+  // Dashboard
+  getDashboard: () => ipcRenderer.invoke('dashboard:getResumen'),
+
+
 })

@@ -5,8 +5,8 @@ import { Loader2 } from 'lucide-react'
 export default function Actualizador() {
   const [verificando, setVerificando] = useState(false)
   const [descargando, setDescargando] = useState(false)
-  const [progreso, setProgreso] = useState(0)
-  const [modalAlert, setModalAlert] = useState(null)
+  const [progreso, setProgreso]       = useState(0)
+  const [modalAlert, setModalAlert]   = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
 
   useEffect(() => {
@@ -27,7 +27,6 @@ export default function Actualizador() {
   const verificar = async () => {
     try {
       setVerificando(true)
-
       const result = await window.electronAPI.checkUpdate()
 
       if (result.disponible) {
@@ -41,20 +40,16 @@ export default function Actualizador() {
           }
         })
       } else {
-        setModalAlert({
-          mensaje: 'Ya tenés la última versión instalada.',
-          tipo: 'success'
-        })
+        setModalAlert({ mensaje: 'Ya tenés la última versión instalada.', tipo: 'success' })
       }
     } catch (e) {
-      setModalAlert({
-        mensaje: 'No se pudo verificar actualizaciones. Revisá tu conexión.',
-        tipo: 'error'
-      })
+      setModalAlert({ mensaje: 'No se pudo verificar actualizaciones. Revisá tu conexión.', tipo: 'error' })
     } finally {
       setVerificando(false)
     }
   }
+
+  const activo = verificando || descargando
 
   return (
     <>
@@ -74,13 +69,14 @@ export default function Actualizador() {
       )}
 
       <div style={{ width: '100%', marginTop: 20 }}>
+
         {/* Barra de progreso */}
         {descargando && (
           <div style={{ marginBottom: 8 }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
-              color: '#94a3b8',
+              color: 'var(--text-muted)',
               fontSize: 12,
               marginBottom: 4
             }}>
@@ -90,14 +86,14 @@ export default function Actualizador() {
             <div style={{
               width: '100%',
               height: 6,
-              background: '#1f2937',
+              background: 'var(--border-soft)',
               borderRadius: 99,
               overflow: 'hidden'
             }}>
               <div style={{
                 width: `${progreso}%`,
                 height: '100%',
-                background: '#00f7ff',
+                background: 'var(--accent)',
                 borderRadius: 99,
                 transition: 'width 0.3s ease'
               }} />
@@ -107,26 +103,25 @@ export default function Actualizador() {
 
         <button
           onClick={verificar}
-          disabled={verificando || descargando}
+          disabled={activo}
           style={{
             width: '100%',
-            borderTop: '1px solid #34495e',
             padding: '12px 16px',
             borderRadius: 20,
-            border: '1px solid #2a2a2a',
-            background: (verificando || descargando) ? '#1f2937' : '#111827',
-            color: '#00f7ff',
+            border: '1px solid var(--border-primary)',
+            background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
+            color: activo ? 'var(--text-muted)' : '#c4b5fd',
             fontSize: 13,
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            cursor: (verificando || descargando) ? 'not-allowed' : 'pointer',
+            cursor: activo ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
-          {(verificando || descargando) && <Loader2 size={16} className="spin" />}
+          {activo && <Loader2 size={16} className="spin" />}
           {descargando
             ? `Descargando... ${progreso}%`
             : verificando

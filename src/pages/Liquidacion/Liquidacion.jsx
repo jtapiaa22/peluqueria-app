@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react'
-import { Lock, Unlock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { ModalAlert } from '../../components/Modal'
+import { usePDF } from '../../hooks/usePDF'
+import { motion, AnimatePresence } from 'framer-motion'
+
+
+function hoy() {
+  return new Date().toISOString().split('T')[0]
+}
+function primerDiaMes() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
 
 export default function Liquidacion() {
   const [desbloqueado, setDesbloqueado] = useState(false)
-  const [password, setPassword] = useState('')
-  const [peluqueros, setPeluqueros] = useState([])
-  const [atenciones, setAtenciones] = useState([])
-  const [desde, setDesde] = useState(primerDiaMes())
-  const [hasta, setHasta] = useState(hoy())
-  const [modalAlert, setModalAlert] = useState(null)
-  const [cambiarPass, setCambiarPass] = useState(false)
-  const [passForm, setPassForm] = useState({ actual: '', nueva: '', repetir: '' })
+  const [password, setPassword]         = useState('')
+  const [peluqueros, setPeluqueros]     = useState([])
+  const [atenciones, setAtenciones]     = useState([])
+  const [desde, setDesde]               = useState(primerDiaMes())
+  const [hasta, setHasta]               = useState(hoy())
+  const [modalAlert, setModalAlert]     = useState(null)
+  const [cambiarPass, setCambiarPass]   = useState(false)
+  const [passForm, setPassForm]         = useState({ actual: '', nueva: '', repetir: '' })
 
-  function hoy() {
-    return new Date().toISOString().split('T')[0]
-  }
-
-  function primerDiaMes() {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
-  }
+  const { generarReporte } = usePDF()
 
   const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
 
@@ -67,23 +71,44 @@ export default function Liquidacion() {
     setCambiarPass(false)
   }
 
-  const getLiquidacionPeluquero = (peluqueroId, nombrePeluquero) => {
-    const atencionesP = atenciones.filter(a => a.peluquero_id == peluqueroId)
+  const getLiquidacionPeluquero = (peluqueroId) => {
+    const atencionesP   = atenciones.filter(a => a.peluquero_id == peluqueroId)
     const totalGenerado = atencionesP.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-    const peluquero = peluqueros.find(p => p.id == peluqueroId)
-    const comision = peluquero ? Number(peluquero.comision) : 0
+    const peluquero     = peluqueros.find(p => p.id == peluqueroId)
+    const comision      = peluquero ? Number(peluquero.comision) : 0
     const montoComision = (totalGenerado * comision) / 100
     return { totalGenerado, comision, montoComision, cantidad: atencionesP.length }
   }
 
   const peluquerosConDatos = peluqueros.map(p => ({
     ...p,
-    ...getLiquidacionPeluquero(p.id, p.nombre)
+    ...getLiquidacionPeluquero(p.id)
   }))
 
   const totalGeneralPeriodo = peluquerosConDatos.reduce((acc, p) => acc + p.totalGenerado, 0)
-  const totalComisiones = peluquerosConDatos.reduce((acc, p) => acc + p.montoComision, 0)
+  const totalComisiones     = peluquerosConDatos.reduce((acc, p) => acc + p.montoComision, 0)
 
+  const exportarPDF = async () => {
+    await generarReporte({
+      titulo: 'Liquidación de comisiones',
+      subtitulo: `Período: ${desde} al ${hasta}`,
+      columnas: ['Peluquero', 'Atenciones', 'Total generado', 'Comisión %', 'A pagar'],
+      filas: peluquerosConDatos.map(p => [
+        p.nombre,
+        String(p.cantidad),
+        `$${p.totalGenerado.toLocaleString('es-AR')}`,
+        `${p.comision}%`,
+        `$${p.montoComision.toLocaleString('es-AR')}`
+      ]),
+      totales: [
+        { label: 'Total generado en el período', valor: `$${totalGeneralPeriodo.toLocaleString('es-AR')}`, color: [74, 222, 128] },
+        { label: 'Total a pagar en comisiones',  valor: `$${totalComisiones.toLocaleString('es-AR')}`,    color: [248, 113, 113] },
+      ],
+      nombreArchivo: `liquidacion_${desde}_${hasta}.pdf`
+    })
+  }
+
+  // ── Pantalla de login ──
   if (!desbloqueado) {
     return (
       <div>
@@ -94,8 +119,10 @@ export default function Liquidacion() {
         <div style={{ maxWidth: 380, margin: '60px auto' }}>
           <div className="card" style={{ textAlign: 'center' }}>
             <Lock size={40} style={{ color: '#a78bfa', marginBottom: 16 }} />
-            <h3 style={{ color: '#f0f0f0', marginBottom: 8 }}>Sección privada</h3>
-            <p style={{ color: '#666', fontSize: 13, marginBottom: 24 }}>Ingresá la contraseña para acceder a las liquidaciones.</p>
+            <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Sección privada</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>
+              Ingresá la contraseña para acceder a las liquidaciones.
+            </p>
             <div className="form-group" style={{ textAlign: 'left' }}>
               <label>Contraseña</label>
               <input
@@ -116,8 +143,10 @@ export default function Liquidacion() {
     )
   }
 
+  // ── Vista desbloqueada ──
   return (
-    <div className='page-animation'>
+    <div className="page-animation">
+      
       {modalAlert && (
         <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />
       )}
@@ -125,6 +154,9 @@ export default function Liquidacion() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Liquidación</h1>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={exportarPDF}>
+            Exportar PDF
+          </button>
           <button className="btn btn-secondary" onClick={() => setCambiarPass(!cambiarPass)}>
             Cambiar contraseña
           </button>
@@ -134,33 +166,43 @@ export default function Liquidacion() {
         </div>
       </div>
 
+      <AnimatePresence>
+      {/* Cambiar contraseña */}
       {cambiarPass && (
-        <div className="card" style={{ maxWidth: 400, marginBottom: 24 }}>
-          <h3 style={{ color: '#a78bfa', marginBottom: 16 }}>Cambiar contraseña</h3>
-          <div className="form-group">
-            <label>Contraseña actual</label>
-            <input className="input" type="password" value={passForm.actual} onChange={e => setPassForm({ ...passForm, actual: e.target.value })} placeholder="••••••••" />
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="card"
+        >
+          <div className="card" style={{ maxWidth: 400, marginBottom: 24 }}>
+            <h3 style={{ color: '#a78bfa', marginBottom: 16 }}>Cambiar contraseña</h3>
+            <div className="form-group">
+              <label>Contraseña actual</label>
+              <input className="input" type="password" value={passForm.actual} onChange={e => setPassForm({ ...passForm, actual: e.target.value })} placeholder="••••••••" />
+            </div>
+            <div className="form-group">
+              <label>Nueva contraseña</label>
+              <input className="input" type="password" value={passForm.nueva} onChange={e => setPassForm({ ...passForm, nueva: e.target.value })} placeholder="••••••••" />
+            </div>
+            <div className="form-group">
+              <label>Repetir nueva contraseña</label>
+              <input className="input" type="password" value={passForm.repetir} onChange={e => setPassForm({ ...passForm, repetir: e.target.value })} placeholder="••••••••" />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="btn btn-primary" onClick={cambiarContrasena}>Guardar</button>
+              <button className="btn btn-secondary" onClick={() => setCambiarPass(false)}>Cancelar</button>
+            </div>
           </div>
-          <div className="form-group">
-            <label>Nueva contraseña</label>
-            <input className="input" type="password" value={passForm.nueva} onChange={e => setPassForm({ ...passForm, nueva: e.target.value })} placeholder="••••••••" />
-          </div>
-          <div className="form-group">
-            <label>Repetir nueva contraseña</label>
-            <input className="input" type="password" value={passForm.repetir} onChange={e => setPassForm({ ...passForm, repetir: e.target.value })} placeholder="••••••••" />
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" onClick={cambiarContrasena}>Guardar</button>
-            <button className="btn btn-secondary" onClick={() => setCambiarPass(false)}>Cancelar</button>
-          </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Filtro de período */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <label style={{ color: '#aaa', fontSize: 14 }}>Período:</label>
+        <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Período:</label>
         <input className="input" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ width: 'auto' }} />
-        <label style={{ color: '#aaa', fontSize: 14 }}>hasta</label>
+        <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>hasta</label>
         <input className="input" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ width: 'auto' }} />
         <button className="btn btn-primary" onClick={cargarDatos}>Buscar</button>
       </div>
@@ -168,49 +210,50 @@ export default function Liquidacion() {
       {/* Resumen general */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
-          <div style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
-          <div style={{ color: '#888', fontSize: 13, marginBottom: 8 }}>Total a pagar en comisiones</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total a pagar en comisiones</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: '#f87171' }}>${totalComisiones.toLocaleString('es-AR')}</div>
         </div>
       </div>
 
       {/* Liquidación por peluquero */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {peluquerosConDatos.map(p => (
-          <div key={p.id} className="card" style={{ margin: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ color: '#f0f0f0', margin: 0 }}>{p.nombre}</h3>
-              <span style={{ background: '#2d1f5e', color: '#a78bfa', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                {p.comision}% de comisión
-              </span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
-              <div style={{ background: '#0f0f0f', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Atenciones</div>
-                <div style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 20 }}>{p.cantidad}</div>
-              </div>
-              <div style={{ background: '#0f0f0f', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Total generado</div>
-                <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
-              </div>
-              <div style={{ background: '#0f0f0f', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Le corresponde ({p.comision}%)</div>
-                <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
-              </div>
-              <div style={{ background: '#0f0f0f', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                <div style={{ color: '#888', fontSize: 12, marginBottom: 4 }}>Queda para el local</div>
-                <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-        {peluquerosConDatos.length === 0 && (
-          <div className="card" style={{ textAlign: 'center', color: '#555', padding: 40 }}>
+        {peluquerosConDatos.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
             No hay peluqueros registrados
           </div>
+        ) : (
+          peluquerosConDatos.map(p => (
+            <div key={p.id} className="card" style={{ margin: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
+                <span style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                  {p.comision}% de comisión
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Atenciones</div>
+                  <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>{p.cantidad}</div>
+                </div>
+                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total generado</div>
+                  <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
+                </div>
+                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Le corresponde ({p.comision}%)</div>
+                  <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
+                </div>
+                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Queda para el local</div>
+                  <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
+                </div>
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>

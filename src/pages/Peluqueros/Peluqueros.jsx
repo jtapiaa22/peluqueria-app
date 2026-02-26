@@ -5,14 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 export default function Peluqueros() {
   const [peluqueros, setPeluqueros] = useState([])
-  const [form, setForm] = useState({ nombre: '', comision: '' })
-  const [editando, setEditando] = useState(null)
+  const [form, setForm]             = useState({ nombre: '', comision: '' })
+  const [editando, setEditando]     = useState(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
-  const [modalAlert, setModalAlert] = useState(null)
+  const [modalAlert, setModalAlert]     = useState(null)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
 
   const cargar = async () => {
     const data = await window.electronAPI.getPeluqueros()
@@ -52,7 +52,7 @@ export default function Peluqueros() {
   }
 
   return (
-    <div className='page-animation'>
+    <div className="page-animation">
       {modalConfirm && (
         <ModalConfirm
           mensaje={modalConfirm.mensaje}
@@ -76,28 +76,31 @@ export default function Peluqueros() {
       </div>
 
       <AnimatePresence>
-      {mostrarForm && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-        >
-          <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>{editando ? 'Editar peluquero' : 'Nuevo peluquero'}</h3>
-          <div className="form-group">
-            <label>Nombre</label>
-            <input className="input" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre completo" />
-          </div>
-          <div className="form-group">
-            <label>Comisión (%)</label>
-            <input className="input" type="number" value={form.comision} onChange={e => setForm({ ...form, comision: e.target.value })} placeholder="Ej: 50" />
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" onClick={guardar}>Guardar</button>
-            <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
-          </div>
-        </motion.div>
-      )}
+        {mostrarForm && (
+          <motion.div
+            className="card"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+          >
+            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+              {editando ? 'Editar peluquero' : 'Nuevo peluquero'}
+            </h3>
+            <div className="form-group">
+              <label>Nombre</label>
+              <input className="input" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} placeholder="Nombre completo" />
+            </div>
+            <div className="form-group">
+              <label>Comisión (%)</label>
+              <input className="input" type="number" value={form.comision} onChange={e => setForm({ ...form, comision: e.target.value })} placeholder="Ej: 50" />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button className="btn btn-primary" onClick={guardar}>Guardar</button>
+              <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <div className="card">
@@ -123,7 +126,11 @@ export default function Peluqueros() {
               </tr>
             ))}
             {peluqueros.length === 0 && (
-              <tr><td colSpan={3} style={{ textAlign: 'center', color: '#555', padding: 30 }}>No hay peluqueros registrados</td></tr>
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
+                  No hay peluqueros registrados
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
