@@ -98,46 +98,34 @@ function App() {
             </NavLink>
           </nav>
 
-          {/* Badge licencia */}
+          {/* Badge licencia - VERSIÓN FINAL */}
           {diasRestantes !== null && (
-            <div style={{
-              margin: 'auto 10px 16px 10px',
-              padding: '12px 14px',
-              borderRadius: 8,
-              background: bgDias,
-              border: `1px solid ${borderDias}`,
-              fontSize: 12,
-              lineHeight: 1.6
-            }}>
-              <div style={{ color: 'var(--text-muted)', marginBottom: 4, fontSize: 11 }}>LICENCIA ACTIVA</div>
-              <div style={{ color: colorDias, fontWeight: 700, fontSize: 20, marginBottom: 2 }}>
+            <div className={`licencia-badge licencia-${diasRestantes <= 5 ? 'critica' : diasRestantes <= 10 ? 'advertencia' : 'normal'}`}>
+              <div className="licencia-titulo">LICENCIA ACTIVA</div>
+              <div className="licencia-dias">
                 {diasRestantes} día{diasRestantes !== 1 ? 's' : ''}
               </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Vence: {fechaVence}</div>
+              <div className="licencia-vence">Vence: {fechaVence}</div>
               {diasRestantes <= 10 && (
-                <div style={{ color: colorDias, fontSize: 11, marginTop: 6, fontWeight: 600 }}>
-                  ⚠️ Renovar pronto
-                </div>
+                <div className="licencia-alerta">⚠️ Renovar pronto</div>
               )}
             </div>
           )}
 
-          <div style={{ padding: '0 10px 8px 10px' }}>
+
+          <div className="actualizador-container">
             <Actualizador />
           </div>
 
-          <div style={{ padding: '0 10px 8px 10px' }}>
-            <footer style={{
-              backgroundColor: 'var(--bg-main)',
-              color: 'var(--text-muted)',
-              textAlign: 'center',
-              padding: '8px',
-              fontSize: '12px',
-              borderRadius: 6
-            }}>
-              <span>v{version}</span> BETA · Desarrollado por
-              <strong style={{ color: 'var(--text-soft)' }}><br />Jorge Tapia Ahumada</strong>
+          <div className="footer-container">
+            <footer className="app-footer">
+              <div className="version-text">
+                v{version} BETA
+              </div>
+              <div className="footer-author">Desarrollado por<br /> <strong style={{color:'var(--text-soft)'}}> Jorge Tapia Ahumada</strong>
+              </div>
             </footer>
+
           </div>
 
         </aside>

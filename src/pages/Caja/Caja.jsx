@@ -3,12 +3,15 @@ import { X, Eye } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
+
 function hoy() {
-  return new Date().toISOString().split('T')[0]
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 function horaActual() {
   return new Date().toTimeString().split(' ')[0].slice(0, 5)
 }
+
 
 export default function Caja() {
   const [atenciones, setAtenciones]         = useState([])
@@ -21,9 +24,15 @@ export default function Caja() {
   const [detalleCierre, setDetalleCierre]   = useState(null)
   const [modalConfirm, setModalConfirm]     = useState(null)
   const [modalAlert, setModalAlert]         = useState(null)
+  // ── NUEVO: accordion por fecha ──
+  const [fechasAbiertas, setFechasAbiertas] = useState({})
+  const toggleFecha = (fecha) =>
+    setFechasAbiertas(prev => ({ ...prev, [fecha]: !prev[fecha] }))
+
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByFecha(fechaFiltro)
@@ -38,12 +47,14 @@ export default function Caja() {
     setCierres(data)
   }
 
+
   const abrirCaja = () => confirmar('¿Confirmar apertura de caja?', async () => {
     setModalConfirm(null)
     await window.electronAPI.abrirCaja({ fecha: hoy(), hora_apertura: horaActual() })
     verificarCaja()
     alertar('Caja abierta correctamente.', 'success')
   })
+
 
   const cerrarCaja = () => confirmar('¿Confirmar cierre de caja?', async () => {
     setModalConfirm(null)
@@ -64,6 +75,7 @@ export default function Caja() {
     alertar('Caja cerrada correctamente.', 'success')
   })
 
+
   const verDetalle = async (cierre) => {
     const data = await window.electronAPI.getDetalleCierre({
       fecha: cierre.fecha,
@@ -73,18 +85,22 @@ export default function Caja() {
     setDetalleCierre({ cierre, atenciones: data })
   }
 
+
   useEffect(() => { cargar(); verificarCaja() }, [fechaFiltro])
   useEffect(() => { if (vistaActiva === 'historial') cargarCierres(fechaHistorial) }, [vistaActiva])
+
 
   const totalEfectivo      = atenciones.reduce((acc, a) => acc + Number(a.monto_efectivo      || 0), 0)
   const totalTransferencia = atenciones.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
   const totalGeneral       = totalEfectivo + totalTransferencia
+
 
   const resumenPorPeluquero = atenciones.reduce((acc, a) => {
     if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = 0
     acc[a.peluquero_nombre] += Number(a.precio_cobrado)
     return acc
   }, {})
+
 
   const resumenPorPeluqueroCierre = detalleCierre
     ? detalleCierre.atenciones.reduce((acc, a) => {
@@ -94,6 +110,7 @@ export default function Caja() {
         return acc
       }, {})
     : {}
+
 
   const BadgePago = ({ a }) => {
     if (a.metodo_pago === 'mixto') {
@@ -119,6 +136,7 @@ export default function Caja() {
     )
   }
 
+
   return (
     <div className="page-animation">
       {modalConfirm && (
@@ -136,6 +154,7 @@ export default function Caja() {
         />
       )}
 
+
       {/* ── MODAL DETALLE CIERRE ── */}
       <AnimatePresence>
         {detalleCierre && (
@@ -148,7 +167,9 @@ export default function Caja() {
                 <X size={20} />
               </button>
 
+
               <h3 style={{ color: '#a78bfa', marginBottom: 20 }}>Detalle del cierre</h3>
+
 
               {/* Cards apertura / cierre */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
@@ -180,6 +201,7 @@ export default function Caja() {
                 </div>
               </div>
 
+
               {/* Totales cierre */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
                 <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
@@ -202,6 +224,7 @@ export default function Caja() {
                 </div>
               </div>
 
+
               {/* Por peluquero */}
               <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Por peluquero</h4>
               <table className="table" style={{ marginBottom: 24 }}>
@@ -216,6 +239,7 @@ export default function Caja() {
                   ))}
                 </tbody>
               </table>
+
 
               {/* Todas las atenciones */}
               <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Todas las atenciones</h4>
@@ -248,23 +272,30 @@ export default function Caja() {
         )}
       </AnimatePresence>
 
-      {/* ── HEADER ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Caja</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className={`btn ${vistaActiva === 'dia' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setVistaActiva('dia')}>Día actual</button>
-          <button className={`btn ${vistaActiva === 'historial' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setVistaActiva('historial')}>Historial de cierres</button>
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h1 className="page-title" style={{ margin: 0 }}>Caja</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className={`btn ${vistaActiva === 'dia' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setVistaActiva('dia')}>Día actual</button>
+            <button className={`btn ${vistaActiva === 'historial' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setVistaActiva('historial')}>Historial de cierres</button>
+          </div>
         </div>
-      </div>
 
       {/* ── VISTA DÍA ── */}
       {vistaActiva === 'dia' && (
         <div>
           <div className="form-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Fecha</label>
-              <input className="input" type="date" value={fechaFiltro} onChange={e => setFechaFiltro(e.target.value)} style={{ width: 'auto' }} />
+            <div style={{ 
+              background: 'var(--input-bg-focus)', 
+              border: '1px solid var(--input-border)',
+              borderRadius: 8, 
+              padding: '8px 16px',
+              color: 'var(--text-main)', 
+              fontSize: 14 
+            }}>
+              📅 {fechaFiltro}
             </div>
+
             {!cajaAbierta
               ? <button className="btn btn-primary" onClick={abrirCaja}>Abrir caja</button>
               : <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 8, padding: '8px 16px', color: '#4ade80', fontSize: 13 }}>
@@ -278,11 +309,13 @@ export default function Caja() {
             }
           </div>
 
+
           {!cajaAbierta && (
             <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: '#fbbf24', fontSize: 14 }}>
               La caja está cerrada. Abrila para empezar a registrar atenciones.
             </div>
           )}
+
 
           {/* Cards totales */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -306,6 +339,7 @@ export default function Caja() {
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{atenciones.length} atenciones en total</div>
             </div>
           </div>
+
 
           {/* Generado por peluquero */}
           <div className="card">
@@ -332,6 +366,7 @@ export default function Caja() {
             </table>
           </div>
 
+
           {/* Cerrar caja */}
           {cajaAbierta && (
             <div className="card">
@@ -346,107 +381,195 @@ export default function Caja() {
         </div>
       )}
 
-      {/* ── VISTA HISTORIAL ── */}
-      {vistaActiva === 'historial' && (
-        <div className="form-container">
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Filtrar por fecha</label>
-                <input
-                  className="input" type="date" value={fechaHistorial}
-                  onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }}
-                  style={{ width: 'auto' }}
-                />
-                {fechaHistorial && (
-                  <button className="btn btn-secondary" onClick={() => { setFechaHistorial(''); cargarCierres('') }}>Ver todos</button>
-                )}
+      <AnimatePresence>
+        {/* ── VISTA HISTORIAL ── */}
+        {vistaActiva === 'historial' && (
+          <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          style={{ overflow: 'hidden', borderTop: '1px solid var(--border-soft)' }}
+          >
+            <div className='caja-historial-container'>
+              <div className="card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Filtrar por fecha</label>
+                    <input
+                      className="input" type="date" value={fechaHistorial}
+                      onChange={e => { setFechaHistorial(e.target.value); cargarCierres(e.target.value) }}
+                      style={{ width: 'auto' }}
+                    />
+                    {fechaHistorial && (
+                      <button className="btn btn-secondary" onClick={() => { setFechaHistorial(''); cargarCierres('') }}>Ver todos</button>
+                    )}
+                  </div>
+                </div>
+                <div className='historial-container'>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Apertura</th>
+                        <th>Cierre</th>
+                        <th>Efectivo</th>
+                        <th>Transferencia</th>
+                        <th>Total turno</th>
+                        <th>Observaciones</th>
+                        <th>Detalle</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cierres.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
+                            No hay cierres registrados
+                          </td>
+                        </tr>
+                      ) : (
+                        (() => {
+                          const porFecha = cierres.reduce((acc, c) => {
+                            if (!acc[c.fecha]) acc[c.fecha] = []
+                            acc[c.fecha].push(c)
+                            return acc
+                          }, {})
+
+                          return Object.entries(porFecha).map(([fecha, turnos]) => {
+                            const totalDia    = turnos.reduce((acc, t) => acc + Number(t.total_general),      0)
+                            const efectivoDia = turnos.reduce((acc, t) => acc + Number(t.total_efectivo),     0)
+                            const transfDia   = turnos.reduce((acc, t) => acc + Number(t.total_transferencia), 0)
+                            const abierta     = !!fechasAbiertas[fecha]
+
+                            return (
+                              <React.Fragment key={fecha}>
+
+                                {/* ── FILA FECHA clickeable ── */}
+                                <tr
+                                  onClick={() => toggleFecha(fecha)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    background: abierta
+                                      ? 'rgba(124, 58, 237, 0.10)'
+                                      : 'rgba(124, 58, 237, 0.04)',
+                                    transition: 'background 0.2s ease',
+                                    userSelect: 'none',
+                                  }}
+                                >
+                                  <td colSpan={2} style={{ padding: '14px 16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      {/* Flecha */}
+                                      <span style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 22, height: 22,
+                                        borderRadius: '50%',
+                                        background: 'rgba(124, 58, 237, 0.15)',
+                                        color: '#a78bfa',
+                                        fontSize: 11,
+                                        transition: 'transform 0.2s ease',
+                                        transform: abierta ? 'rotate(90deg)' : 'rotate(0deg)',
+                                        flexShrink: 0,
+                                      }}>▶</span>
+                                      {/* Fecha */}
+                                      <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 14 }}>
+                                        {fecha}
+                                      </span>
+                                      {/* Badge turnos */}
+                                      <span style={{
+                                        background: 'rgba(124, 58, 237, 0.15)',
+                                        color: '#a78bfa',
+                                        borderRadius: 99,
+                                        fontSize: 11,
+                                        padding: '2px 8px',
+                                        fontWeight: 600,
+                                      }}>
+                                        {turnos.length} {turnos.length === 1 ? 'turno' : 'turnos'}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  {/* Columnas vacías de apertura/cierre en fila resumen */}
+                                  <td />
+                                  <td style={{ color: '#4ade80', fontWeight: 600 }}>
+                                    ${efectivoDia.toLocaleString('es-AR')}
+                                  </td>
+                                  <td style={{ color: '#c084fc', fontWeight: 600 }}>
+                                    ${transfDia.toLocaleString('es-AR')}
+                                  </td>
+                                  <td style={{ color: '#facc15', fontWeight: 700, fontSize: 15 }}>
+                                    ${totalDia.toLocaleString('es-AR')}
+                                  </td>
+                                  <td colSpan={2} style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                    Total del día
+                                  </td>
+                                </tr>
+
+                                {/* ── FILAS HIJAS expandibles ── */}
+                                <AnimatePresence>
+                                  {abierta && turnos.map((c, i) => {   {/* ← AGREGAR i */}
+                                    const cierreOtroDia = c.hora_cierre && c.hora_cierre < c.hora_apertura
+                                    const fechaCierre = cierreOtroDia
+                                      ? (() => {
+                                          const d = new Date(c.fecha + 'T00:00:00')
+                                          d.setDate(d.getDate() + 1)
+                                          return d.toISOString().split('T')[0]
+                                        })()
+                                      : c.fecha
+
+                                    return (
+                                      <motion.tr
+                                        key={c.id}
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.18, delay: i * 0.04 }}
+                                        style={{ background: 'rgba(124, 58, 237, 0.02)' }}
+                                      >
+                                        <td style={{ paddingLeft: 48, color: 'var(--text-muted)', fontSize: 12 }}>
+                                          {c.fecha}
+                                        </td>
+                                        <td>
+                                          <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_apertura}hs</div>
+                                        </td>
+                                        <td>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_cierre}hs</span>
+                                            {cierreOtroDia && (
+                                              <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 10, padding: '1px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                                +1 día
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{fechaCierre}</div>
+                                        </td>
+                                        <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: '#c084fc' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: 'var(--text-muted)' }}>{c.observaciones || '-'}</td>
+                                        <td>
+                                          <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); verDetalle(c) }}>
+                                            <Eye size={14} />
+                                          </button>
+                                        </td>
+                                      </motion.tr>
+                                    )
+                                  })}
+                                </AnimatePresence>
+                              </React.Fragment>
+                            )
+                          })
+                        })()
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Apertura</th>
-                  <th>Cierre</th>
-                  <th>Efectivo</th>
-                  <th>Transferencia</th>
-                  <th>Total turno</th>
-                  <th>Observaciones</th>
-                  <th>Detalle</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const porFecha = cierres.reduce((acc, c) => {
-                    if (!acc[c.fecha]) acc[c.fecha] = []
-                    acc[c.fecha].push(c)
-                    return acc
-                  }, {})
-
-                  return Object.entries(porFecha).map(([fecha, turnos]) => {
-                    const totalDia = turnos.reduce((acc, t) => acc + Number(t.total_general), 0)
-                    return (
-                      <React.Fragment key={fecha}>
-                        {turnos.map(c => {
-                          const cierreOtroDia = c.hora_cierre && c.hora_cierre < c.hora_apertura
-                          const fechaCierre = cierreOtroDia
-                            ? (() => {
-                                const d = new Date(c.fecha + 'T00:00:00')
-                                d.setDate(d.getDate() + 1)
-                                return d.toISOString().split('T')[0]
-                              })()
-                            : c.fecha
-
-                          return (
-                            <tr key={c.id}>
-                              <td>
-                                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_apertura}hs</div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{c.fecha}</div>
-                              </td>
-                              <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_cierre}hs</span>
-                                  {cierreOtroDia && (
-                                    <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 10, padding: '1px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
-                                      +1 día
-                                    </span>
-                                  )}
-                                </div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{fechaCierre}</div>
-                              </td>
-                              <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
-                              <td style={{ color: '#c084fc' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
-                              <td style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
-                              <td style={{ color: 'var(--text-muted)' }}>{c.observaciones || '-'}</td>
-                              <td>
-                                <button className="btn btn-secondary" onClick={() => verDetalle(c)}>
-                                  <Eye size={14} />
-                                </button>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                        <tr style={{ background: 'var(--bg-main)' }}>
-                          <td colSpan={4} style={{ color: 'var(--text-muted)', fontSize: 13, paddingLeft: 14 }}>
-                            Total del día {fecha}
-                          </td>
-                          <td style={{ color: '#facc15', fontWeight: 700 }}>${totalDia.toLocaleString('es-AR')}</td>
-                          <td colSpan={2} />
-                        </tr>
-                      </React.Fragment>
-                    )
-                  })
-                })()}
-                {cierres.length === 0 && (
-                  <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>No hay cierres registrados</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
