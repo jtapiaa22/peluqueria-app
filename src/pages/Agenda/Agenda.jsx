@@ -581,7 +581,7 @@ export default function Agenda() {
                       <div style={{ display:'flex', alignItems:'center', gap:6, color:est.color, fontSize:12, fontWeight:600 }}>
                         <Icon size={13}/>{est.label}
                       </div>
-                      <span style={{ fontSize:11, color:'var(--text-muted)', fontWeight:600 }}>
+                      <span style={{ fontSize:15, color:'var(--text-main)', fontWeight:600 }}>
                         {formatFechaCorta(turno.fecha)} · {turno.hora?.substring(0,5)}hs
                       </span>
                     </div>
