@@ -13,6 +13,17 @@ autoUpdater.autoInstallOnAppQuit = true
 const isDev = !app.isPackaged
 const SECRET_KEY = 'peluapp-jofree-2026'
 
+const SUPABASE_URL = 'https://xsalearfdfjuyjwugick.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_9NvWXl8HHIhde1l8lt8apw_-bCNWwUz'
+const WEB_URL = 'https://peluapp-web-6g23.vercel.app'
+let supabase = null
+async function getSupabase() {
+  if (supabase) return supabase
+  const { createClient } = await import('@supabase/supabase-js')
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+  return supabase
+}
+
 const dbPath = isDev
   ? path.join(__dirname, '../database.sqlite')
   : path.join(app.getPath('userData'), 'database.sqlite')
@@ -20,714 +31,426 @@ const dbPath = isDev
 let db
 let mainWindow
 
-// ============ MIGRACIONES ============
-
 const MIGRATIONS = [
-  {
-    version: 1,
-    descripcion: 'Esquema inicial',
-    up: (db) => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS peluqueros (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          nombre TEXT NOT NULL,
-          comision REAL DEFAULT 0,
-          activo INTEGER DEFAULT 1
-        );
-        CREATE TABLE IF NOT EXISTS servicios (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          nombre TEXT NOT NULL,
-          precio REAL NOT NULL,
-          activo INTEGER DEFAULT 1
-        );
-        CREATE TABLE IF NOT EXISTS atenciones (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          peluquero_id INTEGER NOT NULL REFERENCES peluqueros(id),
-          servicio_id INTEGER NOT NULL REFERENCES servicios(id),
-          precio_cobrado REAL NOT NULL,
-          metodo_pago TEXT NOT NULL,
-          nombre_transferencia TEXT,
-          fecha TEXT NOT NULL,
-          hora TEXT NOT NULL,
-          monto_efectivo REAL DEFAULT 0,
-          monto_transferencia REAL DEFAULT 0
-        );
-        CREATE TABLE IF NOT EXISTS cierre_caja (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          fecha TEXT NOT NULL,
-          hora_apertura TEXT NOT NULL,
-          hora_cierre TEXT,
-          total_efectivo REAL DEFAULT 0,
-          total_transferencia REAL DEFAULT 0,
-          total_general REAL DEFAULT 0,
-          observaciones TEXT,
-          estado TEXT DEFAULT 'abierta'
-        );
-        CREATE TABLE IF NOT EXISTS configuracion (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          clave TEXT UNIQUE NOT NULL,
-          valor TEXT NOT NULL
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_atenciones_fecha     ON atenciones(fecha);
-        CREATE INDEX IF NOT EXISTS idx_atenciones_peluquero ON atenciones(peluquero_id);
-        CREATE INDEX IF NOT EXISTS idx_cierre_caja_estado   ON cierre_caja(estado);
-        CREATE INDEX IF NOT EXISTS idx_configuracion_clave  ON configuracion(clave);
-      `)
-
-      const passExiste = db.prepare("SELECT id FROM configuracion WHERE clave = 'password_liquidacion'").get()
-      if (!passExiste) {
-        db.prepare("INSERT INTO configuracion (clave, valor) VALUES ('password_liquidacion', '1234')").run()
-      }
-    }
-  },
-
-  {
-    version: 2,
-    descripcion: 'Agregar módulo de gastos',
-    up: (db) => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS gastos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          descripcion TEXT NOT NULL,
-          monto REAL NOT NULL,
-          fecha TEXT NOT NULL,
-          categoria TEXT
-        );
-        CREATE INDEX IF NOT EXISTS idx_gastos_fecha ON gastos(fecha);
-      `)
-    }
-  },
-
-  {
-    version: 3,
-    descripcion: 'Agregar columnas de pago mixto en atenciones',
-    up: (db) => {
-      const cols = db.prepare("PRAGMA table_info(atenciones)").all().map(c => c.name)
-      if (!cols.includes('monto_efectivo')) {
-        db.prepare("ALTER TABLE atenciones ADD COLUMN monto_efectivo REAL DEFAULT 0").run()
-      }
-      if (!cols.includes('monto_transferencia')) {
-        db.prepare("ALTER TABLE atenciones ADD COLUMN monto_transferencia REAL DEFAULT 0").run()
-      }
-    }
-  },
-
-  // ─── FUTURAS MIGRACIONES ─────────────────────────────────────────────────────
-  // {
-  //   version: 4,
-  //   descripcion: 'Descripción del cambio',
-  //   up: (db) => { db.exec(`...`) }
-  // },
+  { version:1, descripcion:'Esquema inicial', up:(db)=>{ db.exec(`CREATE TABLE IF NOT EXISTS peluqueros(id INTEGER PRIMARY KEY AUTOINCREMENT,nombre TEXT NOT NULL,comision REAL DEFAULT 0,activo INTEGER DEFAULT 1);CREATE TABLE IF NOT EXISTS servicios(id INTEGER PRIMARY KEY AUTOINCREMENT,nombre TEXT NOT NULL,precio REAL NOT NULL,activo INTEGER DEFAULT 1);CREATE TABLE IF NOT EXISTS atenciones(id INTEGER PRIMARY KEY AUTOINCREMENT,peluquero_id INTEGER NOT NULL REFERENCES peluqueros(id),servicio_id INTEGER NOT NULL REFERENCES servicios(id),precio_cobrado REAL NOT NULL,metodo_pago TEXT NOT NULL,nombre_transferencia TEXT,fecha TEXT NOT NULL,hora TEXT NOT NULL,monto_efectivo REAL DEFAULT 0,monto_transferencia REAL DEFAULT 0);CREATE TABLE IF NOT EXISTS cierre_caja(id INTEGER PRIMARY KEY AUTOINCREMENT,fecha TEXT NOT NULL,hora_apertura TEXT NOT NULL,hora_cierre TEXT,total_efectivo REAL DEFAULT 0,total_transferencia REAL DEFAULT 0,total_general REAL DEFAULT 0,observaciones TEXT,estado TEXT DEFAULT 'abierta');CREATE TABLE IF NOT EXISTS configuracion(id INTEGER PRIMARY KEY AUTOINCREMENT,clave TEXT UNIQUE NOT NULL,valor TEXT NOT NULL);CREATE INDEX IF NOT EXISTS idx_atenciones_fecha ON atenciones(fecha);CREATE INDEX IF NOT EXISTS idx_atenciones_peluquero ON atenciones(peluquero_id);CREATE INDEX IF NOT EXISTS idx_configuracion_clave ON configuracion(clave);`); const p=db.prepare("SELECT id FROM configuracion WHERE clave='password_liquidacion'").get(); if(!p) db.prepare("INSERT INTO configuracion(clave,valor) VALUES('password_liquidacion','1234')").run() } },
+  { version:2, descripcion:'Gastos', up:(db)=>{ db.exec(`CREATE TABLE IF NOT EXISTS gastos(id INTEGER PRIMARY KEY AUTOINCREMENT,descripcion TEXT NOT NULL,monto REAL NOT NULL,fecha TEXT NOT NULL,categoria TEXT);CREATE INDEX IF NOT EXISTS idx_gastos_fecha ON gastos(fecha);`) } },
+  { version:3, descripcion:'Pago mixto', up:(db)=>{ const c=db.prepare("PRAGMA table_info(atenciones)").all().map(x=>x.name); if(!c.includes('monto_efectivo')) db.prepare("ALTER TABLE atenciones ADD COLUMN monto_efectivo REAL DEFAULT 0").run(); if(!c.includes('monto_transferencia')) db.prepare("ALTER TABLE atenciones ADD COLUMN monto_transferencia REAL DEFAULT 0").run() } },
+  { version:4, descripcion:'Pagos peluqueros', up:(db)=>{ db.exec(`CREATE TABLE IF NOT EXISTS pagos_peluqueros(id INTEGER PRIMARY KEY AUTOINCREMENT,peluquero_id INTEGER NOT NULL,peluquero_nombre TEXT NOT NULL,desde TEXT NOT NULL,hasta TEXT NOT NULL,monto REAL NOT NULL,fecha_pago TEXT NOT NULL,notas TEXT);CREATE INDEX IF NOT EXISTS idx_pagos_peluqueros_fecha ON pagos_peluqueros(fecha_pago);CREATE INDEX IF NOT EXISTS idx_pagos_peluqueros_pid ON pagos_peluqueros(peluquero_id);`) } },
+  { version:5, descripcion:'Turnos agenda', up:(db)=>{ db.exec(`CREATE TABLE IF NOT EXISTS turnos(id INTEGER PRIMARY KEY AUTOINCREMENT,peluquero_id INTEGER,servicio_id INTEGER,cliente_nombre TEXT NOT NULL,fecha TEXT NOT NULL,hora TEXT NOT NULL,estado TEXT DEFAULT 'pendiente',notas TEXT);CREATE INDEX IF NOT EXISTS idx_turnos_fecha ON turnos(fecha);CREATE INDEX IF NOT EXISTS idx_turnos_peluquero ON turnos(peluquero_id);`) } },
+  { version:6, descripcion:'Config peluqueria web', up:(db)=>{ for(const c of ['peluqueria_id','peluqueria_nombre','peluqueria_email']){ if(!db.prepare("SELECT id FROM configuracion WHERE clave=?").get(c)) db.prepare("INSERT INTO configuracion(clave,valor) VALUES(?,?)").run(c,'') } } },
+  { version: 7, descripcion: 'turno_web_id en turnos', up: (db) => {
+  const cols = db.prepare('PRAGMA table_info(turnos)').all().map(x => x.name)
+  if (!cols.includes('turno_web_id')) db.prepare('ALTER TABLE turnos ADD COLUMN turno_web_id TEXT').run()
+}}
 ]
 
-// ============ RUNNER DE MIGRACIONES ============
-
 function runMigrations() {
-  const ultimaVersion = db.prepare('SELECT MAX(version) as v FROM migraciones').get()?.v || 0
-  const pendientes = MIGRATIONS.filter(m => m.version > ultimaVersion)
-
-  if (pendientes.length === 0) return
-
-  const aplicarMigracion = db.transaction((migracion) => {
-    migracion.up(db)
-    db.prepare(
-      'INSERT INTO migraciones (version, descripcion, aplicada_en) VALUES (?, ?, ?)'
-    ).run(migracion.version, migracion.descripcion, new Date().toISOString())
-  })
-
-  for (const migracion of pendientes) {
-    try {
-      aplicarMigracion(migracion)
-      console.log(`✅ Migración ${migracion.version} aplicada: ${migracion.descripcion}`)
-    } catch (e) {
-      console.error(`❌ Error en migración ${migracion.version}:`, e.message)
-      throw new Error(`Falló la migración ${migracion.version}: ${e.message}`)
-    }
-  }
+  const ultima = db.prepare('SELECT MAX(version) as v FROM migraciones').get()?.v || 0
+  const pendientes = MIGRATIONS.filter(m => m.version > ultima)
+  if (!pendientes.length) return
+  const aplicar = db.transaction((m) => { m.up(db); db.prepare('INSERT INTO migraciones(version,descripcion,aplicada_en) VALUES(?,?,?)').run(m.version,m.descripcion,new Date().toISOString()) })
+  for (const m of pendientes) { try { aplicar(m); console.log(`✅ Migración ${m.version}`) } catch(e){ console.error(`❌ Migración ${m.version}:`,e.message); throw e } }
 }
-
-// ============ BASE DE DATOS ============
 
 function initDB() {
   db = new Database(dbPath)
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
-
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS migraciones (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      version INTEGER UNIQUE NOT NULL,
-      descripcion TEXT,
-      aplicada_en TEXT NOT NULL
-    );
-  `)
-
+  db.exec(`CREATE TABLE IF NOT EXISTS migraciones(id INTEGER PRIMARY KEY AUTOINCREMENT,version INTEGER UNIQUE NOT NULL,descripcion TEXT,aplicada_en TEXT NOT NULL);`)
   runMigrations()
 }
 
-// ============ BACKUP AUTOMÁTICO ============
-
 function hacerBackup() {
   try {
-    const backupDir = isDev
-      ? path.join(__dirname, '../backups')
-      : path.join(app.getPath('userData'), 'backups')
-
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true })
-    }
-
-    const ahora = new Date()
-    const timestamp = [
-      ahora.getFullYear(),
-      String(ahora.getMonth() + 1).padStart(2, '0'),
-      String(ahora.getDate()).padStart(2, '0')
-    ].join('-') + '_' + [
-      String(ahora.getHours()).padStart(2, '0'),
-      String(ahora.getMinutes()).padStart(2, '0')
-    ].join('-')
-
-    const backupPath = path.join(backupDir, `database_${timestamp}.sqlite`)
-    db.backup(backupPath)
-    console.log(`✅ Backup creado: ${backupPath}`)
-
-    const archivos = fs.readdirSync(backupDir)
-      .filter(f => f.startsWith('database_') && f.endsWith('.sqlite'))
-      .map(f => ({ nombre: f, tiempo: fs.statSync(path.join(backupDir, f)).mtimeMs }))
-      .sort((a, b) => b.tiempo - a.tiempo)
-
-    for (const archivo of archivos.slice(7)) {
-      fs.unlinkSync(path.join(backupDir, archivo.nombre))
-      console.log(`🗑️ Backup antiguo eliminado: ${archivo.nombre}`)
-    }
-  } catch (e) {
-    console.error('⚠️ Error al hacer backup:', e.message)
-  }
+    const dir = isDev ? path.join(__dirname,'../backups') : path.join(app.getPath('userData'),'backups')
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir,{recursive:true})
+    const n = new Date()
+    const ts = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}_${String(n.getHours()).padStart(2,'0')}-${String(n.getMinutes()).padStart(2,'0')}`
+    db.backup(path.join(dir,`database_${ts}.sqlite`))
+    const files = fs.readdirSync(dir).filter(f=>f.startsWith('database_')&&f.endsWith('.sqlite')).map(f=>({f,t:fs.statSync(path.join(dir,f)).mtimeMs})).sort((a,b)=>b.t-a.t)
+    for (const x of files.slice(7)) fs.unlinkSync(path.join(dir,x.f))
+  } catch(e){ console.error('⚠️ Backup:',e.message) }
 }
 
-// ============ IPC HANDLERS ============
-
-// --- Peluqueros ---
-ipcMain.handle('peluqueros:getAll', () =>
-  db.prepare('SELECT * FROM peluqueros WHERE activo = 1').all()
-)
-ipcMain.handle('peluqueros:create', (_, data) => {
-  const result = db.prepare(
-    'INSERT INTO peluqueros (nombre, comision) VALUES (?, ?)'
-  ).run(data.nombre, data.comision)
-  return result.lastInsertRowid
-})
-ipcMain.handle('peluqueros:update', (_, data) => {
-  db.prepare(
-    'UPDATE peluqueros SET nombre = ?, comision = ? WHERE id = ?'
-  ).run(data.nombre, data.comision, data.id)
-  return true
-})
-ipcMain.handle('peluqueros:delete', (_, id) => {
-  db.prepare('UPDATE peluqueros SET activo = 0 WHERE id = ?').run(id)
-  return true
-})
-
-// --- Servicios ---
-ipcMain.handle('servicios:getAll', () =>
-  db.prepare('SELECT * FROM servicios WHERE activo = 1').all()
-)
-ipcMain.handle('servicios:create', (_, data) => {
-  const result = db.prepare(
-    'INSERT INTO servicios (nombre, precio) VALUES (?, ?)'
-  ).run(data.nombre, data.precio)
-  return result.lastInsertRowid
-})
-ipcMain.handle('servicios:update', (_, data) => {
-  db.prepare(
-    'UPDATE servicios SET nombre = ?, precio = ? WHERE id = ?'
-  ).run(data.nombre, data.precio, data.id)
-  return true
-})
-ipcMain.handle('servicios:delete', (_, id) => {
-  db.prepare('UPDATE servicios SET activo = 0 WHERE id = ?').run(id)
-  return true
-})
-
-// --- Atenciones ---
-ipcMain.handle('atenciones:create', (_, data) => {
-  const precioFinal = data.metodo_pago === 'mixto'
-    ? Number(data.monto_efectivo) + Number(data.monto_transferencia)
-    : Number(data.precio_cobrado)
-
-  const montoEfectivo = data.metodo_pago === 'efectivo' ? precioFinal
-    : data.metodo_pago === 'mixto' ? Number(data.monto_efectivo)
-    : 0
-  const montoTransferencia = data.metodo_pago === 'transferencia' ? precioFinal
-    : data.metodo_pago === 'mixto' ? Number(data.monto_transferencia)
-    : 0
-
-  const result = db.prepare(`
-    INSERT INTO atenciones
-      (peluquero_id, servicio_id, precio_cobrado, metodo_pago,
-       nombre_transferencia, fecha, hora, monto_efectivo, monto_transferencia)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    Number(data.peluquero_id),
-    Number(data.servicio_id),
-    precioFinal,
-    data.metodo_pago,
-    data.nombre_transferencia || null,
-    data.fecha,
-    data.hora,
-    montoEfectivo,
-    montoTransferencia
-  )
-  return result.lastInsertRowid
-})
-ipcMain.handle('atenciones:getByFecha', (_, fecha) =>
-  db.prepare(`
-    SELECT a.*, p.nombre as peluquero_nombre, s.nombre as servicio_nombre
-    FROM atenciones a
-    JOIN peluqueros p ON a.peluquero_id = p.id
-    JOIN servicios s ON a.servicio_id = s.id
-    WHERE a.fecha = ?
-    ORDER BY a.id DESC
-  `).all(fecha)
-)
-ipcMain.handle('atenciones:getByRango', (_, { desde, hasta }) =>
-  db.prepare(`
-    SELECT a.*, p.nombre as peluquero_nombre, s.nombre as servicio_nombre
-    FROM atenciones a
-    JOIN peluqueros p ON a.peluquero_id = p.id
-    JOIN servicios s ON a.servicio_id = s.id
-    WHERE a.fecha BETWEEN ? AND ?
-    ORDER BY a.fecha DESC, a.hora DESC
-  `).all(desde, hasta)
-)
-ipcMain.handle('atenciones:delete', (_, id) => {
-  db.prepare('DELETE FROM atenciones WHERE id = ?').run(id)
-  return true
-})
-ipcMain.handle('atenciones:update', (_, data) => {
-  const precioFinal = data.metodo_pago === 'mixto'
-    ? Number(data.monto_efectivo) + Number(data.monto_transferencia)
-    : Number(data.precio_cobrado)
-
-  const montoEfectivo = data.metodo_pago === 'efectivo' ? precioFinal
-    : data.metodo_pago === 'mixto' ? Number(data.monto_efectivo)
-    : 0
-  const montoTransferencia = data.metodo_pago === 'transferencia' ? precioFinal
-    : data.metodo_pago === 'mixto' ? Number(data.monto_transferencia)
-    : 0
-
-  db.prepare(`
-    UPDATE atenciones
-    SET peluquero_id = ?, servicio_id = ?, precio_cobrado = ?,
-        metodo_pago = ?, nombre_transferencia = ?, fecha = ?, hora = ?,
-        monto_efectivo = ?, monto_transferencia = ?
-    WHERE id = ?
-  `).run(
-    Number(data.peluquero_id),
-    Number(data.servicio_id),
-    precioFinal,
-    data.metodo_pago,
-    data.nombre_transferencia || null,
-    data.fecha,
-    data.hora,
-    montoEfectivo,
-    montoTransferencia,
-    data.id
-  )
-  return true
-})
-
-// --- Configuración ---
-ipcMain.handle('config:get', (_, clave) =>
-  db.prepare('SELECT valor FROM configuracion WHERE clave = ?').get(clave) || null
-)
-ipcMain.handle('config:set', (_, { clave, valor }) => {
-  db.prepare(
-    'INSERT OR REPLACE INTO configuracion (clave, valor) VALUES (?, ?)'
-  ).run(clave, valor)
-  return true
-})
-
-// --- Caja ---
-ipcMain.handle('caja:abrir', (_, data) => {
-  const result = db.prepare(
-    "INSERT INTO cierre_caja (fecha, hora_apertura, estado) VALUES (?, ?, 'abierta')"
-  ).run(data.fecha, data.hora_apertura)
-  return result.lastInsertRowid
-})
-ipcMain.handle('caja:getCajaAbierta', () =>
-  db.prepare(
-    "SELECT * FROM cierre_caja WHERE estado = 'abierta' ORDER BY id DESC LIMIT 1"
-  ).get() || null
-)
-ipcMain.handle('caja:cerrar', (_, data) => {
-  db.prepare(`
-    UPDATE cierre_caja
-    SET hora_cierre = ?, total_efectivo = ?, total_transferencia = ?,
-        total_general = ?, observaciones = ?, estado = 'cerrada'
-    WHERE id = ?
-  `).run(
-    data.hora_cierre,
-    data.total_efectivo,
-    data.total_transferencia,
-    data.total_general,
-    data.observaciones || null,
-    data.id
-  )
-  return true
-})
-ipcMain.handle('caja:getCierres', (_, fecha) => {
-  return fecha
-    ? db.prepare(
-        "SELECT * FROM cierre_caja WHERE fecha = ? AND estado = 'cerrada' ORDER BY hora_apertura ASC"
-      ).all(fecha)
-    : db.prepare(
-        "SELECT * FROM cierre_caja WHERE estado = 'cerrada' ORDER BY fecha DESC, hora_apertura ASC"
-      ).all()
-})
-ipcMain.handle('caja:getDetalleCierre', (_, { hora_apertura, hora_cierre, fecha }) =>
-  db.prepare(`
-    SELECT a.*, p.nombre as peluquero_nombre, s.nombre as servicio_nombre
-    FROM atenciones a
-    JOIN peluqueros p ON a.peluquero_id = p.id
-    JOIN servicios s ON a.servicio_id = s.id
-    WHERE a.fecha = ? AND a.hora >= ? AND a.hora <= ?
-    ORDER BY a.hora ASC
-  `).all(fecha, hora_apertura, hora_cierre)
-)
-
-// --- Backup ---
-ipcMain.handle('backup:abrirCarpeta', () => {
-  const backupDir = isDev
-    ? path.join(__dirname, '../backups')
-    : path.join(app.getPath('userData'), 'backups')
-  if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true })
-  shell.openPath(backupDir)
-  return true
-})
-ipcMain.handle('backup:listar', () => {
-  const backupDir = isDev
-    ? path.join(__dirname, '../backups')
-    : path.join(app.getPath('userData'), 'backups')
-  if (!fs.existsSync(backupDir)) return []
-  return fs.readdirSync(backupDir)
-    .filter(f => f.startsWith('database_') && f.endsWith('.sqlite'))
-    .map(f => ({
-      nombre: f,
-      fecha: fs.statSync(path.join(backupDir, f)).mtime.toLocaleString('es-AR')
-    }))
-    .sort((a, b) => b.nombre.localeCompare(a.nombre))
-})
-
-// --- Gastos ---
-ipcMain.handle('gastos:getAll', () =>
-  db.prepare('SELECT * FROM gastos ORDER BY fecha DESC, id DESC').all()
-)
-ipcMain.handle('gastos:getByRango', (_, { desde, hasta }) =>
-  db.prepare(
-    'SELECT * FROM gastos WHERE fecha BETWEEN ? AND ? ORDER BY fecha DESC, id DESC'
-  ).all(desde, hasta)
-)
-ipcMain.handle('gastos:getResumenMensual', () =>
-  db.prepare(`
-    SELECT
-      strftime('%Y-%m', fecha) as mes,
-      SUM(monto) as total_gastos,
-      COUNT(*) as cantidad
-    FROM gastos
-    GROUP BY mes
-    ORDER BY mes DESC
-  `).all()
-)
-ipcMain.handle('gastos:create', (_, data) => {
-  const result = db.prepare(
-    'INSERT INTO gastos (descripcion, monto, fecha, categoria) VALUES (?, ?, ?, ?)'
-  ).run(data.descripcion, Number(data.monto), data.fecha, data.categoria || null)
-  return result.lastInsertRowid
-})
-ipcMain.handle('gastos:update', (_, data) => {
-  db.prepare(
-    'UPDATE gastos SET descripcion = ?, monto = ?, fecha = ?, categoria = ? WHERE id = ?'
-  ).run(data.descripcion, Number(data.monto), data.fecha, data.categoria || null, data.id)
-  return true
-})
-ipcMain.handle('gastos:delete', (_, id) => {
-  db.prepare('DELETE FROM gastos WHERE id = ?').run(id)
-  return true
-})
-
-// --- Licencia ---
-function verificarLicencia() {
-  try {
-    const licPath = isDev
-      ? path.join(__dirname, '../licencia.lic')
-      : path.join(app.getPath('userData'), 'licencia.lic')
-
-    if (!fs.existsSync(licPath))
-      return { valida: false, mensaje: 'No se encontró archivo de licencia.' }
-
-    const contenido = fs.readFileSync(licPath, 'utf-8').trim()
-    const decoded = Buffer.from(contenido, 'base64').toString('utf-8')
-    const datos = JSON.parse(decoded)
-
-    const firma = crypto.createHmac('sha256', SECRET_KEY)
-      .update(`peluapp|${datos.desde}|${datos.vence}`)
-      .digest('hex')
-    if (firma !== datos.firma)
-      return { valida: false, mensaje: 'Licencia inválida o modificada.' }
-
-    const ahora = new Date()
-    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`
-
-    const fechaHoy   = new Date(hoy        + 'T00:00:00Z')
-    const fechaDesde = new Date(datos.desde + 'T00:00:00Z')
-    const fechaVence = new Date(datos.vence + 'T00:00:00Z')
-
-    const ultimaFechaRow = db.prepare(
-      "SELECT valor FROM configuracion WHERE clave = 'ultima_fecha_uso'"
-    ).get()
-    if (ultimaFechaRow && hoy < ultimaFechaRow.valor)
-      return { valida: false, mensaje: 'Se detectó un cambio en la fecha del sistema. Contactá al soporte.' }
-
-    const diasUsadosRow = db.prepare(
-      "SELECT valor FROM configuracion WHERE clave = 'dias_usados'"
-    ).get()
-    let diasUsados = []
-    if (diasUsadosRow) {
-      try { diasUsados = JSON.parse(diasUsadosRow.valor) } catch { diasUsados = [] }
-    }
-    if (!diasUsados.includes(hoy)) {
-      diasUsados.push(hoy)
-      db.prepare(
-        "INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('dias_usados', ?)"
-      ).run(JSON.stringify(diasUsados))
-    }
-
-    const totalDiasLicencia = Math.round((fechaVence - fechaDesde) / (1000 * 60 * 60 * 24)) + 1
-    if (diasUsados.length > totalDiasLicencia)
-      return { valida: false, mensaje: 'Licencia vencida por días de uso excedidos. Contactá al soporte.' }
-
-    db.prepare(
-      "INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('ultima_fecha_uso', ?)"
-    ).run(hoy)
-
-    if (fechaHoy < fechaDesde)
-      return { valida: false, mensaje: `La licencia es válida a partir del ${datos.desde}.` }
-    if (fechaHoy > fechaVence)
-      return { valida: false, mensaje: `Licencia vencida el ${datos.vence}.` }
-
-    const diasRestantes = Math.round((fechaVence - fechaHoy) / (1000 * 60 * 60 * 24)) + 1
-
-    return {
-      valida: true,
-      mensaje: `Licencia válida. ${diasRestantes} días restantes.`,
-      vence: datos.vence,
-      diasRestantes
-    }
-  } catch (e) {
-    return { valida: false, mensaje: 'Error al leer la licencia: ' + e.message }
-  }
+async function getPid() {
+  return db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()?.valor || null
 }
 
-ipcMain.handle('licencia:verificar', () => verificarLicencia())
-ipcMain.handle('licencia:cargar', (_, rutaArchivo) => {
+async function syncSupabase() {
   try {
-    const licPath = isDev
-      ? path.join(__dirname, '../licencia.lic')
-      : path.join(app.getPath('userData'), 'licencia.lic')
-    fs.copyFileSync(rutaArchivo, licPath)
-    db.prepare("DELETE FROM configuracion WHERE clave = 'ultima_fecha_uso'").run()
-    db.prepare("DELETE FROM configuracion WHERE clave = 'dias_usados'").run()
-    return verificarLicencia()
-  } catch (e) {
-    return { valida: false, mensaje: 'Error al cargar el archivo.' }
-  }
-})
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+    const pels = db.prepare('SELECT * FROM peluqueros WHERE activo=1').all()
+    for (const p of pels) await sb.from('peluqueros_web').upsert({id:p.id,nombre:p.nombre,activo:true,peluqueria_id:pid},{onConflict:'id'})
+    const inP = db.prepare('SELECT id FROM peluqueros WHERE activo=0').all()
+    for (const p of inP) await sb.from('peluqueros_web').update({activo:false}).eq('id',p.id).eq('peluqueria_id',pid)
+    const servs = db.prepare('SELECT * FROM servicios WHERE activo=1').all()
+    for (const s of servs) await sb.from('servicios_web').upsert({id:s.id,nombre:s.nombre,precio:s.precio,activo:true,peluqueria_id:pid},{onConflict:'id'})
+    const inS = db.prepare('SELECT id FROM servicios WHERE activo=0').all()
+    for (const s of inS) await sb.from('servicios_web').update({activo:false}).eq('id',s.id).eq('peluqueria_id',pid)
+    console.log('✅ Sync Supabase OK')
+  } catch(e){ console.error('⚠️ Sync:',e.message) }
+}
 
-// --- Actualizador ---
-ipcMain.handle('updater:check', async () => {
+async function syncTurnoManual(turno, eliminar=false) {
   try {
-    const result = await autoUpdater.checkForUpdates()
-    const versionDisponible = result.updateInfo.version
-    const versionActual = app.getVersion()
-    return { disponible: versionDisponible !== versionActual, version: versionDisponible }
-  } catch (e) {
-    return { disponible: false, mensaje: e.message }
-  }
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+    if (eliminar) await sb.from('turnos_manuales_web').delete().eq('id',String(turno.id))
+    else await sb.from('turnos_manuales_web').upsert({id:String(turno.id),peluquero_id:turno.peluquero_id,fecha:turno.fecha,hora:turno.hora,peluqueria_id:pid},{onConflict:'id'})
+  } catch(e){ console.error('⚠️ SyncTurno:',e.message) }
+}
+
+// PELUQUEROS
+ipcMain.handle('peluqueros:getAll', ()=>db.prepare('SELECT * FROM peluqueros WHERE activo=1').all())
+ipcMain.handle('peluqueros:create', async(_,d)=>{ const r=db.prepare('INSERT INTO peluqueros(nombre,comision) VALUES(?,?)').run(d.nombre,d.comision); syncSupabase(); return r.lastInsertRowid })
+ipcMain.handle('peluqueros:update', async(_,d)=>{ db.prepare('UPDATE peluqueros SET nombre=?,comision=? WHERE id=?').run(d.nombre,d.comision,d.id); syncSupabase(); return true })
+ipcMain.handle('peluqueros:delete', async(_,id)=>{ db.prepare('UPDATE peluqueros SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
+
+// SERVICIOS
+ipcMain.handle('servicios:getAll', ()=>db.prepare('SELECT * FROM servicios WHERE activo=1').all())
+ipcMain.handle('servicios:create', async(_,d)=>{ const r=db.prepare('INSERT INTO servicios(nombre,precio) VALUES(?,?)').run(d.nombre,d.precio); syncSupabase(); return r.lastInsertRowid })
+ipcMain.handle('servicios:update', async(_,d)=>{ db.prepare('UPDATE servicios SET nombre=?,precio=? WHERE id=?').run(d.nombre,d.precio,d.id); syncSupabase(); return true })
+ipcMain.handle('servicios:delete', async(_,id)=>{ db.prepare('UPDATE servicios SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
+
+// ATENCIONES
+ipcMain.handle('atenciones:create',(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),Number(d.servicio_id),pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); return r.lastInsertRowid })
+ipcMain.handle('atenciones:getByFecha',(_,f)=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? ORDER BY a.id DESC`).all(f))
+ipcMain.handle('atenciones:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha DESC,a.hora DESC`).all(desde,hasta))
+ipcMain.handle('atenciones:delete',(_,id)=>{ db.prepare('DELETE FROM atenciones WHERE id=?').run(id); return true })
+ipcMain.handle('atenciones:update',(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),Number(d.servicio_id),pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); return true })
+
+// CONFIG
+ipcMain.handle('config:get',(_,c)=>db.prepare('SELECT valor FROM configuracion WHERE clave=?').get(c)||null)
+ipcMain.handle('config:set',(_,{clave,valor})=>{ db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
+
+// CAJA
+ipcMain.handle('caja:abrir',(_,d)=>{ const r=db.prepare("INSERT INTO cierre_caja(fecha,hora_apertura,estado) VALUES(?,?,'abierta')").run(d.fecha,d.hora_apertura); return r.lastInsertRowid })
+ipcMain.handle('caja:getCajaAbierta',()=>db.prepare("SELECT * FROM cierre_caja WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get()||null)
+ipcMain.handle('caja:cerrar',(_,d)=>{ db.prepare(`UPDATE cierre_caja SET hora_cierre=?,total_efectivo=?,total_transferencia=?,total_general=?,observaciones=?,estado='cerrada' WHERE id=?`).run(d.hora_cierre,d.total_efectivo,d.total_transferencia,d.total_general,d.observaciones||null,d.id); return true })
+ipcMain.handle('caja:getCierres',(_,f)=>f?db.prepare("SELECT * FROM cierre_caja WHERE fecha=? AND estado='cerrada' ORDER BY hora_apertura ASC").all(f):db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY fecha DESC,hora_apertura ASC").all())
+ipcMain.handle('caja:getDetalleCierre',(_,{hora_apertura,hora_cierre,fecha})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? AND a.hora>=? AND a.hora<=? ORDER BY a.hora ASC`).all(fecha,hora_apertura,hora_cierre))
+
+// BACKUP
+ipcMain.handle('backup:abrirCarpeta',()=>{ const d=isDev?path.join(__dirname,'../backups'):path.join(app.getPath('userData'),'backups'); if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true}); shell.openPath(d); return true })
+ipcMain.handle('backup:listar',()=>{ const d=isDev?path.join(__dirname,'../backups'):path.join(app.getPath('userData'),'backups'); if(!fs.existsSync(d))return []; return fs.readdirSync(d).filter(f=>f.startsWith('database_')&&f.endsWith('.sqlite')).map(f=>({nombre:f,fecha:fs.statSync(path.join(d,f)).mtime.toLocaleString('es-AR')})).sort((a,b)=>b.nombre.localeCompare(a.nombre)) })
+
+// GASTOS
+ipcMain.handle('gastos:getAll',()=>db.prepare('SELECT * FROM gastos ORDER BY fecha DESC,id DESC').all())
+ipcMain.handle('gastos:getByRango',(_,{desde,hasta})=>db.prepare('SELECT * FROM gastos WHERE fecha BETWEEN ? AND ? ORDER BY fecha DESC,id DESC').all(desde,hasta))
+ipcMain.handle('gastos:getResumenMensual',()=>{
+  const g=db.prepare(`SELECT strftime('%Y-%m',fecha) as mes,SUM(monto) as total_gastos,COUNT(*) as cantidad_gastos FROM gastos GROUP BY mes`).all()
+  const p=db.prepare(`SELECT strftime('%Y-%m',fecha_pago) as mes,SUM(monto) as total_pagos,COUNT(*) as cantidad_pagos FROM pagos_peluqueros GROUP BY mes`).all()
+  const meses=new Set([...g.map(r=>r.mes),...p.map(r=>r.mes)])
+  return Array.from(meses).sort().reverse().map(mes=>{ const gr=g.find(r=>r.mes===mes)||{total_gastos:0,cantidad_gastos:0}; const pr=p.find(r=>r.mes===mes)||{total_pagos:0,cantidad_pagos:0}; return {mes,total_gastos:Number(gr.total_gastos)||0,cantidad_gastos:Number(gr.cantidad_gastos)||0,total_pagos:Number(pr.total_pagos)||0,cantidad_pagos:Number(pr.cantidad_pagos)||0} })
 })
-ipcMain.handle('updater:download', () => {
-  autoUpdater.downloadUpdate()
-  return true
+ipcMain.handle('gastos:create',(_,d)=>{ const r=db.prepare('INSERT INTO gastos(descripcion,monto,fecha,categoria) VALUES(?,?,?,?)').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null); return r.lastInsertRowid })
+ipcMain.handle('gastos:update',(_,d)=>{ db.prepare('UPDATE gastos SET descripcion=?,monto=?,fecha=?,categoria=? WHERE id=?').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null,d.id); return true })
+ipcMain.handle('gastos:delete',(_,id)=>{ db.prepare('DELETE FROM gastos WHERE id=?').run(id); return true })
+
+// PAGOS PELUQUEROS
+ipcMain.handle('pagos:create',(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null); return r.lastInsertRowid })
+ipcMain.handle('pagos:getByMes',(_,mes)=>{ const [a,m]=mes.split('-'); const desde=`${a}-${m}-01`; const u=new Date(parseInt(a),parseInt(m),0).getDate(); const hasta=`${a}-${m}-${String(u).padStart(2,'0')}`; return db.prepare('SELECT * FROM pagos_peluqueros WHERE fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC,id DESC').all(desde,hasta) })
+ipcMain.handle('pagos:getByPeluqueroYRango',(_,{peluquero_id,desde,hasta})=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? AND fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC').all(peluquero_id,desde,hasta))
+ipcMain.handle('pagos:delete',(_,id)=>{ db.prepare('DELETE FROM pagos_peluqueros WHERE id=?').run(id); return true })
+
+// TURNOS MANUALES
+ipcMain.handle('turnos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO turnos(peluquero_id,servicio_id,cliente_nombre,fecha,hora,estado,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id||null,d.servicio_id||null,d.cliente_nombre,d.fecha,d.hora,d.estado||'pendiente',d.notas||null); await syncTurnoManual({id:r.lastInsertRowid,peluquero_id:d.peluquero_id,fecha:d.fecha,hora:d.hora}); return r.lastInsertRowid })
+ipcMain.handle('turnos:getByFecha',(_,f)=>db.prepare(`SELECT t.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM turnos t LEFT JOIN peluqueros p ON t.peluquero_id=p.id LEFT JOIN servicios s ON t.servicio_id=s.id WHERE t.fecha=? ORDER BY t.hora ASC`).all(f))
+ipcMain.handle('turnos:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT t.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM turnos t LEFT JOIN peluqueros p ON t.peluquero_id=p.id LEFT JOIN servicios s ON t.servicio_id=s.id WHERE t.fecha BETWEEN ? AND ? ORDER BY t.fecha ASC,t.hora ASC`).all(desde,hasta))
+ipcMain.handle('turnos:updateEstado',(_,{id,estado})=>{ db.prepare('UPDATE turnos SET estado=? WHERE id=?').run(estado,id); return true })
+ipcMain.handle('turnos:delete',async(_,id)=>{ const t=db.prepare('SELECT * FROM turnos WHERE id=?').get(id); db.prepare('DELETE FROM turnos WHERE id=?').run(id); if(t) await syncTurnoManual(t,true); return true })
+
+// PELUQUERÍA WEB
+ipcMain.handle('peluqueria:getConfig',()=>{
+  const id=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()
+  const nombre=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()
+  const email=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_email'").get()
+  return { id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'' }
 })
-autoUpdater.on('download-progress', (progress) => {
-  if (mainWindow) {
-    mainWindow.webContents.send('updater:download-progress', {
-      percent: Math.floor(progress.percent),
-      transferred: progress.transferred,
-      total: progress.total
+ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
+  try {
+    const sb=await getSupabase()
+    const {data,error}=await sb.from('peluquerias').insert({nombre,email,activo:true}).select().single()
+    if(error) throw error
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(nombre)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
+    await syncSupabase()
+    return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}` }
+  } catch(e){ return { ok:false, error:e.message } }
+})
+ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
+  try {
+    const sb=await getSupabase()
+    const {data,error}=await sb.from('peluquerias').select('*').eq('id',peluqueriaId).maybeSingle()
+    if(error||!data) return { ok:false, error:'ID no encontrado.' }
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(peluqueriaId)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(data.email)
+    await syncSupabase()
+    return { ok:true, id:peluqueriaId, link:`${WEB_URL}/?p=${peluqueriaId}` }
+  } catch(e){ return { ok:false, error:e.message } }
+})
+ipcMain.handle('turnosWeb:getPendientes',async()=>{
+  try {
+    const pid=await getPid(); if(!pid) return []
+    const sb=await getSupabase()
+    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado']).order('fecha',{ascending:true}).order('hora',{ascending:true})
+    return data||[]
+  } catch(e){ return [] }
+})
+ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
+  try {
+    const pid=await getPid(); if(!pid) return []
+    const sb=await getSupabase()
+    const [a,m]=mes.split('-').map(Number)
+    const desde=`${a}-${String(m).padStart(2,'0')}-01`
+    const u=new Date(a,m,0).getDate()
+    const hasta=`${a}-${String(m).padStart(2,'0')}-${String(u).padStart(2,'0')}`
+    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).gte('fecha',desde).lte('fecha',hasta).order('fecha',{ascending:true}).order('hora',{ascending:true})
+    return data||[]
+  } catch(e){ return [] }
+})
+ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, hora_propuesta, motivo }) => {
+  try {
+    const pid = await getPid()
+    const sb = await getSupabase()
+
+    const { data: turno } = await sb.from('turnos_web').select('*').eq('id', id).single()
+    if (!turno) return { ok: false, error: 'Turno no encontrado' }
+
+    const expira = accion === 'modificado'
+      ? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+      : null
+
+    await sb.from('turnos_web').update({
+      estado: accion,
+      motivo: motivo || null,
+      respondido_at: new Date().toISOString(),
+      ...(accion === 'modificado' ? { fecha_propuesta, hora_propuesta, expira_confirmacion_at: expira } : {})
+    }).eq('id', id)
+
+    // ✅ NUEVO: si confirmamos, crear turno local para que aparezca en la Agenda
+    if (accion === 'confirmado') {
+      db.prepare(`
+        INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
+        VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web', ?)
+      `).run(
+        turno.peluquero_id || null,
+        turno.servicio_id  || null,
+        turno.cliente_nombre,
+        turno.fecha,
+        turno.hora?.substring(0, 5),
+        turno.id
+      )
+    }
+
+    // Si cancelamos desde la app, borrar el turno local vinculado
+    if (accion === 'cancelado') {
+      const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(turno.id)
+      if (local) db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
+    }
+
+
+
+    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
+
+    await fetch(`${WEB_URL}/api/notificar-respuesta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: turno.cliente_email,
+        nombre: turno.cliente_nombre,
+        peluqueria_nombre: pelNombre,
+        peluquero_nombre: turno.peluquero_nombre,
+        peluqueria_id: pid,
+        accion,
+        fecha_original: turno.fecha,
+        hora_original: turno.hora?.substring(0, 5),
+        fecha_propuesta,
+        hora_propuesta,
+        motivo
+      })
     })
-  }
-})
-autoUpdater.on('update-downloaded', () => {
-  if (mainWindow) mainWindow.webContents.send('updater:download-complete')
-  autoUpdater.quitAndInstall()
-})
 
-// --- Personalización (nombre y logo) ---
-function getLogoBasePath() {
-  const basePath = isDev
-    ? path.join(app.getPath('userData'), 'dev')
-    : app.getPath('userData')
-  if (!fs.existsSync(basePath)) fs.mkdirSync(basePath, { recursive: true })
-  return basePath
-}
-
-ipcMain.handle('config:getNombreApp', () =>
-  db.prepare("SELECT valor FROM configuracion WHERE clave = 'nombre_app'").get()?.valor || 'PeluApp'
-)
-ipcMain.handle('config:setNombreApp', (_, nombre) => {
-  db.prepare(
-    "INSERT OR REPLACE INTO configuracion (clave, valor) VALUES ('nombre_app', ?)"
-  ).run(nombre)
-  return true
-})
-ipcMain.handle('config:getLogo', () => {
-  const logoPath = path.join(getLogoBasePath(), 'logo.png')
-  if (fs.existsSync(logoPath)) {
-    const data = fs.readFileSync(logoPath)
-    return `data:image/png;base64,${data.toString('base64')}`
-  }
-  return null
-})
-ipcMain.handle('config:setLogo', (_, rutaArchivo) => {
-  try {
-    const logoPath = path.join(getLogoBasePath(), 'logo.png')
-    if (rutaArchivo === null) {
-      if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath)
-      return { ok: true }
-    }
-    fs.copyFileSync(rutaArchivo, logoPath)
     return { ok: true }
   } catch (e) {
-    return { ok: false }
-  }
-})
-ipcMain.handle('app:getVersion', () => app.getVersion())
-
-// --- PDF ---
-ipcMain.handle('pdf:guardar', async (_, { buffer, nombreSugerido }) => {
-  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow, {
-    title: 'Guardar PDF',
-    defaultPath: nombreSugerido,
-    filters: [{ name: 'PDF', extensions: ['pdf'] }]
-  })
-  if (canceled || !filePath) return { ok: false }
-  fs.writeFileSync(filePath, Buffer.from(buffer))
-  return { ok: true, filePath }
-})
-
-// --- Dashboard ---
-ipcMain.handle('dashboard:getResumen', () => {
-  const hoy = new Date()
-  const fechaHoy = hoy.toISOString().split('T')[0]
-
-  const ultimos7 = []
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(hoy)
-    d.setDate(d.getDate() - i)
-    ultimos7.push(d.toISOString().split('T')[0])
-  }
-
-  const atencionesHoy = db.prepare(`
-    SELECT a.*, p.nombre as peluquero_nombre, s.nombre as servicio_nombre
-    FROM atenciones a
-    JOIN peluqueros p ON a.peluquero_id = p.id
-    JOIN servicios s ON a.servicio_id = s.id
-    WHERE a.fecha = ?
-  `).all(fechaHoy)
-
-  const ingresosPorDia = ultimos7.map(fecha => {
-    const row = db.prepare(
-      'SELECT COALESCE(SUM(precio_cobrado), 0) as total FROM atenciones WHERE fecha = ?'
-    ).get(fecha)
-    return { fecha, total: row.total }
-  })
-
-  const primerDiaMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`
-  const topPeluqueros = db.prepare(`
-    SELECT p.nombre, COUNT(*) as atenciones, SUM(a.precio_cobrado) as total
-    FROM atenciones a
-    JOIN peluqueros p ON a.peluquero_id = p.id
-    WHERE a.fecha BETWEEN ? AND ?
-    GROUP BY a.peluquero_id
-    ORDER BY total DESC
-    LIMIT 5
-  `).all(primerDiaMes, fechaHoy)
-
-  const ultimoCierre = db.prepare(
-    "SELECT * FROM cierre_caja WHERE estado = 'cerrada' ORDER BY id DESC LIMIT 1"
-  ).get() || null
-
-  const cajaAbierta = db.prepare(
-    "SELECT * FROM cierre_caja WHERE estado = 'abierta' ORDER BY id DESC LIMIT 1"
-  ).get() || null
-
-  // Totales hoy usando monto_efectivo y monto_transferencia
-  const efectivoHoy      = atencionesHoy.reduce((acc, a) => acc + Number(a.monto_efectivo      || 0), 0)
-  const transferenciaHoy = atencionesHoy.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
-
-  return {
-    fechaHoy,
-    atencionesHoy,
-    totalHoy: atencionesHoy.reduce((acc, a) => acc + Number(a.precio_cobrado), 0),
-    efectivoHoy,
-    transferenciaHoy,
-    ingresosPorDia,
-    topPeluqueros,
-    ultimoCierre,
-    cajaAbierta
+    return { ok: false, error: e.message }
   }
 })
 
-// ============ VENTANA ============
-function createWindow() {
-  Menu.setApplicationMenu(null)
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: false
+ipcMain.handle('turnosWeb:sincronizarCancelados', async () => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { ok: true, eliminados: 0 }
+
+    const sb = await getSupabase()
+    const { data: cancelados } = await sb
+      .from('turnos_web')
+      .select('id')
+      .eq('peluqueria_id', pid)
+      .eq('estado', 'cancelado')
+
+    if (!cancelados?.length) return { ok: true, eliminados: 0 }
+
+    let eliminados = 0
+    for (const t of cancelados) {
+      const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(t.id)
+      if (local) {
+        db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
+        eliminados++
+      }
     }
-  })
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+
+    return { ok: true, eliminados }
+  } catch (e) {
+    return { ok: false, error: e.message }
   }
+})
+
+ipcMain.handle('turnosWeb:sincronizarConfirmados', async () => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { ok: true, creados: 0 }
+
+    const sb = await getSupabase()
+    const { data: confirmados } = await sb
+      .from('turnos_web')
+      .select('*')
+      .eq('peluqueria_id', pid)
+      .eq('estado', 'confirmado')
+
+    if (!confirmados?.length) return { ok: true, creados: 0 }
+
+    let creados = 0
+    for (const t of confirmados) {
+      const existe = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(t.id)
+      if (!existe) {
+        // Si hubo modificación, usar la fecha/hora propuesta; si no, la original
+        const fecha = t.fecha_propuesta || t.fecha
+        const hora  = (t.hora_propuesta || t.hora)?.substring(0, 5)
+
+        db.prepare(`
+          INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
+          VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web', ?)
+        `).run(t.peluquero_id || null, t.servicio_id || null, t.cliente_nombre, fecha, hora, t.id)
+        creados++
+      }
+    }
+
+    return { ok: true, creados }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+
+
+// LICENCIA
+function verificarLicencia(){
+  try {
+    const licPath=isDev?path.join(__dirname,'../licencia.lic'):path.join(app.getPath('userData'),'licencia.lic')
+    if(!fs.existsSync(licPath)) return {valida:false,mensaje:'No se encontró archivo de licencia.'}
+    const contenido=fs.readFileSync(licPath,'utf-8').trim()
+    const decoded=Buffer.from(contenido,'base64').toString('utf-8')
+    const datos=JSON.parse(decoded)
+    const firma=crypto.createHmac('sha256',SECRET_KEY).update(`peluapp|${datos.desde}|${datos.vence}`).digest('hex')
+    if(firma!==datos.firma) return {valida:false,mensaje:'Licencia inválida o modificada.'}
+    const ahora=new Date()
+    const hoy=`${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`
+    const fechaHoy=new Date(hoy+'T00:00:00Z')
+    const fechaDesde=new Date(datos.desde+'T00:00:00Z')
+    const fechaVence=new Date(datos.vence+'T00:00:00Z')
+    const uf=db.prepare("SELECT valor FROM configuracion WHERE clave='ultima_fecha_uso'").get()
+    if(uf&&hoy<uf.valor) return {valida:false,mensaje:'Se detectó un cambio en la fecha del sistema.'}
+    const du=db.prepare("SELECT valor FROM configuracion WHERE clave='dias_usados'").get()
+    let diasUsados=[]
+    try{diasUsados=JSON.parse(du?.valor||'[]')}catch{diasUsados=[]}
+    if(!diasUsados.includes(hoy)){diasUsados.push(hoy);db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('dias_usados',?)").run(JSON.stringify(diasUsados))}
+    const total=Math.round((fechaVence-fechaDesde)/(1000*60*60*24))+1
+    if(diasUsados.length>total) return {valida:false,mensaje:'Licencia vencida por días de uso excedidos.'}
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultima_fecha_uso',?)").run(hoy)
+    if(fechaHoy<fechaDesde) return {valida:false,mensaje:`Licencia válida a partir del ${datos.desde}.`}
+    if(fechaHoy>fechaVence) return {valida:false,mensaje:`Licencia vencida el ${datos.vence}.`}
+    const diasRestantes=Math.round((fechaVence-fechaHoy)/(1000*60*60*24))+1
+    return {valida:true,mensaje:`Licencia válida. ${diasRestantes} días restantes.`,vence:datos.vence,diasRestantes}
+  } catch(e){ return {valida:false,mensaje:'Error al leer la licencia: '+e.message} }
+}
+ipcMain.handle('licencia:verificar',()=>verificarLicencia())
+ipcMain.handle('licencia:cargar',(_,ruta)=>{ try{ const lp=isDev?path.join(__dirname,'../licencia.lic'):path.join(app.getPath('userData'),'licencia.lic'); fs.copyFileSync(ruta,lp); db.prepare("DELETE FROM configuracion WHERE clave='ultima_fecha_uso'").run(); db.prepare("DELETE FROM configuracion WHERE clave='dias_usados'").run(); return verificarLicencia() }catch{return {valida:false,mensaje:'Error al cargar el archivo.'}} })
+
+// ACTUALIZADOR
+ipcMain.handle('updater:check',async()=>{ try{ const r=await autoUpdater.checkForUpdates(); return {disponible:r.updateInfo.version!==app.getVersion(),version:r.updateInfo.version} }catch(e){return {disponible:false,mensaje:e.message}} })
+ipcMain.handle('updater:download',()=>{ autoUpdater.downloadUpdate(); return true })
+autoUpdater.on('download-progress',(p)=>{ if(mainWindow) mainWindow.webContents.send('updater:download-progress',{percent:Math.floor(p.percent),transferred:p.transferred,total:p.total}) })
+autoUpdater.on('update-downloaded',()=>{ if(mainWindow) mainWindow.webContents.send('updater:download-complete'); autoUpdater.quitAndInstall() })
+
+// LOGO Y NOMBRE
+function getLogoBasePath(){ const b=isDev?path.join(app.getPath('userData'),'dev'):app.getPath('userData'); if(!fs.existsSync(b))fs.mkdirSync(b,{recursive:true}); return b }
+ipcMain.handle('config:getNombreApp',()=>db.prepare("SELECT valor FROM configuracion WHERE clave='nombre_app'").get()?.valor||'PeluApp')
+ipcMain.handle('config:setNombreApp',(_,n)=>{ db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('nombre_app',?)").run(n); return true })
+ipcMain.handle('config:getLogo',()=>{ const lp=path.join(getLogoBasePath(),'logo.png'); if(fs.existsSync(lp)) return `data:image/png;base64,${fs.readFileSync(lp).toString('base64')}`; return null })
+ipcMain.handle('config:setLogo',(_,ruta)=>{ try{ const lp=path.join(getLogoBasePath(),'logo.png'); if(ruta===null){if(fs.existsSync(lp))fs.unlinkSync(lp);return {ok:true}}; fs.copyFileSync(ruta,lp); return {ok:true} }catch{return {ok:false}} })
+ipcMain.handle('app:getVersion',()=>app.getVersion())
+
+// PDF
+ipcMain.handle('pdf:guardar',async(_,{buffer,nombreSugerido})=>{ const {filePath,canceled}=await dialog.showSaveDialog(mainWindow,{title:'Guardar PDF',defaultPath:nombreSugerido,filters:[{name:'PDF',extensions:['pdf']}]}); if(canceled||!filePath) return {ok:false}; fs.writeFileSync(filePath,Buffer.from(buffer)); return {ok:true,filePath} })
+
+// DASHBOARD
+ipcMain.handle('dashboard:getResumen',()=>{
+  const hoy=new Date(); const fechaHoy=hoy.toISOString().split('T')[0]
+  const ultimos7=[]; for(let i=6;i>=0;i--){const d=new Date(hoy);d.setDate(d.getDate()-i);ultimos7.push(d.toISOString().split('T')[0])}
+  const atencionesHoy=db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=?`).all(fechaHoy)
+  const ingresosPorDia=ultimos7.map(f=>({fecha:f,total:db.prepare('SELECT COALESCE(SUM(precio_cobrado),0) as total FROM atenciones WHERE fecha=?').get(f).total}))
+  const pm=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`
+  const topPeluqueros=db.prepare(`SELECT p.nombre,COUNT(*) as atenciones,SUM(a.precio_cobrado) as total FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id WHERE a.fecha BETWEEN ? AND ? GROUP BY a.peluquero_id ORDER BY total DESC LIMIT 5`).all(pm,fechaHoy)
+  const ultimoCierre=db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY id DESC LIMIT 1").get()||null
+  const cajaAbierta=db.prepare("SELECT * FROM cierre_caja WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get()||null
+  return {fechaHoy,atencionesHoy,totalHoy:atencionesHoy.reduce((a,x)=>a+Number(x.precio_cobrado),0),efectivoHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_efectivo||0),0),transferenciaHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_transferencia||0),0),ingresosPorDia,topPeluqueros,ultimoCierre,cajaAbierta}
+})
+
+ipcMain.handle('peluqueria:sincronizar', async () => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { ok: false, error: 'No hay peluquería configurada.' }
+
+    // Sync peluqueros y servicios
+    await syncSupabase()
+
+    // Sync todos los turnos manuales existentes
+    const sb = await getSupabase()
+    const turnos = db.prepare('SELECT * FROM turnos').all()
+    for (const t of turnos) {
+      await sb.from('turnos_manuales_web').upsert({
+        id: String(t.id),
+        peluquero_id: t.peluquero_id,
+        fecha: t.fecha,
+        hora: t.hora,
+        peluqueria_id: pid
+      }, { onConflict: 'id' })
+    }
+
+    return { ok: true, peluqueros: db.prepare('SELECT COUNT(*) as c FROM peluqueros WHERE activo=1').get().c, servicios: db.prepare('SELECT COUNT(*) as c FROM servicios WHERE activo=1').get().c, turnos: turnos.length }
+  } catch(e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+
+function createWindow(){
+  
+  mainWindow=new BrowserWindow({width:1280,height:800,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,webSecurity:false}})
+  if(isDev) mainWindow.loadURL('http://localhost:5173')
+  else mainWindow.loadFile(path.join(__dirname,'../dist/index.html'))
 }
 
-// ============ ARRANQUE ============
-const gotTheLock = app.requestSingleInstanceLock()
-if (!gotTheLock) {
-  app.quit()
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    }
-  })
-  app.whenReady().then(() => {
-    initDB()
-    hacerBackup()
-    createWindow()
-  })
+const gotTheLock=app.requestSingleInstanceLock()
+if(!gotTheLock){ app.quit() }
+else {
+  app.on('second-instance',()=>{ if(mainWindow){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.focus()} })
+  app.whenReady().then(()=>{ initDB(); hacerBackup(); createWindow(); setTimeout(()=>syncSupabase(),3000) })
 }
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
-})
+app.on('window-all-closed',()=>{ if(process.platform!=='darwin') app.quit() })

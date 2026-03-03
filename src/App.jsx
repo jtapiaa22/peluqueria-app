@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown } from 'lucide-react'
+import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays } from 'lucide-react'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
@@ -9,6 +9,7 @@ import Caja         from './pages/Caja/Caja'
 import Reportes     from './pages/Reportes/Reportes'
 import Liquidacion  from './pages/Liquidacion/Liquidacion'
 import Gastos       from './pages/Gastos/Gastos'
+import Agenda       from './pages/Agenda/Agenda'
 import Configuracion from './pages/Configuracion/Configuracion'
 import Licencia     from './pages/Licencia/Licencia'
 import Actualizador from './components/Actualizador'
@@ -72,6 +73,9 @@ function App() {
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <LayoutDashboard size={18} /> Dashboard
             </NavLink>
+            <NavLink to="/agenda" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <CalendarDays size={18} /> Agenda
+            </NavLink>
             <NavLink to="/peluqueros" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Users size={18} /> Peluqueros
             </NavLink>
@@ -98,7 +102,7 @@ function App() {
             </NavLink>
           </nav>
 
-          {/* Badge licencia - VERSIÓN FINAL */}
+          {/* Badge licencia */}
           {diasRestantes !== null && (
             <div className={`licencia-badge licencia-${diasRestantes <= 5 ? 'critica' : diasRestantes <= 10 ? 'advertencia' : 'normal'}`}>
               <div className="licencia-titulo">LICENCIA ACTIVA</div>
@@ -112,7 +116,6 @@ function App() {
             </div>
           )}
 
-
           <div className="actualizador-container">
             <Actualizador />
           </div>
@@ -125,7 +128,6 @@ function App() {
               <div className="footer-author">Desarrollado por<br /> <strong style={{color:'var(--text-soft)'}}> Jorge Tapia Ahumada</strong>
               </div>
             </footer>
-
           </div>
 
         </aside>
@@ -133,6 +135,7 @@ function App() {
         <main className="main-content">
           <Routes>
             <Route path="/"              element={<Dashboard />} />
+            <Route path="/agenda"        element={<Agenda />} />
             <Route path="/peluqueros"    element={<Peluqueros />} />
             <Route path="/servicios"     element={<Servicios />} />
             <Route path="/atenciones"    element={<Atenciones />} />

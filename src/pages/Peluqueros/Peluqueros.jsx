@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -10,6 +10,7 @@ export default function Peluqueros() {
   const [mostrarForm, setMostrarForm] = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
+  const [sincState, setSincState] = useState(null)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -22,10 +23,8 @@ export default function Peluqueros() {
   useEffect(() => { cargar() }, [])
 
   const guardar = async () => {
-    if (!form.nombre.trim()) {
-      alertar('Por favor ingresá el nombre del peluquero.', 'warning')
-      return
-    }
+    if (!form.nombre.trim()) { alertar('Por favor ingresá el nombre del peluquero.', 'warning'); return }
+    setSincState('syncing')
     if (editando) {
       await window.electronAPI.updatePeluquero({ ...form, id: editando })
     } else {
@@ -35,6 +34,8 @@ export default function Peluqueros() {
     setEditando(null)
     setMostrarForm(false)
     cargar()
+    setSincState('ok')
+    setTimeout(() => setSincState(null), 3000)
   }
 
   const editar = (p) => {
@@ -69,7 +70,18 @@ export default function Peluqueros() {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Peluqueros</h1>
+        <h1 className="page-title">Peluqueros</h1>
+        {sincState && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontSize: 12, color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : '#a78bfa',
+            marginBottom: 16
+          }}>
+            <RefreshCw size={13} style={{ animation: sincState === 'syncing' ? 'spin 1s linear infinite' : 'none' }} />
+            {sincState === 'syncing' ? 'Sincronizando con la web...' : sincState === 'ok' ? '✓ Sincronizado' : 'Error al sincronizar'}
+          </div>
+        )}
+
         <button className="btn btn-primary" onClick={() => { setMostrarForm(!mostrarForm); setEditando(null); setForm({ nombre: '', comision: '' }) }}>
           <Plus size={16} style={{ marginRight: 6 }} />Agregar
         </button>

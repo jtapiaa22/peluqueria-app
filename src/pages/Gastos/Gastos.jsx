@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, TrendingDown, Users, DollarSign, TrendingUp } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -14,11 +14,26 @@ function hoy() {
   return new Date().toISOString().split('T')[0]
 }
 
+function formatFecha(f) {
+  if (!f) return ''
+  const [a, m, d] = f.split('-')
+  return `${d}/${m}/${a}`
+}
+
+function getRangoMes(mes) {
+  const [anio, m] = mes.split('-').map(Number)
+  const desde     = `${anio}-${String(m).padStart(2, '0')}-01`
+  const ultimoDia = new Date(anio, m, 0).getDate()
+  const hasta     = `${anio}-${String(m).padStart(2, '0')}-${ultimoDia}`
+  return [desde, hasta]
+}
+
 export default function Gastos() {
   const [resumenMensual, setResumenMensual] = useState([])
   const [mesAbierto, setMesAbierto]         = useState(null)
-  const [detallesMes, setDetallesMes]       = useState({})
-  const [comisionesMes, setComisionesMes]   = useState({})
+  const [detallesMes, setDetallesMes]       = useState({})   // gastos operativos por mes
+  const [pagosMes, setPagosMes]             = useState({})   // pagos peluqueros por mes
+  const [ingresosMes, setIngresosMes]       = useState({})   // ingresos por mes
   const [peluqueros, setPeluqueros]         = useState([])
   const [mostrarForm, setMostrarForm]       = useState(false)
   const [editando, setEditando]             = useState(null)
@@ -40,35 +55,21 @@ export default function Gastos() {
 
   useEffect(() => { cargarResumen() }, [])
 
-  const getRangoMes = (mes) => {
-    const [anio, m] = mes.split('-').map(Number)
-    const desde     = `${anio}-${String(m).padStart(2, '0')}-01`
-    const ultimoDia = new Date(anio, m, 0).getDate()
-    const hasta     = `${anio}-${String(m).padStart(2, '0')}-${ultimoDia}`
-    return [desde, hasta]
-  }
-
   const cargarDetalleMes = async (mes) => {
-    if (detallesMes[mes]) return
+    if (detallesMes[mes] && pagosMes[mes]) return
 
     const [desde, hasta] = getRangoMes(mes)
-    const [gastos, atenciones] = await Promise.all([
+    const [gastos, pagos, atenciones] = await Promise.all([
       window.electronAPI.getGastosByRango({ desde, hasta }),
+      window.electronAPI.getPagosByMes(mes),
       window.electronAPI.getAtencionesByRango({ desde, hasta })
     ])
 
-    const comisionesPorPeluquero = peluqueros.map(p => {
-      const atencionesP   = atenciones.filter(a => a.peluquero_id === p.id)
-      const totalGenerado = atencionesP.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-      const montoComision = totalGenerado * (Number(p.comision) / 100)
-      return { nombre: p.nombre, comision: p.comision, totalGenerado, montoComision, cantidad: atencionesP.length }
-    }).filter(p => p.cantidad > 0)
+    const totalIngresos = atenciones.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
 
-    const totalComisiones = comisionesPorPeluquero.reduce((acc, p) => acc + p.montoComision, 0)
-    const totalIngresos   = atenciones.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-
-    setDetallesMes(prev  => ({ ...prev,  [mes]: gastos }))
-    setComisionesMes(prev => ({ ...prev, [mes]: { comisionesPorPeluquero, totalComisiones, totalIngresos } }))
+    setDetallesMes(prev  => ({ ...prev, [mes]: gastos }))
+    setPagosMes(prev     => ({ ...prev, [mes]: pagos }))
+    setIngresosMes(prev  => ({ ...prev, [mes]: totalIngresos }))
   }
 
   const toggleMes = async (mes) => {
@@ -82,7 +83,7 @@ export default function Gastos() {
 
   const guardar = async () => {
     if (!form.descripcion.trim() || !form.monto || !form.fecha) {
-      alertar('Por favor completá descripción, monto y fecha.', 'warning')
+      alertar('Completá descripción, monto y fecha.', 'warning')
       return
     }
     if (editando) {
@@ -94,17 +95,13 @@ export default function Gastos() {
     setEditando(null)
     setMostrarForm(false)
     setDetallesMes({})
-    setComisionesMes({})
+    setPagosMes({})
+    setIngresosMes({})
     cargarResumen()
   }
 
   const editar = (gasto) => {
-    setForm({
-      descripcion: gasto.descripcion,
-      monto:       gasto.monto,
-      fecha:       gasto.fecha,
-      categoria:   gasto.categoria || ''
-    })
+    setForm({ descripcion: gasto.descripcion, monto: gasto.monto, fecha: gasto.fecha, categoria: gasto.categoria || '' })
     setEditando(gasto.id)
     setMostrarForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -115,27 +112,34 @@ export default function Gastos() {
       setModalConfirm(null)
       await window.electronAPI.deleteGasto(id)
       setDetallesMes({})
-      setComisionesMes({})
+      setPagosMes({})
+      setIngresosMes({})
       cargarResumen()
     })
   }
 
+  const eliminarPago = (pago) => {
+    confirmar(`¿Eliminar el pago de $${Number(pago.monto).toLocaleString('es-AR')} a ${pago.peluquero_nombre}?`, async () => {
+      setModalConfirm(null)
+      await window.electronAPI.deletePago(pago.id)
+      // Refrescar el mes abierto
+      const mes = mesAbierto
+      setPagosMes(prev => ({ ...prev, [mes]: undefined }))
+      setIngresosMes(prev => ({ ...prev, [mes]: undefined }))
+      await cargarDetalleMes(mes)
+      cargarResumen()
+    })
+  }
+
+  // ── Estadísticas globales (todos los meses) ──
+  const totalGastosGlobal = resumenMensual.reduce((acc, m) => acc + m.total_gastos, 0)
+  const totalPagosGlobal  = resumenMensual.reduce((acc, m) => acc + m.total_pagos, 0)
+  const totalEgresosGlobal = totalGastosGlobal + totalPagosGlobal
+
   return (
     <div className="page-animation">
-      {modalConfirm && (
-        <ModalConfirm
-          mensaje={modalConfirm.mensaje}
-          onConfirm={modalConfirm.onConfirm}
-          onCancel={() => setModalConfirm(null)}
-        />
-      )}
-      {modalAlert && (
-        <ModalAlert
-          mensaje={modalAlert.mensaje}
-          tipo={modalAlert.tipo}
-          onClose={() => setModalAlert(null)}
-        />
-      )}
+      {modalConfirm && <ModalConfirm mensaje={modalConfirm.mensaje} onConfirm={modalConfirm.onConfirm} onCancel={() => setModalConfirm(null)} />}
+      {modalAlert   && <ModalAlert   mensaje={modalAlert.mensaje}   tipo={modalAlert.tipo}             onClose={() => setModalAlert(null)} />}
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -153,7 +157,43 @@ export default function Gastos() {
         </button>
       </div>
 
-      {/* Formulario */}
+      {/* Resumen global */}
+      {resumenMensual.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: 'rgba(248, 113, 113, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <TrendingDown size={20} color="#f87171" />
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Gastos operativos</div>
+              <div style={{ color: '#f87171', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
+            </div>
+          </div>
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: 'rgba(251, 146, 60, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <Users size={20} color="#fb923c" />
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Pagos a peluqueros</div>
+              <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
+            </div>
+          </div>
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: 'rgba(167, 139, 250, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color="#a78bfa" />
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total egresos</div>
+              <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Formulario nuevo/editar gasto */}
       <AnimatePresence>
         {mostrarForm && (
           <motion.div
@@ -163,7 +203,7 @@ export default function Gastos() {
             className="card"
           >
             <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
-              {editando ? 'Editar gasto' : 'Nuevo gasto'}
+              {editando ? 'Editar gasto' : 'Nuevo gasto operativo'}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
@@ -195,9 +235,7 @@ export default function Gastos() {
                 />
               </div>
               <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                <label>
-                  Categoría <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span>
-                </label>
+                <label>Categoría <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span></label>
                 <input
                   className="input"
                   value={form.categoria}
@@ -208,7 +246,7 @@ export default function Gastos() {
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
               <button className="btn btn-primary" onClick={guardar}>Guardar</button>
-              <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
+              <button className="btn btn-secondary" onClick={() => { setMostrarForm(false); setEditando(null) }}>Cancelar</button>
             </div>
           </motion.div>
         )}
@@ -222,19 +260,19 @@ export default function Gastos() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {resumenMensual.map(item => {
-            const abierto         = mesAbierto === item.mes
-            const detalle         = detallesMes[item.mes] || []
-            const comData         = comisionesMes[item.mes]
-            const totalGastos     = Number(item.total_gastos)
-            const totalComisiones = comData?.totalComisiones || 0
-            const totalIngresos   = comData?.totalIngresos   || 0
-            const totalEgresos    = totalGastos + totalComisiones
-            const gananciaNeta    = totalIngresos - totalEgresos
+            const abierto    = mesAbierto === item.mes
+            const detalle    = detallesMes[item.mes] || []
+            const pagos      = pagosMes[item.mes]    || []
+            const ingresos   = ingresosMes[item.mes] || 0
+            const totalG     = item.total_gastos
+            const totalP     = item.total_pagos
+            const totalEgr   = totalG + totalP
+            const ganancia   = ingresos - totalEgr
 
             return (
               <div key={item.mes} className="card" style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
 
-                {/* Cabecera del mes */}
+                {/* ── Cabecera del mes ── */}
                 <div
                   onClick={() => toggleMes(item.mes)}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', cursor: 'pointer' }}
@@ -243,22 +281,37 @@ export default function Gastos() {
                     <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-main)' }}>
                       {mesLegible(item.mes)}
                     </div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
-                      {item.cantidad} gasto{item.cantidad !== 1 ? 's' : ''} registrado{item.cantidad !== 1 ? 's' : ''}
+                    <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 3, display: 'flex', gap: 12 }}>
+                      {item.cantidad_gastos > 0 && (
+                        <span>{item.cantidad_gastos} gasto{item.cantidad_gastos !== 1 ? 's' : ''}</span>
+                      )}
+                      {item.cantidad_pagos > 0 && (
+                        <span style={{ color: '#fb923c' }}>{item.cantidad_pagos} pago{item.cantidad_pagos !== 1 ? 's' : ''} a peluqueros</span>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>TOTAL GASTOS</div>
-                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>
-                        ${totalGastos.toLocaleString('es-AR')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                    {totalG > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>GASTOS OP.</div>
+                        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 15 }}>${totalG.toLocaleString('es-AR')}</div>
                       </div>
+                    )}
+                    {totalP > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>PAGOS PEL.</div>
+                        <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 15 }}>${totalP.toLocaleString('es-AR')}</div>
+                      </div>
+                    )}
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>TOTAL EGRESOS</div>
+                      <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${totalEgr.toLocaleString('es-AR')}</div>
                     </div>
                     {abierto ? <ChevronUp size={18} color="#a78bfa" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                   </div>
                 </div>
 
-                {/* Detalle expandible */}
+                {/* ── Detalle expandible ── */}
                 <AnimatePresence>
                   {abierto && (
                     <motion.div
@@ -270,78 +323,98 @@ export default function Gastos() {
                     >
                       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-                        {/* Resumen del mes */}
-                        {comData && (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                            <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Ingresos del mes</div>
-                              <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>
-                                ${totalIngresos.toLocaleString('es-AR')}
-                              </div>
-                            </div>
-                            <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Gastos registrados</div>
-                              <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>
-                                ${totalGastos.toLocaleString('es-AR')}
-                              </div>
-                            </div>
-                            <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Comisiones pagadas</div>
-                              <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 18 }}>
-                                ${totalComisiones.toLocaleString('es-AR')}
-                              </div>
-                            </div>
-                            <div style={{
-                              background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center',
-                              border: `1px solid ${gananciaNeta >= 0 ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`
-                            }}>
-                              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Ganancia neta</div>
-                              <div style={{ color: gananciaNeta >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 18 }}>
-                                ${gananciaNeta.toLocaleString('es-AR')}
-                              </div>
+                        {/* Resumen financiero del mes */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Ingresos del mes</div>
+                            <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${ingresos.toLocaleString('es-AR')}</div>
+                          </div>
+                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Gastos operativos</div>
+                            <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${totalG.toLocaleString('es-AR')}</div>
+                          </div>
+                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Pagos a peluqueros</div>
+                            <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 18 }}>${totalP.toLocaleString('es-AR')}</div>
+                          </div>
+                          <div style={{
+                            background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center',
+                            border: `1px solid ${ganancia >= 0 ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`
+                          }}>
+                            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Ganancia neta</div>
+                            <div style={{ color: ganancia >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 18 }}>
+                              {ganancia >= 0 ? '' : '-'}${Math.abs(ganancia).toLocaleString('es-AR')}
                             </div>
                           </div>
-                        )}
+                        </div>
 
-                        {/* Comisiones por peluquero */}
-                        {comData?.comisionesPorPeluquero?.length > 0 && (
-                          <div>
-                            <h4 style={{ color: '#a78bfa', marginBottom: 12, fontSize: 14 }}>
-                              Comisiones pagadas a peluqueros
+                        {/* ── PAGOS A PELUQUEROS ── */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <Users size={15} color="#fb923c" />
+                            <h4 style={{ color: '#fb923c', margin: 0, fontSize: 14 }}>
+                              Pagos confirmados a peluqueros
                             </h4>
+                          </div>
+
+                          {pagos.length === 0 ? (
+                            <div style={{
+                              border: '1px dashed rgba(251, 146, 60, 0.3)',
+                              borderRadius: 8, padding: '14px 20px',
+                              color: 'var(--text-muted)', fontSize: 13, textAlign: 'center'
+                            }}>
+                              No hay pagos confirmados este mes. Podés confirmarlos desde <strong>Liquidación</strong>.
+                            </div>
+                          ) : (
                             <table className="table">
                               <thead>
                                 <tr>
                                   <th>Peluquero</th>
-                                  <th>Atenciones</th>
-                                  <th>Total generado</th>
-                                  <th>Comisión</th>
-                                  <th>Monto a pagar</th>
+                                  <th>Período cubierto</th>
+                                  <th>Fecha de pago</th>
+                                  <th>Monto</th>
+                                  <th>Notas</th>
+                                  <th></th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {comData.comisionesPorPeluquero.map(p => (
-                                  <tr key={p.nombre}>
-                                    <td>{p.nombre}</td>
-                                    <td>{p.cantidad}</td>
-                                    <td style={{ color: '#4ade80' }}>${p.totalGenerado.toLocaleString('es-AR')}</td>
-                                    <td>{p.comision}%</td>
-                                    <td style={{ color: '#fb923c', fontWeight: 600 }}>${p.montoComision.toLocaleString('es-AR')}</td>
+                                {pagos.map(pg => (
+                                  <tr key={pg.id}>
+                                    <td style={{ fontWeight: 600 }}>{pg.peluquero_nombre}</td>
+                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                      {formatFecha(pg.desde)} → {formatFecha(pg.hasta)}
+                                    </td>
+                                    <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
+                                    <td style={{ color: '#fb923c', fontWeight: 700 }}>
+                                      ${Number(pg.monto).toLocaleString('es-AR')}
+                                    </td>
+                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
+                                    <td>
+                                      <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </td>
                                   </tr>
                                 ))}
                               </tbody>
                             </table>
-                          </div>
-                        )}
+                          )}
+                        </div>
 
-                        {/* Gastos del mes */}
+                        {/* ── GASTOS OPERATIVOS ── */}
                         <div>
-                          <h4 style={{ color: '#a78bfa', marginBottom: 12, fontSize: 14 }}>
-                            Gastos registrados
-                          </h4>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                            <TrendingDown size={15} color="#f87171" />
+                            <h4 style={{ color: '#f87171', margin: 0, fontSize: 14 }}>Gastos operativos</h4>
+                          </div>
+
                           {detalle.length === 0 ? (
-                            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
-                              Sin gastos para este mes.
+                            <div style={{
+                              border: '1px dashed rgba(248, 113, 113, 0.3)',
+                              borderRadius: 8, padding: '14px 20px',
+                              color: 'var(--text-muted)', fontSize: 13, textAlign: 'center'
+                            }}>
+                              Sin gastos operativos registrados este mes.
                             </div>
                           ) : (
                             <table className="table">
@@ -357,7 +430,7 @@ export default function Gastos() {
                               <tbody>
                                 {detalle.map(g => (
                                   <tr key={g.id}>
-                                    <td style={{ color: 'var(--text-muted)' }}>{g.fecha}</td>
+                                    <td style={{ color: 'var(--text-muted)' }}>{formatFecha(g.fecha)}</td>
                                     <td>{g.descripcion}</td>
                                     <td>
                                       {g.categoria
@@ -370,12 +443,8 @@ export default function Gastos() {
                                     </td>
                                     <td>
                                       <div style={{ display: 'flex', gap: 8 }}>
-                                        <button className="btn btn-secondary" onClick={() => editar(g)}>
-                                          <Pencil size={14} />
-                                        </button>
-                                        <button className="btn btn-danger" onClick={() => eliminar(g.id)}>
-                                          <Trash2 size={14} />
-                                        </button>
+                                        <button className="btn btn-secondary" onClick={() => editar(g)}><Pencil size={14} /></button>
+                                        <button className="btn btn-danger"    onClick={() => eliminar(g.id)}><Trash2 size={14} /></button>
                                       </div>
                                     </td>
                                   </tr>
