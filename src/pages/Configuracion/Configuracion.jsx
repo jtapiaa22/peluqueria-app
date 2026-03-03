@@ -47,7 +47,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [horarioLoading, setHorarioLoading]   = useState(false)
   const [horarioGuardado, setHorarioGuardado] = useState(false)
 
-  const webLink = webConfig.id ? `https://peluapp-web.vercel.app/?p=${webConfig.id}` : ''
+  const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
 
   useEffect(() => {
     window.electronAPI.getNombreApp().then(nombre => setNombreInput(nombre))
