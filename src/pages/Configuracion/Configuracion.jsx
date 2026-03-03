@@ -1,6 +1,29 @@
 import { useState, useEffect } from 'react'
 import { ModalAlert } from '../../components/Modal'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock } from 'lucide-react'
+
+// ── Horario ──────────────────────────────────────────────────────────────────
+const HORAS_DISPONIBLES = [
+  '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
+  '10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30',
+  '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
+  '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30',
+  '22:00','22:30','23:00',
+]
+const DIAS = [
+  { num: 1, label: 'Lun' }, { num: 2, label: 'Mar' }, { num: 3, label: 'Mié' },
+  { num: 4, label: 'Jue' }, { num: 5, label: 'Vie' }, { num: 6, label: 'Sáb' },
+  { num: 0, label: 'Dom' },
+]
+const HORARIO_DEFAULT = {
+  bloques: [
+    { activo: true,  inicio: '09:00', fin: '13:00' },
+    { activo: false, inicio: '17:00', fin: '20:00' },
+  ],
+  intervalo: 30,
+  dias: [1, 2, 3, 4, 5, 6],
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function Configuracion({ onNombreChange, onLogoChange, tema, onToggleTema }) {
   const [nombreInput, setNombreInput] = useState('')
@@ -9,19 +32,22 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [backups, setBackups]         = useState([])
 
   // Reservas web
-  const [webConfig, setWebConfig]           = useState({ id: '', nombre: '', email: '' })
-  const [webPaso, setWebPaso]               = useState('cargando') // 'cargando' | 'sin_config' | 'configurado'
-  const [webForm, setWebForm]               = useState({ nombre: '', email: '' })
-  const [webVincularId, setWebVincularId]   = useState('')
-  const [webModo, setWebModo]               = useState('registrar') // 'registrar' | 'vincular'
-  const [webLoading, setWebLoading]         = useState(false)
-  const [linkCopiado, setLinkCopiado]       = useState(false)
-  const [syncLoading, setSyncLoading]       = useState(false)
-  const [syncResultado, setSyncResultado]   = useState(null)
+  const [webConfig, setWebConfig]         = useState({ id: '', nombre: '', email: '' })
+  const [webPaso, setWebPaso]             = useState('cargando')
+  const [webForm, setWebForm]             = useState({ nombre: '', email: '' })
+  const [webVincularId, setWebVincularId] = useState('')
+  const [webModo, setWebModo]             = useState('registrar')
+  const [webLoading, setWebLoading]       = useState(false)
+  const [linkCopiado, setLinkCopiado]     = useState(false)
+  const [syncLoading, setSyncLoading]     = useState(false)
+  const [syncResultado, setSyncResultado] = useState(null)
 
-  const webLink = webConfig.id
-    ? `https://peluapp-web.vercel.app/?p=${webConfig.id}`
-    : ''
+  // Horario
+  const [horario, setHorario]                 = useState(HORARIO_DEFAULT)
+  const [horarioLoading, setHorarioLoading]   = useState(false)
+  const [horarioGuardado, setHorarioGuardado] = useState(false)
+
+  const webLink = webConfig.id ? `https://peluapp-web.vercel.app/?p=${webConfig.id}` : ''
 
   useEffect(() => {
     window.electronAPI.getNombreApp().then(nombre => setNombreInput(nombre))
@@ -34,23 +60,21 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     const cfg = await window.electronAPI.getPeluqueriaConfig()
     setWebConfig(cfg || { id: '', nombre: '', email: '' })
     setWebPaso(cfg?.id ? 'configurado' : 'sin_config')
+    if (cfg?.horario) setHorario({ ...HORARIO_DEFAULT, ...cfg.horario })
   }
 
   const guardarNombre = async () => {
     if (!nombreInput.trim()) return
-    const nombreFinal = nombreInput.trim()
-    await window.electronAPI.setNombreApp(nombreFinal)
-    if (onNombreChange) onNombreChange(nombreFinal)
+    await window.electronAPI.setNombreApp(nombreInput.trim())
+    if (onNombreChange) onNombreChange(nombreInput.trim())
     setModalAlert({ mensaje: 'Nombre actualizado correctamente.', tipo: 'success' })
   }
 
   const subirLogo = () => {
     const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
+    input.type = 'file'; input.accept = 'image/*'
     input.onchange = async (e) => {
-      const archivo = e.target.files[0]
-      if (!archivo) return
+      const archivo = e.target.files[0]; if (!archivo) return
       const result = await window.electronAPI.setLogo(archivo.path)
       if (result.ok) {
         const logoData = await window.electronAPI.getLogo()
@@ -76,12 +100,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (!webForm.email.trim() || !webForm.email.includes('@')) { setModalAlert({ mensaje: 'Ingresá un email válido.', tipo: 'warning' }); return }
     setWebLoading(true)
     const result = await window.electronAPI.registrarPeluqueria({ nombre: webForm.nombre.trim(), email: webForm.email.trim() })
-    if (result.ok) {
-      await cargarWebConfig()
-      setModalAlert({ mensaje: '¡Peluquería registrada! Ya podés compartir el link con tus clientes.', tipo: 'success' })
-    } else {
-      setModalAlert({ mensaje: 'Error al registrar: ' + (result.error || 'Intentá de nuevo.'), tipo: 'error' })
-    }
+    if (result.ok) { await cargarWebConfig(); setModalAlert({ mensaje: '¡Peluquería registrada! Ya podés compartir el link.', tipo: 'success' }) }
+    else { setModalAlert({ mensaje: 'Error al registrar: ' + (result.error || 'Intentá de nuevo.'), tipo: 'error' }) }
     setWebLoading(false)
   }
 
@@ -89,46 +109,61 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Ingresá el ID de la peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
     const result = await window.electronAPI.vincularPeluqueria({ peluqueriaId: webVincularId.trim() })
-    if (result.ok) {
-      await cargarWebConfig()
-      setModalAlert({ mensaje: 'Peluquería vinculada correctamente.', tipo: 'success' })
-    } else {
-      setModalAlert({ mensaje: 'Error al vincular: ' + (result.error || 'ID no encontrado.'), tipo: 'error' })
-    }
+    if (result.ok) { await cargarWebConfig(); setModalAlert({ mensaje: 'Peluquería vinculada correctamente.', tipo: 'success' }) }
+    else { setModalAlert({ mensaje: 'Error al vincular: ' + (result.error || 'ID no encontrado.'), tipo: 'error' }) }
     setWebLoading(false)
   }
 
   const sincronizar = async () => {
-    setSyncLoading(true)
-    setSyncResultado(null)
-
+    setSyncLoading(true); setSyncResultado(null)
     const result = await window.electronAPI.sincronizarPeluqueria()
     setSyncLoading(false)
-
-    if (result.ok) {
-      setSyncResultado({
-        ok: true,
-        msg: `✅ Sincronizado: ${result.peluqueros} peluqueros, ${result.servicios} servicios, ${result.turnos} turnos`
-      })
-    } else {
-      setSyncResultado({ ok: false, msg: '❌ Error: ' + result.error })
-    }
-
+    if (result.ok) setSyncResultado({ ok: true, msg: `✅ Sincronizado: ${result.peluqueros} peluqueros, ${result.servicios} servicios, ${result.turnos} turnos` })
+    else setSyncResultado({ ok: false, msg: '❌ Error: ' + result.error })
     setTimeout(() => setSyncResultado(null), 5000)
   }
 
-
   const copiarLink = () => {
     navigator.clipboard.writeText(webLink)
-    setLinkCopiado(true)
-    setTimeout(() => setLinkCopiado(false), 2000)
+    setLinkCopiado(true); setTimeout(() => setLinkCopiado(false), 2000)
   }
+
+  // ── Horario ────────────────────────────────────────────────────────────────
+  const toggleDia = (num) => {
+    setHorario(h => ({
+      ...h,
+      dias: h.dias.includes(num) ? h.dias.filter(d => d !== num) : [...h.dias, num]
+    }))
+  }
+
+  const guardarHorario = async () => {
+    const bloquesActivos = horario.bloques.filter(b => b.activo)
+    if (horario.dias.length === 0) {
+      setModalAlert({ mensaje: 'Seleccioná al menos un día de atención.', tipo: 'warning' }); return
+    }
+    if (bloquesActivos.length === 0) {
+      setModalAlert({ mensaje: 'Activá al menos un bloque horario.', tipo: 'warning' }); return
+    }
+    for (const b of bloquesActivos) {
+      if (b.inicio >= b.fin) {
+        setModalAlert({ mensaje: 'La apertura de cada bloque debe ser menor al cierre.', tipo: 'warning' }); return
+      }
+    }
+    // Validar que los bloques no se superpongan
+    if (bloquesActivos.length === 2 && bloquesActivos[0].fin > bloquesActivos[1].inicio) {
+      setModalAlert({ mensaje: 'Los bloques horarios no pueden superponerse.', tipo: 'warning' }); return
+    }
+    setHorarioLoading(true)
+    const result = await window.electronAPI.actualizarHorario(horario)
+    setHorarioLoading(false)
+    if (result.ok) { setHorarioGuardado(true); setTimeout(() => setHorarioGuardado(false), 2500) }
+    else { setModalAlert({ mensaje: 'Error al guardar: ' + (result.error || 'Intentá de nuevo.'), tipo: 'error' }) }
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="page-animation">
-      {modalAlert && (
-        <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />
-      )}
+      {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
 
       <h1 className="page-title">Configuración</h1>
 
@@ -215,47 +250,35 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           Conectá esta app a la web para que tus clientes puedan reservar turnos online.
         </p>
 
-        {/* CARGANDO */}
         {webPaso === 'cargando' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 13 }}>
             <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} /> Cargando...
           </div>
         )}
 
-        {/* SIN CONFIGURAR */}
         {webPaso === 'sin_config' && (
           <div>
-            {/* Selector registrar / vincular */}
             <div style={{ display: 'flex', background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', marginBottom: 20, maxWidth: 300 }}>
-              {[
-                { key: 'registrar', label: 'Registrar nueva' },
-                { key: 'vincular',  label: 'Ya tengo ID'     },
-              ].map(op => (
+              {[{ key: 'registrar', label: 'Registrar nueva' }, { key: 'vincular', label: 'Ya tengo ID' }].map(op => (
                 <button key={op.key} onClick={() => setWebModo(op.key)}
                   style={{ flex:1, padding:'8px 12px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, transition:'all 0.15s',
                     background: webModo===op.key ? 'var(--accent)' : 'transparent',
-                    color: webModo===op.key ? 'white' : 'var(--text-muted)'
-                  }}>
+                    color: webModo===op.key ? 'white' : 'var(--text-muted)' }}>
                   {op.label}
                 </button>
               ))}
             </div>
 
-            {/* Formulario registrar */}
             {webModo === 'registrar' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
-                  Registrá esta peluquería en el sistema. Se generará un ID único y un link para compartir con tus clientes.
-                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>Registrá esta peluquería en el sistema. Se generará un ID único y un link para compartir.</p>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Nombre de la peluquería</label>
-                  <input className="input" value={webForm.nombre} onChange={e => setWebForm({ ...webForm, nombre: e.target.value })}
-                    placeholder="Ej: Barbería El Jefe" />
+                  <input className="input" value={webForm.nombre} onChange={e => setWebForm({ ...webForm, nombre: e.target.value })} placeholder="Ej: Barbería El Jefe" />
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>Email de contacto</label>
-                  <input className="input" type="email" value={webForm.email} onChange={e => setWebForm({ ...webForm, email: e.target.value })}
-                    placeholder="tu@email.com" />
+                  <input className="input" type="email" value={webForm.email} onChange={e => setWebForm({ ...webForm, email: e.target.value })} placeholder="tu@email.com" />
                 </div>
                 <button className="btn btn-primary" onClick={registrarPeluqueria} disabled={webLoading}>
                   {webLoading ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }} /> Registrando...</> : '🌐 Registrar y obtener link'}
@@ -263,12 +286,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               </div>
             )}
 
-            {/* Formulario vincular */}
             {webModo === 'vincular' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
-                  Si ya registraste esta peluquería en otra PC, pegá el ID para vincular esta instalación.
-                </p>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>Si ya registraste esta peluquería en otra PC, pegá el ID para vincular esta instalación.</p>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label>ID de la peluquería</label>
                   <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
@@ -282,74 +302,47 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           </div>
         )}
 
-        {/* CONFIGURADO */}
         {webPaso === 'configurado' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-            {/* Estado conectado */}
             <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.25)', borderRadius:10, padding:'10px 14px' }}>
               <Wifi size={16} color="#4ade80" />
               <span style={{ color:'#4ade80', fontWeight:600, fontSize:13 }}>Conectado a la web</span>
               <span style={{ color:'var(--text-muted)', fontSize:12, marginLeft:4 }}>— {webConfig.nombre}</span>
             </div>
-
-            {/* Botón sincronizar */}
             <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
               <button className="btn btn-secondary" onClick={sincronizar} disabled={syncLoading}
                 style={{ display:'flex', alignItems:'center', gap:7, fontSize:13 }}>
                 <RefreshCw size={14} style={{ animation:syncLoading?'spin 1s linear infinite':'none' }} />
                 {syncLoading ? 'Sincronizando...' : 'Sincronizar datos con la web'}
               </button>
-              {syncResultado && (
-                <span style={{ fontSize:12, color: syncResultado.ok ? '#4ade80' : '#f87171' }}>
-                  {syncResultado.msg}
-                </span>
-              )}
+              {syncResultado && <span style={{ fontSize:12, color: syncResultado.ok ? '#4ade80' : '#f87171' }}>{syncResultado.msg}</span>}
             </div>
             <p style={{ color:'var(--text-muted)', fontSize:11, margin:'-8px 0 0' }}>
               Sube tus peluqueros, servicios y turnos manuales a la web. Hacelo cada vez que agregues algo nuevo.
             </p>
-
-            {/* ID */}
             <div className="form-group" style={{ margin: 0 }}>
               <label>ID de tu peluquería</label>
-              <input className="input" readOnly value={webConfig.id}
-                style={{ fontFamily:'monospace', fontSize:11, color:'var(--text-muted)', cursor:'text' }} />
-              <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>
-                Guardá este ID para vincular otras PCs con la misma instalación.
-              </span>
+              <input className="input" readOnly value={webConfig.id} style={{ fontFamily:'monospace', fontSize:11, color:'var(--text-muted)', cursor:'text' }} />
+              <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>Guardá este ID para vincular otras PCs.</span>
             </div>
-
-            {/* Link para compartir */}
             <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <Link size={13} /> Link para compartir con tus clientes
-              </label>
+              <label style={{ display:'flex', alignItems:'center', gap:6 }}><Link size={13} /> Link para compartir con tus clientes</label>
               <div style={{ display:'flex', gap:8 }}>
-                <input className="input" readOnly value={webLink}
-                  style={{ fontSize:12, color:'#a78bfa', cursor:'text', flex:1 }} />
+                <input className="input" readOnly value={webLink} style={{ fontSize:12, color:'#a78bfa', cursor:'text', flex:1 }} />
                 <button className="btn btn-secondary" onClick={copiarLink} style={{ flexShrink:0, gap:6 }}>
                   {linkCopiado ? <><Check size={14} color="#4ade80" /> Copiado</> : <><Copy size={14} /> Copiar</>}
                 </button>
               </div>
-              <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>
-                Compartí este link por WhatsApp, Instagram o donde quieras. Cada cliente puede reservar desde ahí.
-              </span>
+              <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>Compartí por WhatsApp, Instagram o donde quieras.</span>
             </div>
-
-            {/* Botón desvincular */}
             <div style={{ paddingTop: 4, borderTop: '1px solid var(--border-soft)' }}>
-              <p style={{ color:'var(--text-muted)', fontSize:12, margin:'0 0 10px' }}>
-                Si querés conectar otra peluquería a esta PC, podés desvincular la actual. Los datos de la web no se borran.
-              </p>
+              <p style={{ color:'var(--text-muted)', fontSize:12, margin:'0 0 10px' }}>Si querés conectar otra peluquería, podés desvincular la actual. Los datos de la web no se borran.</p>
               <button className="btn btn-secondary"
                 onClick={() => {
-                  setWebConfig({ id:'', nombre:'', email:'' })
-                  setWebPaso('sin_config')
-                  setWebModo('vincular')
-                  window.electronAPI.setConfig({ clave:'peluqueria_id',    valor:'' })
+                  setWebConfig({ id:'', nombre:'', email:'' }); setWebPaso('sin_config'); setWebModo('vincular')
+                  window.electronAPI.setConfig({ clave:'peluqueria_id', valor:'' })
                   window.electronAPI.setConfig({ clave:'peluqueria_nombre', valor:'' })
-                  window.electronAPI.setConfig({ clave:'peluqueria_email',  valor:'' })
+                  window.electronAPI.setConfig({ clave:'peluqueria_email', valor:'' })
                 }}
                 style={{ fontSize:12 }}>
                 Desvincular esta peluquería
@@ -358,6 +351,138 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           </div>
         )}
       </div>
+
+      {/* ── HORARIO DE ATENCIÓN WEB ── */}
+      {webPaso === 'configurado' && (
+        <div className="card" style={{ maxWidth: 500 }}>
+          <h3 style={{ color: '#a78bfa', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Clock size={18} /> Horario de atención web
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+            Configurá qué días y horarios van a ver tus clientes al reservar online.
+          </p>
+
+          {/* Días */}
+          <div className="form-group" style={{ margin: '0 0 18px' }}>
+            <label>Días de atención</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+              {DIAS.map(({ num, label }) => (
+                <button key={num} onClick={() => toggleDia(num)}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, border: '1px solid',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    borderColor: horario.dias.includes(num) ? '#7c3aed' : 'var(--border-soft)',
+                    background:  horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
+                    color:       horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bloques horarios */}
+          {horario.bloques.map((bloque, idx) => (
+            <div key={idx} style={{
+              border: '1px solid', borderRadius: 10, padding: '14px 16px', marginBottom: 12,
+              borderColor: bloque.activo ? '#7c3aed' : 'var(--border-soft)',
+              background: bloque.activo ? 'rgba(124,58,237,0.06)' : 'var(--bg-main)',
+              transition: 'all 0.15s',
+            }}>
+              {/* Header del bloque */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: bloque.activo ? 14 : 0 }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: bloque.activo ? '#c4b5fd' : 'var(--text-muted)' }}>
+                  {idx === 0 ? '🌅 Bloque mañana' : '🌆 Bloque tarde'}
+                </span>
+                {/* Toggle */}
+                <button onClick={() => setHorario(h => ({
+                  ...h,
+                  bloques: h.bloques.map((b, i) => i === idx ? { ...b, activo: !b.activo } : b)
+                }))}
+                  style={{
+                    width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s', position: 'relative',
+                    background: bloque.activo ? '#7c3aed' : 'var(--border-soft)',
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%',
+                    background: 'white', transition: 'all 0.2s',
+                    left: bloque.activo ? 21 : 3,
+                  }} />
+                </button>
+              </div>
+
+              {/* Selectores (solo si activo) */}
+              {bloque.activo && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Apertura</label>
+                    <select className="input" value={bloque.inicio}
+                      onChange={e => setHorario(h => ({
+                        ...h,
+                        bloques: h.bloques.map((b, i) => i === idx ? { ...b, inicio: e.target.value } : b)
+                      }))}
+                      style={{ cursor: 'pointer' }}>
+                      {HORAS_DISPONIBLES.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label>Cierre</label>
+                    <select className="input" value={bloque.fin}
+                      onChange={e => setHorario(h => ({
+                        ...h,
+                        bloques: h.bloques.map((b, i) => i === idx ? { ...b, fin: e.target.value } : b)
+                      }))}
+                      style={{ cursor: 'pointer' }}>
+                      {HORAS_DISPONIBLES.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Intervalo */}
+          <div className="form-group" style={{ margin: '4px 0 20px' }}>
+            <label>Intervalo entre turnos</label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              {[{ val: 30, label: '30 min' }, { val: 60, label: '1 hora' }].map(({ val, label }) => (
+                <button key={val} onClick={() => setHorario(h => ({ ...h, intervalo: val }))}
+                  style={{
+                    padding: '6px 20px', borderRadius: 8, border: '1px solid',
+                    fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    borderColor: horario.intervalo === val ? '#7c3aed' : 'var(--border-soft)',
+                    background:  horario.intervalo === val ? 'rgba(124,58,237,0.2)' : 'transparent',
+                    color:       horario.intervalo === val ? '#c4b5fd' : 'var(--text-muted)',
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview */}
+          {horario.bloques.some(b => b.activo) && (
+            <div style={{ background:'var(--bg-main)', border:'1px solid var(--border-soft)', borderRadius:10, padding:'10px 14px', marginBottom:18, fontSize:12, color:'var(--text-muted)', lineHeight:1.8 }}>
+              📅 Los días <strong style={{ color:'#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+              {horario.bloques.filter(b => b.activo).map((b, i) => (
+                <span key={i}>
+                  {i > 0 && ' · '}
+                  <strong style={{ color:'var(--text-main)' }}>{b.inicio}</strong> a <strong style={{ color:'var(--text-main)' }}>{b.fin}</strong>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <button className="btn btn-primary" onClick={guardarHorario} disabled={horarioLoading}
+            style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            {horarioLoading
+              ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }} /> Guardando...</>
+              : horarioGuardado ? <><Check size={14} color="#4ade80" /> ¡Guardado!</>
+              : '💾 Guardar horario'}
+          </button>
+        </div>
+      )}
 
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
     </div>

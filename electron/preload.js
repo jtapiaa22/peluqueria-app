@@ -91,5 +91,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   sincronizarCanceladosWeb: () => ipcRenderer.invoke('turnosWeb:sincronizarCancelados'),
   sincronizarConfirmadosWeb: () => ipcRenderer.invoke('turnosWeb:sincronizarConfirmados'),
 
+  //horarios para turnos
+  actualizarHorario: (horario) => ipcRenderer.invoke('actualizar-horario', horario),
+
 
 })

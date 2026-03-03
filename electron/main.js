@@ -165,10 +165,13 @@ ipcMain.handle('turnos:delete',async(_,id)=>{ const t=db.prepare('SELECT * FROM 
 
 // PELUQUERÍA WEB
 ipcMain.handle('peluqueria:getConfig',()=>{
-  const id=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()
-  const nombre=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()
-  const email=db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_email'").get()
-  return { id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'' }
+  const id     = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()
+  const nombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()
+  const email  = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_email'").get()
+  const horarioRaw = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_horario'").get()
+  let horario = null
+  try { horario = horarioRaw ? JSON.parse(horarioRaw.valor) : null } catch {}
+  return { id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'', horario }
 })
 ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
   try {
@@ -439,6 +442,28 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
   }
 })
 
+ipcMain.handle('actualizar-horario', async (_, horario) => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { ok: false, error: 'No hay peluquería vinculada' }
+
+    const sb = await getSupabase()
+    const { error } = await sb
+      .from('peluquerias')
+      .update({ horario })
+      .eq('id', pid)
+
+    if (error) throw error
+
+    // Guardar localmente en SQLite
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_horario',?)")
+      .run(JSON.stringify(horario))
+
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
 
 function createWindow(){
   Menu.setApplicationMenu(null)
