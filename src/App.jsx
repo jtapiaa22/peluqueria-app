@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe } from 'lucide-react'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
@@ -24,6 +24,9 @@ function App() {
   const [nombreApp, setNombreApp]           = useState('PeluApp')
   const [logo, setLogo]                     = useState(null)
   const [version, setVersion]               = useState(null)
+  const [notificaciones, setNotificaciones] = useState([])
+  const [bandejaAbierta, setBandejaAbierta] = useState(false)
+  const noLeidas = notificaciones.filter(n => !n.leida).length
 
   useEffect(() => {
     window.electronAPI.verificarLicencia().then(res => {
@@ -36,6 +39,14 @@ function App() {
     window.electronAPI.getVersion().then(v => setVersion(v))
     window.electronAPI.getNombreApp().then(nombre => setNombreApp(nombre))
     window.electronAPI.getLogo().then(logo => setLogo(logo))
+
+    const handleMessage = (e) => {
+      if (e.data?.type === 'turnoWeb:nuevo') {
+        setNotificaciones(prev => [{ ...e.data.data, leida: false }, ...prev].slice(0, 50))
+      }
+    }
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
   }, [])
 
   if (licenciaValida === null) return null
@@ -101,6 +112,88 @@ function App() {
               <Settings size={18} /> Configuración
             </NavLink>
           </nav>
+
+          {/* Bandeja de notificaciones */}
+          <div style={{ padding: '0 12px 10px', position: 'relative' }}>
+            <button
+              onClick={() => {
+                setBandejaAbierta(v => !v)
+                if (!bandejaAbierta) setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-soft)',
+                background: noLeidas > 0 ? 'rgba(167,139,250,0.08)' : 'transparent',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Bell size={16} color={noLeidas > 0 ? '#a78bfa' : 'var(--text-muted)'} />
+                <span style={{ fontSize: 13, color: noLeidas > 0 ? '#a78bfa' : 'var(--text-muted)', fontWeight: noLeidas > 0 ? 600 : 400 }}>
+                  Turnos web
+                </span>
+              </div>
+              {noLeidas > 0 && (
+                <div style={{ background: '#a78bfa', color: 'white', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                  {noLeidas}
+                </div>
+              )}
+            </button>
+
+            {bandejaAbierta && (
+              <div style={{
+                position: 'absolute', bottom: '100%', left: 12, right: 12, marginBottom: 6,
+                background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
+                borderRadius: 12, overflow: 'hidden', boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
+                zIndex: 1000, maxHeight: 360, display: 'flex', flexDirection: 'column'
+              }}>
+                <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-main)' }}>Turnos recibidos</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    {notificaciones.length > 0 && (
+                      <button onClick={() => setNotificaciones([])}
+                        style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        Limpiar
+                      </button>
+                    )}
+                    <button onClick={() => setBandejaAbierta(false)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div style={{ overflowY: 'auto', flex: 1 }}>
+                  {notificaciones.length === 0 ? (
+                    <div style={{ padding: '28px 14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+                      <Globe size={24} style={{ marginBottom: 8, opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
+                      Sin turnos nuevos
+                    </div>
+                  ) : (
+                    notificaciones.map((n, i) => (
+                      <div key={n.id || i} style={{
+                        padding: '10px 14px',
+                        borderBottom: i < notificaciones.length - 1 ? '1px solid var(--border-soft)' : 'none',
+                        background: n.leida ? 'transparent' : 'rgba(167,139,250,0.05)',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-main)', marginBottom: 2 }}>
+                              {n.cliente_nombre}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                              {n.peluquero_nombre} · {n.fecha} {n.hora}hs
+                            </div>
+                          </div>
+                          {!n.leida && (
+                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', flexShrink: 0, marginTop: 4 }} />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Badge licencia */}
           {diasRestantes !== null && (

@@ -1,4 +1,6 @@
-const { app, BrowserWindow, ipcMain, shell, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, shell, Menu, Notification } = require('electron')
+app.setName('PeluApp')
+if (process.platform === 'win32') app.setAppUserModelId('PeluApp')
 const path = require('path')
 const fs = require('fs')
 const Database = require('better-sqlite3')
@@ -41,7 +43,15 @@ const MIGRATIONS = [
   { version: 7, descripcion: 'turno_web_id en turnos', up: (db) => {
   const cols = db.prepare('PRAGMA table_info(turnos)').all().map(x => x.name)
   if (!cols.includes('turno_web_id')) db.prepare('ALTER TABLE turnos ADD COLUMN turno_web_id TEXT').run()
-}}
+  }},
+  { version: 8, descripcion: 'Días bloqueados', up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS dias_bloqueados(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fecha TEXT NOT NULL UNIQUE,
+      motivo TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )`)
+  }}
 ]
 
 function runMigrations() {
@@ -76,31 +86,112 @@ async function getPid() {
   return db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()?.valor || null
 }
 
+// ── HELPER: enviar a la ventana aunque mainWindow sea null ────
+function sendToWindow(channel, data) {
+  const wins = BrowserWindow.getAllWindows()
+  if (wins.length) wins[0].webContents.send(channel, data)
+}
+
+// ── NOTIFICACIONES ────────────────────────────────────────────
+let turnosNotificados = new Set()
+let primeraVerificacion = true
+
+async function checkNuevosTurnos() {
+  try {
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+    const { data } = await sb.from('turnos_web')
+      .select('id,cliente_nombre,peluquero_nombre,fecha,hora')
+      .eq('peluqueria_id', pid).eq('estado', 'pendiente')
+    for (const t of (data || [])) {
+      if (!turnosNotificados.has(t.id)) {
+        if (!primeraVerificacion) {
+          if (Notification.isSupported()) {
+            new Notification({
+              title: 'Nuevo turno solicitado',
+              body: `${t.cliente_nombre} con ${t.peluquero_nombre} — ${t.fecha} a las ${t.hora?.substring(0,5)}`
+            }).show()
+          }
+          sendToWindow('turnoWeb:nuevo', {
+            id:               t.id,
+            cliente_nombre:   t.cliente_nombre,
+            peluquero_nombre: t.peluquero_nombre,
+            fecha:            t.fecha,
+            hora:             t.hora?.substring(0,5),
+            timestamp:        Date.now()
+          })
+        }
+        turnosNotificados.add(t.id)
+      }
+    }
+    primeraVerificacion = false
+  } catch(e) { console.error('⚠️ Notif:', e.message) }
+}
+
+// ── SYNC DÍAS BLOQUEADOS ──────────────────────────────────────
+async function syncDiasBloqueados() {
+  try {
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+    const dias = db.prepare('SELECT * FROM dias_bloqueados').all()
+    await sb.from('dias_bloqueados_web').delete().eq('peluqueria_id', pid)
+    if (dias.length) await sb.from('dias_bloqueados_web').insert(
+      dias.map(d => ({ fecha: d.fecha, motivo: d.motivo || null, peluqueria_id: pid }))
+    )
+  } catch(e) { console.error('⚠️ SyncDias:', e.message) }
+}
+
 async function syncSupabase() {
   try {
     const pid = await getPid()
     if (!pid) return
     const sb = await getSupabase()
+
+    // Peluqueros activos
     const pels = db.prepare('SELECT * FROM peluqueros WHERE activo=1').all()
-    for (const p of pels) await sb.from('peluqueros_web').upsert({id:p.id,nombre:p.nombre,activo:true,peluqueria_id:pid},{onConflict:'id'})
+    for (const p of pels) await sb.from('peluqueros_web').upsert(
+      { id: `${pid}_${p.id}`, nombre: p.nombre, activo: true, peluqueria_id: pid, local_id: p.id },
+      { onConflict: 'id' }
+    )
+    // Peluqueros inactivos
     const inP = db.prepare('SELECT id FROM peluqueros WHERE activo=0').all()
-    for (const p of inP) await sb.from('peluqueros_web').update({activo:false}).eq('id',p.id).eq('peluqueria_id',pid)
+    for (const p of inP) await sb.from('peluqueros_web')
+      .update({ activo: false })
+      .eq('id', `${pid}_${p.id}`)
+
+    // Servicios activos
     const servs = db.prepare('SELECT * FROM servicios WHERE activo=1').all()
-    for (const s of servs) await sb.from('servicios_web').upsert({id:s.id,nombre:s.nombre,precio:s.precio,activo:true,peluqueria_id:pid},{onConflict:'id'})
+    for (const s of servs) await sb.from('servicios_web').upsert(
+      { id: `${pid}_${s.id}`, nombre: s.nombre, precio: s.precio, activo: true, peluqueria_id: pid, local_id: s.id },
+      { onConflict: 'id' }
+    )
+    // Servicios inactivos
     const inS = db.prepare('SELECT id FROM servicios WHERE activo=0').all()
-    for (const s of inS) await sb.from('servicios_web').update({activo:false}).eq('id',s.id).eq('peluqueria_id',pid)
+    for (const s of inS) await sb.from('servicios_web')
+      .update({ activo: false })
+      .eq('id', `${pid}_${s.id}`)
+
     console.log('✅ Sync Supabase OK')
-  } catch(e){ console.error('⚠️ Sync:',e.message) }
+  } catch(e) { console.error('⚠️ Sync:', e.message) }
 }
 
-async function syncTurnoManual(turno, eliminar=false) {
+async function syncTurnoManual(turno, eliminar = false) {
   try {
     const pid = await getPid()
     if (!pid) return
     const sb = await getSupabase()
-    if (eliminar) await sb.from('turnos_manuales_web').delete().eq('id',String(turno.id))
-    else await sb.from('turnos_manuales_web').upsert({id:String(turno.id),peluquero_id:turno.peluquero_id,fecha:turno.fecha,hora:turno.hora,peluqueria_id:pid},{onConflict:'id'})
-  } catch(e){ console.error('⚠️ SyncTurno:',e.message) }
+    const webId = `${pid}_${turno.id}`
+    if (eliminar) {
+      await sb.from('turnos_manuales_web').delete().eq('id', webId)
+    } else {
+      await sb.from('turnos_manuales_web').upsert(
+        { id: webId, peluquero_id: turno.peluquero_id, fecha: turno.fecha, hora: turno.hora, peluqueria_id: pid },
+        { onConflict: 'id' }
+      )
+    }
+  } catch(e) { console.error('⚠️ SyncTurno:', e.message) }
 }
 
 // PELUQUEROS
@@ -352,6 +443,17 @@ ipcMain.handle('turnosWeb:sincronizarConfirmados', async () => {
 
 
 
+// DÍAS BLOQUEADOS
+ipcMain.handle('diasBloqueados:getAll', () => db.prepare('SELECT * FROM dias_bloqueados ORDER BY fecha ASC').all())
+ipcMain.handle('diasBloqueados:create', async (_, { fecha, motivo }) => {
+  db.prepare('INSERT OR IGNORE INTO dias_bloqueados(fecha,motivo) VALUES(?,?)').run(fecha, motivo || null)
+  await syncDiasBloqueados(); return true
+})
+ipcMain.handle('diasBloqueados:delete', async (_, fecha) => {
+  db.prepare('DELETE FROM dias_bloqueados WHERE fecha=?').run(fecha)
+  await syncDiasBloqueados(); return true
+})
+
 // LICENCIA
 function verificarLicencia(){
   try {
@@ -428,7 +530,7 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
     const turnos = db.prepare('SELECT * FROM turnos').all()
     for (const t of turnos) {
       await sb.from('turnos_manuales_web').upsert({
-        id: String(t.id),
+        id: `${pid}_${t.id}`,
         peluquero_id: t.peluquero_id,
         fecha: t.fecha,
         hora: t.hora,
@@ -436,6 +538,7 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
       }, { onConflict: 'id' })
     }
 
+    await syncDiasBloqueados()
     return { ok: true, peluqueros: db.prepare('SELECT COUNT(*) as c FROM peluqueros WHERE activo=1').get().c, servicios: db.prepare('SELECT COUNT(*) as c FROM servicios WHERE activo=1').get().c, turnos: turnos.length }
   } catch(e) {
     return { ok: false, error: e.message }
@@ -476,6 +579,10 @@ const gotTheLock=app.requestSingleInstanceLock()
 if(!gotTheLock){ app.quit() }
 else {
   app.on('second-instance',()=>{ if(mainWindow){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.focus()} })
-  app.whenReady().then(()=>{ initDB(); hacerBackup(); createWindow(); setTimeout(()=>syncSupabase(),3000) })
+  app.whenReady().then(()=>{
+    initDB(); hacerBackup(); createWindow()
+    setTimeout(()=>syncSupabase(), 3000)
+    setTimeout(()=>{ checkNuevosTurnos(); setInterval(checkNuevosTurnos, 60000) }, 8000)
+  })
 }
 app.on('window-all-closed',()=>{ if(process.platform!=='darwin') app.quit() })

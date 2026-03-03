@@ -1,5 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+// postMessage es el método garantizado para cruzar contextIsolation
+ipcRenderer.on('turnoWeb:nuevo', (_, data) => {
+  window.postMessage({ type: 'turnoWeb:nuevo', data }, '*')
+})
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // Peluqueros
   getPeluqueros:        ()      => ipcRenderer.invoke('peluqueros:getAll'),
@@ -94,5 +99,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   //horarios para turnos
   actualizarHorario: (horario) => ipcRenderer.invoke('actualizar-horario', horario),
 
+  // Días bloqueados
+  getDiasBloqueados: ()      => ipcRenderer.invoke('diasBloqueados:getAll'),
+  bloquearDia:       (data)  => ipcRenderer.invoke('diasBloqueados:create', data),
+  desbloquearDia:    (fecha) => ipcRenderer.invoke('diasBloqueados:delete', fecha),
 
 })

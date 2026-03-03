@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -19,8 +19,6 @@ const ESTADOS_WEB = {
   rechazado:  { label: 'Rechazado',            color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)', Icon: XCircle     },
   cancelado:  { label: 'Cancelado',            color: '#71717a', bg: 'rgba(113,113,122,0.06)', border: 'rgba(113,113,122,0.2)', Icon: XCircle     },
 }
-
-
 
 function hoy() {
   const d = new Date()
@@ -80,7 +78,6 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
           {turno.peluquero_nombre && <span style={{ color:'#a78bfa' }}> · {turno.peluquero_nombre}</span>}
         </p>
 
-        {/* Selector de acción */}
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
           {[
             { key:'confirmado', label:'✓ Confirmar', color:'#4ade80', bg:'rgba(74,222,128,0.15)'  },
@@ -99,7 +96,6 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
           ))}
         </div>
 
-        {/* Si modifica: nueva fecha y hora */}
         {accion === 'modificado' && (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
             <div className="form-group" style={{ margin:0 }}>
@@ -113,11 +109,8 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
           </div>
         )}
 
-        {/* Motivo opcional */}
         <div className="form-group" style={{ margin:'0 0 20px' }}>
-          <label>
-            Motivo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(opcional)</span>
-          </label>
+          <label>Motivo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(opcional)</span></label>
           <input className="input" value={motivo} onChange={e => setMotivo(e.target.value)}
             placeholder={
               accion === 'rechazado'  ? 'Ej: No hay disponibilidad ese día' :
@@ -161,9 +154,15 @@ export default function Agenda() {
   const [filtroWeb, setFiltroWeb]       = useState('pendientes')
   const [turnoCancelar, setTurnoCancelar]       = useState(null)
   const [motivoCancelacion, setMotivoCancelacion] = useState('')
+  const [diasBloqueados, setDiasBloqueados] = useState([])
+  const [motivoBloqueo, setMotivoBloqueo]   = useState('')
+  const [modalBloqueo, setModalBloqueo]     = useState(false)
 
   const confirmar = (msg, fn) => setModalConfirm({ mensaje:msg, onConfirm:fn })
   const alertar   = (msg, tipo='info') => setModalAlert({ mensaje:msg, tipo })
+
+  const cargarDiasBloqueados = () =>
+    window.electronAPI.getDiasBloqueados().then(data => setDiasBloqueados(data || []))
 
   useEffect(() => {
     window.electronAPI.getPeluqueros().then(setPeluqueros)
@@ -171,6 +170,17 @@ export default function Agenda() {
     window.electronAPI.getPeluqueriaConfig().then(cfg => { if (cfg?.id) setPeluqueriaId(cfg.id) })
     window.electronAPI.sincronizarCanceladosWeb()
     window.electronAPI.sincronizarConfirmadosWeb()
+    cargarDiasBloqueados()
+    // Escuchar notificación de turno nuevo → refrescar lista
+    // Escuchar turno nuevo via postMessage
+    const handleTurnoNuevo = (e) => {
+      if (e.data?.type === 'turnoWeb:nuevo') {
+        setFiltroWeb('pendientes')
+        cargarTurnosWeb()
+      }
+    }
+    window.addEventListener('message', handleTurnoNuevo)
+    return () => window.removeEventListener('message', handleTurnoNuevo)
   }, [])
 
   function getRangoMes(a, m) {
@@ -193,7 +203,7 @@ export default function Agenda() {
     setLoadingWeb(true); setSinConexion(false)
     try {
       await window.electronAPI.sincronizarCanceladosWeb()
-      await window.electronAPI.sincronizarConfirmadosWeb() // ← nuevo
+      await window.electronAPI.sincronizarConfirmadosWeb()
       const data = filtroWeb === 'pendientes'
         ? await window.electronAPI.getTurnosWebPendientes()
         : await window.electronAPI.getTurnosWebTodos(`${anio}-${String(mes+1).padStart(2,'0')}`)
@@ -203,7 +213,6 @@ export default function Agenda() {
     } catch { setSinConexion(true) }
     finally  { setLoadingWeb(false) }
   }
-
 
   useEffect(() => { cargarMes() }, [cargarMes])
   useEffect(() => { cargarDia() }, [cargarDia])
@@ -223,6 +232,28 @@ export default function Agenda() {
     const f = `${anio}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
     return turnosMes.filter(t => t.fecha === f)
   }
+
+  // ── BLOQUEO DE DÍAS ───────────────────────────────────────────
+  const estaBloquado = diasBloqueados.some(d => d.fecha === diaSeleccionado)
+  const infoBloqueado = diasBloqueados.find(d => d.fecha === diaSeleccionado)
+
+  const bloquearDia = async () => {
+    await window.electronAPI.bloquearDia({ fecha: diaSeleccionado, motivo: motivoBloqueo.trim() || null })
+    setModalBloqueo(false)
+    setMotivoBloqueo('')
+    cargarDiasBloqueados()
+    alertar('Día bloqueado. Los clientes no podrán reservar ese día.', 'success')
+  }
+
+  const desbloquearDia = () => {
+    confirmar(`¿Desbloquear el ${formatFechaLinda(diaSeleccionado)}? Los clientes podrán volver a reservar.`, async () => {
+      setModalConfirm(null)
+      await window.electronAPI.desbloquearDia(diaSeleccionado)
+      cargarDiasBloqueados()
+      alertar('Día desbloqueado correctamente.', 'success')
+    })
+  }
+  // ─────────────────────────────────────────────────────────────
 
   const guardarTurno = async () => {
     if (!form.cliente_nombre.trim()) { alertar('Ingresá el nombre del cliente.','warning'); return }
@@ -253,14 +284,11 @@ export default function Agenda() {
       setTurnoResponder(null)
       const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
       alertar(`Turno ${msgs[payload.accion]}. Email enviado al cliente.`, 'success')
-      cargarTurnosWeb()
-      cargarMes()
-      cargarDia()
+      cargarTurnosWeb(); cargarMes(); cargarDia()
     } else {
       alertar('Error al responder: ' + (result?.error || 'Intentá de nuevo.'), 'error')
     }
   }
-
 
   const dias     = getDiasDelMes(anio, mes)
   const fechaHoy = hoy()
@@ -273,63 +301,77 @@ export default function Agenda() {
       {modalAlert     && <ModalAlert   mensaje={modalAlert.mensaje}   tipo={modalAlert.tipo}             onClose={()=>setModalAlert(null)} />}
       {turnoResponder && <ModalResponder turno={turnoResponder} onConfirm={responderTurnoWeb} onCancel={()=>setTurnoResponder(null)} />}
 
-      {turnoCancelar && (
+      {/* Modal bloqueo de día */}
+      {modalBloqueo && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
           <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
             style={{ background:'var(--bg-card)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
-
-            <h3 style={{ color:'#f87171', margin:'0 0 6px', fontSize:17 }}>Cancelar turno</h3>
+            <h3 style={{ color:'#f87171', margin:'0 0 6px', fontSize:17 }}>🚫 Bloquear día</h3>
             <p style={{ color:'var(--text-muted)', fontSize:13, margin:'0 0 20px' }}>
-              <strong style={{ color:'var(--text-main)' }}>{turnoCancelar.cliente_nombre}</strong>
-              {' '}— {formatFechaCorta(turnoCancelar.fecha)} a las {turnoCancelar.hora?.substring(0,5)}hs
+              <strong style={{ color:'var(--text-main)' }}>{formatFechaLinda(diaSeleccionado)}</strong><br/>
+              Los clientes <strong>no podrán reservar</strong> en este día.
             </p>
-
             <div className="form-group" style={{ margin:'0 0 20px' }}>
               <label>Motivo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(opcional)</span></label>
-              <input className="input" value={motivoCancelacion}
-                onChange={e => setMotivoCancelacion(e.target.value)}
-                placeholder="Ej: problema con el horario, día cerrado..." />
+              <input className="input" value={motivoBloqueo} onChange={e => setMotivoBloqueo(e.target.value)}
+                placeholder="Ej: Vacaciones, feriado, día libre..." autoFocus />
             </div>
-
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn btn-primary"
                 style={{ flex:1, background:'rgba(248,113,113,0.15)', borderColor:'rgba(248,113,113,0.4)', color:'#f87171' }}
-                onClick={async () => {
-                  const result = await window.electronAPI.responderTurnoWeb({
-                    id:              turnoCancelar.id,
-                    accion:          'cancelado',
-                    motivo:          motivoCancelacion.trim() || 'Cancelado por la peluquería',
-                    fecha_propuesta: null,
-                    hora_propuesta:  null,
-                  })
-                  if (result?.ok) {
-                    setTurnoCancelar(null)
-                    setMotivoCancelacion('')
-                    alertar('Turno cancelado. El cliente fue notificado.', 'success')
-                    cargarTurnosWeb()
-                    cargarMes()
-                    cargarDia()
-                  } else {
-                    alertar('Error al cancelar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
-                  }
-                }}>
-                Confirmar cancelación
+                onClick={bloquearDia}>
+                Confirmar bloqueo
               </button>
-              <button className="btn btn-secondary" onClick={() => setTurnoCancelar(null)}>
-                Volver
+              <button className="btn btn-secondary" onClick={() => { setModalBloqueo(false); setMotivoBloqueo('') }}>
+                Cancelar
               </button>
             </div>
           </motion.div>
         </div>
       )}
 
-
+      {turnoCancelar && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
+          <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
+            style={{ background:'var(--bg-card)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
+            <h3 style={{ color:'#f87171', margin:'0 0 6px', fontSize:17 }}>Cancelar turno</h3>
+            <p style={{ color:'var(--text-muted)', fontSize:13, margin:'0 0 20px' }}>
+              <strong style={{ color:'var(--text-main)' }}>{turnoCancelar.cliente_nombre}</strong>
+              {' '}— {formatFechaCorta(turnoCancelar.fecha)} a las {turnoCancelar.hora?.substring(0,5)}hs
+            </p>
+            <div className="form-group" style={{ margin:'0 0 20px' }}>
+              <label>Motivo <span style={{ color:'var(--text-muted)', fontSize:11 }}>(opcional)</span></label>
+              <input className="input" value={motivoCancelacion}
+                onChange={e => setMotivoCancelacion(e.target.value)}
+                placeholder="Ej: problema con el horario, día cerrado..." />
+            </div>
+            <div style={{ display:'flex', gap:10 }}>
+              <button className="btn btn-primary"
+                style={{ flex:1, background:'rgba(248,113,113,0.15)', borderColor:'rgba(248,113,113,0.4)', color:'#f87171' }}
+                onClick={async () => {
+                  const result = await window.electronAPI.responderTurnoWeb({
+                    id: turnoCancelar.id, accion: 'cancelado',
+                    motivo: motivoCancelacion.trim() || 'Cancelado por la peluquería',
+                    fecha_propuesta: null, hora_propuesta: null,
+                  })
+                  if (result?.ok) {
+                    setTurnoCancelar(null); setMotivoCancelacion('')
+                    alertar('Turno cancelado. El cliente fue notificado.', 'success')
+                    cargarTurnosWeb(); cargarMes(); cargarDia()
+                  } else {
+                    alertar('Error al cancelar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
+                  }
+                }}>
+                Confirmar cancelación
+              </button>
+              <button className="btn btn-secondary" onClick={() => setTurnoCancelar(null)}>Volver</button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       <h1 className="page-title">Agenda</h1>
 
-      {/* ══════════════════════════════════════════════════ */}
-      {/*  SECCIÓN 1 — TURNOS MANUALES (sin cambios)        */}
-      {/* ══════════════════════════════════════════════════ */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1.1fr', gap:20, alignItems:'start' }}>
 
         {/* Calendario */}
@@ -353,32 +395,40 @@ export default function Agenda() {
               const tdm = turnosDelDiaEnMes(dia)
               const esH = fd === fechaHoy
               const sel = fd === diaSeleccionado
+              const bloqueado = diasBloqueados.some(d => d.fecha === fd)
               return (
                 <div key={dia} onClick={()=>seleccionarDia(dia)}
                   style={{ borderRadius:8, padding:'8px 4px 6px', textAlign:'center', cursor:'pointer', transition:'all 0.15s ease', minHeight:52, display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                    background: sel?'var(--accent-soft)':esH?'rgba(167,139,250,0.08)':'transparent',
-                    border: sel?'1px solid var(--accent)':esH?'1px solid rgba(124,58,237,0.3)':'1px solid transparent'
+                    background: bloqueado ? 'rgba(248,113,113,0.08)' : sel?'var(--accent-soft)':esH?'rgba(167,139,250,0.08)':'transparent',
+                    border: bloqueado ? '1px solid rgba(248,113,113,0.3)' : sel?'1px solid var(--accent)':esH?'1px solid rgba(124,58,237,0.3)':'1px solid transparent',
+                    opacity: bloqueado ? 0.7 : 1,
                   }}>
-                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color:sel?'#c4b5fd':esH?'#a78bfa':'var(--text-main)' }}>{dia}</span>
-                  {tdm.length > 0 && (
-                    <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center' }}>
-                      {tdm.length<=3
-                        ? tdm.map((t,idx)=><div key={idx} style={{ width:6,height:6,borderRadius:'50%',background:ESTADOS[t.estado]?.color||'#a78bfa' }} />)
-                        : <><div style={{ width:6,height:6,borderRadius:'50%',background:dotColor(tdm) }} /><span style={{ fontSize:9,color:'var(--text-muted)',lineHeight:1 }}>+{tdm.length}</span></>
-                      }
-                    </div>
-                  )}
+                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color: bloqueado?'#f87171':sel?'#c4b5fd':esH?'#a78bfa':'var(--text-main)' }}>{dia}</span>
+                  {bloqueado
+                    ? <Ban size={10} color="#f87171" />
+                    : tdm.length > 0 && (
+                      <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center' }}>
+                        {tdm.length<=3
+                          ? tdm.map((t,idx)=><div key={idx} style={{ width:6,height:6,borderRadius:'50%',background:ESTADOS[t.estado]?.color||'#a78bfa' }} />)
+                          : <><div style={{ width:6,height:6,borderRadius:'50%',background:dotColor(tdm) }} /><span style={{ fontSize:9,color:'var(--text-muted)',lineHeight:1 }}>+{tdm.length}</span></>
+                        }
+                      </div>
+                    )
+                  }
                 </div>
               )
             })}
           </div>
 
-          <div style={{ padding:'10px 20px 16px', borderTop:'1px solid var(--border-soft)', display:'flex', gap:16, justifyContent:'center' }}>
+          <div style={{ padding:'10px 20px 16px', borderTop:'1px solid var(--border-soft)', display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap' }}>
             {Object.entries(ESTADOS).map(([k,v])=>(
               <div key={k} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--text-muted)' }}>
                 <div style={{ width:8,height:8,borderRadius:'50%',background:v.color }} />{v.label}
               </div>
             ))}
+            <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--text-muted)' }}>
+              <Ban size={9} color="#f87171" /> Bloqueado
+            </div>
           </div>
         </div>
 
@@ -388,10 +438,29 @@ export default function Agenda() {
             <div>
               <div style={{ fontSize:13, color:'var(--text-muted)', marginBottom:2 }}>Día seleccionado</div>
               <div style={{ fontWeight:700, fontSize:16, color:'var(--text-main)', textTransform:'capitalize' }}>{formatFechaLinda(diaSeleccionado)}</div>
+              {estaBloquado && (
+                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:4, fontSize:12, color:'#f87171' }}>
+                  <Ban size={11}/> Bloqueado{infoBloqueado?.motivo ? ` — ${infoBloqueado.motivo}` : ''}
+                </div>
+              )}
             </div>
-            <button className="btn btn-primary" onClick={()=>setMostrarForm(v=>!v)} style={{ fontSize:13 }}>
-              <Plus size={15} style={{ marginRight:6 }} />Nuevo turno
-            </button>
+            <div style={{ display:'flex', gap:8 }}>
+              {/* Botón bloquear / desbloquear */}
+              {peluqueriaId && (
+                estaBloquado
+                  ? <button className="btn btn-secondary" onClick={desbloquearDia}
+                      style={{ fontSize:12, color:'#4ade80', borderColor:'rgba(74,222,128,0.3)' }}>
+                      <Ban size={13} style={{ marginRight:5 }}/> Desbloquear
+                    </button>
+                  : <button className="btn btn-secondary" onClick={() => setModalBloqueo(true)}
+                      style={{ fontSize:12, color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                      <Ban size={13} style={{ marginRight:5 }}/> Bloquear día
+                    </button>
+              )}
+              <button className="btn btn-primary" onClick={()=>setMostrarForm(v=>!v)} style={{ fontSize:13 }}>
+                <Plus size={15} style={{ marginRight:6 }} />Nuevo turno
+              </button>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -443,7 +512,9 @@ export default function Agenda() {
               <span style={{ fontSize:12, color:'var(--text-muted)' }}>{turnosDia.length} turno{turnosDia.length!==1?'s':''}</span>
             </div>
             {turnosDia.length === 0 ? (
-              <div style={{ padding:'36px 20px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>No hay turnos para este día.</div>
+              <div style={{ padding:'36px 20px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
+                {estaBloquado ? '🚫 Este día está bloqueado para reservas web.' : 'No hay turnos para este día.'}
+              </div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column' }}>
                 {[...turnosDia].sort((a,b)=>a.hora.localeCompare(b.hora)).map((turno,i)=>{
@@ -488,12 +559,8 @@ export default function Agenda() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════ */}
-      {/*  SECCIÓN 2 — RESERVAS ONLINE                      */}
-      {/* ══════════════════════════════════════════════════ */}
+      {/* SECCIÓN 2 — RESERVAS ONLINE */}
       <div style={{ marginTop:36 }}>
-
-        {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <Globe size={20} color="#a78bfa" />
@@ -529,7 +596,6 @@ export default function Agenda() {
           </div>
         </div>
 
-        {/* Sin peluqueria configurada */}
         {!peluqueriaId && (
           <div className="card" style={{ margin:0, padding:'40px 20px', textAlign:'center' }}>
             <Globe size={36} color="var(--text-muted)" style={{ marginBottom:12, opacity:0.3 }} />
@@ -538,7 +604,6 @@ export default function Agenda() {
           </div>
         )}
 
-        {/* Sin conexión */}
         {peluqueriaId && sinConexion && (
           <div className="card" style={{ margin:0, padding:'32px 20px', textAlign:'center', borderColor:'rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.04)' }}>
             <WifiOff size={32} color="#f87171" style={{ marginBottom:10 }} />
@@ -547,7 +612,6 @@ export default function Agenda() {
           </div>
         )}
 
-        {/* Loading */}
         {peluqueriaId && loadingWeb && !sinConexion && (
           <div className="card" style={{ margin:0, padding:'32px 20px', textAlign:'center' }}>
             <RefreshCw size={24} color="var(--text-muted)" style={{ animation:'spin 1s linear infinite', marginBottom:10 }} />
@@ -555,7 +619,6 @@ export default function Agenda() {
           </div>
         )}
 
-        {/* Grid de tarjetas */}
         {peluqueriaId && !loadingWeb && !sinConexion && (
           turnosWeb.length === 0 ? (
             <div className="card" style={{ margin:0, padding:'36px 20px', textAlign:'center' }}>
@@ -570,13 +633,10 @@ export default function Agenda() {
                 const est = ESTADOS_WEB[turno.estado] || ESTADOS_WEB.pendiente
                 const { Icon } = est
                 const esPendiente = turno.estado === 'pendiente'
-
                 return (
                   <motion.div key={turno.id} initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }}
                     className="card"
                     style={{ margin:0, padding:0, overflow:'hidden', border:`1px solid ${est.border}`, background:est.bg }}>
-
-                    {/* Header tarjeta */}
                     <div style={{ padding:'12px 16px', borderBottom:`1px solid ${est.border}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6, color:est.color, fontSize:12, fontWeight:600 }}>
                         <Icon size={13}/>{est.label}
@@ -585,10 +645,7 @@ export default function Agenda() {
                         {formatFechaCorta(turno.fecha)} · {turno.hora?.substring(0,5)}hs
                       </span>
                     </div>
-
-                    {/* Body */}
                     <div style={{ padding:'14px 16px' }}>
-                      {/* Cliente */}
                       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
                         <div style={{ width:34,height:34,borderRadius:'50%',background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
                           <span style={{ color:'#a78bfa',fontWeight:700,fontSize:15 }}>{turno.cliente_nombre?.[0]?.toUpperCase()}</span>
@@ -598,8 +655,6 @@ export default function Agenda() {
                           <div style={{ fontSize:11, color:'var(--text-muted)' }}>{turno.cliente_email}</div>
                         </div>
                       </div>
-
-                      {/* Detalles */}
                       <div style={{ display:'flex', flexDirection:'column', gap:5, fontSize:12, marginBottom:14 }}>
                         <div style={{ display:'flex', justifyContent:'space-between' }}>
                           <span style={{ color:'var(--text-muted)' }}>Peluquero</span>
@@ -612,8 +667,6 @@ export default function Agenda() {
                           </div>
                         )}
                       </div>
-
-                      {/* Si modificado: mostrar propuesta enviada */}
                       {turno.estado === 'modificado' && turno.fecha_propuesta && (
                         <div style={{ background:'rgba(96,165,250,0.1)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontSize:12 }}>
                           <div style={{ color:'#60a5fa', fontWeight:600, marginBottom:5, fontSize:11 }}>⏳ ESPERANDO OK DEL CLIENTE</div>
@@ -628,31 +681,22 @@ export default function Agenda() {
                           {turno.motivo && <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:6, fontStyle:'italic' }}>💬 {turno.motivo}</div>}
                         </div>
                       )}
-
-                      {/* Motivo si rechazado/cancelado */}
                       {(turno.estado==='rechazado'||turno.estado==='cancelado') && turno.motivo && (
                         <div style={{ fontSize:11, color:'var(--text-muted)', fontStyle:'italic', marginBottom:10 }}>💬 {turno.motivo}</div>
                       )}
-
-                      {/* Botón responder (solo pendientes) */}
                       {esPendiente && (
                         <button className="btn btn-primary" onClick={() => setTurnoResponder(turno)}
                           style={{ width:'100%', fontSize:13, justifyContent:'center' }}>
                           Responder →
                         </button>
                       )}
-
-                      {/* Botón cancelar (solo confirmados) */}
                       {turno.estado === 'confirmado' && (
-                        <button
-                          className="btn btn-secondary"
+                        <button className="btn btn-secondary"
                           onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('') }}
                           style={{ width:'100%', fontSize:13, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.4)' }}>
                           Cancelar turno
                         </button>
                       )}
-
-
                     </div>
                   </motion.div>
                 )
