@@ -20,7 +20,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [syncResultado, setSyncResultado]   = useState(null)
 
   const webLink = webConfig.id
-    ? `https://peluapp-web-6g23.vercel.app/?p=${webConfig.id}`
+    ? `https://peluapp-web.vercel.app/?p=${webConfig.id}`
     : ''
 
   useEffect(() => {

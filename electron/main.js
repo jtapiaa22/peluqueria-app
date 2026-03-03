@@ -15,7 +15,7 @@ const SECRET_KEY = 'peluapp-jofree-2026'
 
 const SUPABASE_URL = 'https://xsalearfdfjuyjwugick.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_9NvWXl8HHIhde1l8lt8apw_-bCNWwUz'
-const WEB_URL = 'https://peluapp-web-6g23.vercel.app'
+const WEB_URL = 'https://peluapp-web.vercel.app'
 let supabase = null
 async function getSupabase() {
   if (supabase) return supabase
