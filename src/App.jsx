@@ -27,6 +27,7 @@ function App() {
   const [notificaciones, setNotificaciones] = useState([])
   const [bandejaAbierta, setBandejaAbierta] = useState(false)
   const noLeidas = notificaciones.filter(n => !n.leida).length
+  const [pendientesWeb, setPendientesWeb] = useState(0)
 
   useEffect(() => {
     window.electronAPI.verificarLicencia().then(res => {
@@ -46,7 +47,20 @@ function App() {
       }
     }
     window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
+
+    const checkPendientes = async () => {
+      try {
+        const data = await window.electronAPI.getTurnosWebPendientes()
+        setPendientesWeb(data?.length || 0)
+      } catch {}
+    }
+    checkPendientes()
+    const intervalPendientes = setInterval(checkPendientes, 7000)
+
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      clearInterval(intervalPendientes)
+    }
   }, [])
 
   if (licenciaValida === null) return null
@@ -86,6 +100,9 @@ function App() {
             </NavLink>
             <NavLink to="/agenda" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <CalendarDays size={18} /> Agenda
+              {pendientesWeb > 0 && (
+                <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#fb923c', flexShrink: 0, boxShadow: '0 0 6px #fb923c' }} />
+              )}
             </NavLink>
             <NavLink to="/peluqueros" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Users size={18} /> Peluqueros

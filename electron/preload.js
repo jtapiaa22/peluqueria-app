@@ -93,6 +93,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Turnos webs
   sincronizarPeluqueria: () => ipcRenderer.invoke('peluqueria:sincronizar'),
+  actualizarNombreWeb: (nombre) => ipcRenderer.invoke('peluqueria:actualizarNombre', { nombre }),
   sincronizarCanceladosWeb: () => ipcRenderer.invoke('turnosWeb:sincronizarCancelados'),
   sincronizarConfirmadosWeb: () => ipcRenderer.invoke('turnosWeb:sincronizarConfirmados'),
 
@@ -103,5 +104,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getDiasBloqueados: ()      => ipcRenderer.invoke('diasBloqueados:getAll'),
   bloquearDia:       (data)  => ipcRenderer.invoke('diasBloqueados:create', data),
   desbloquearDia:    (fecha) => ipcRenderer.invoke('diasBloqueados:delete', fecha),
+
+  // Bloqueos por peluquero
+  getBloqueosPeluquero:    (peluquero_id) => ipcRenderer.invoke('bloqueosPeluquero:getAll', peluquero_id),
+  crearBloqueoPeluquero:   (data)         => ipcRenderer.invoke('bloqueosPeluquero:create', data),
+  eliminarBloqueoPeluquero:(id)           => ipcRenderer.invoke('bloqueosPeluquero:delete', id),
 
 })

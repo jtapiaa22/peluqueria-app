@@ -51,6 +51,17 @@ const MIGRATIONS = [
       motivo TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )`)
+  }},
+  { version: 9, descripcion: 'Bloqueos por peluquero', up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS bloqueos_peluquero(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      peluquero_id INTEGER NOT NULL REFERENCES peluqueros(id),
+      desde TEXT NOT NULL,
+      hasta TEXT NOT NULL,
+      motivo TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_bloqueos_peluquero ON bloqueos_peluquero(peluquero_id);`)
   }}
 ]
 
@@ -95,6 +106,27 @@ function sendToWindow(channel, data) {
 // ── NOTIFICACIONES ────────────────────────────────────────────
 let turnosNotificados = new Set()
 let primeraVerificacion = true
+let realtimeChannel = null
+
+function notificarTurno(t) {
+  if (turnosNotificados.has(t.id)) return
+  turnosNotificados.add(t.id)
+  if (primeraVerificacion) return
+  if (Notification.isSupported()) {
+    new Notification({
+      title: 'Nuevo turno solicitado',
+      body: `${t.cliente_nombre} con ${t.peluquero_nombre} — ${t.fecha} a las ${t.hora?.substring(0,5)}`
+    }).show()
+  }
+  sendToWindow('turnoWeb:nuevo', {
+    id:               t.id,
+    cliente_nombre:   t.cliente_nombre,
+    peluquero_nombre: t.peluquero_nombre,
+    fecha:            t.fecha,
+    hora:             t.hora?.substring(0,5),
+    timestamp:        Date.now()
+  })
+}
 
 async function checkNuevosTurnos() {
   try {
@@ -104,29 +136,34 @@ async function checkNuevosTurnos() {
     const { data } = await sb.from('turnos_web')
       .select('id,cliente_nombre,peluquero_nombre,fecha,hora')
       .eq('peluqueria_id', pid).eq('estado', 'pendiente')
-    for (const t of (data || [])) {
-      if (!turnosNotificados.has(t.id)) {
-        if (!primeraVerificacion) {
-          if (Notification.isSupported()) {
-            new Notification({
-              title: 'Nuevo turno solicitado',
-              body: `${t.cliente_nombre} con ${t.peluquero_nombre} — ${t.fecha} a las ${t.hora?.substring(0,5)}`
-            }).show()
-          }
-          sendToWindow('turnoWeb:nuevo', {
-            id:               t.id,
-            cliente_nombre:   t.cliente_nombre,
-            peluquero_nombre: t.peluquero_nombre,
-            fecha:            t.fecha,
-            hora:             t.hora?.substring(0,5),
-            timestamp:        Date.now()
-          })
-        }
-        turnosNotificados.add(t.id)
-      }
-    }
+    for (const t of (data || [])) notificarTurno(t)
     primeraVerificacion = false
   } catch(e) { console.error('⚠️ Notif:', e.message) }
+}
+
+async function iniciarRealtime() {
+  try {
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+
+    // Cancelar canal anterior si existía
+    if (realtimeChannel) { await sb.removeChannel(realtimeChannel); realtimeChannel = null }
+
+    realtimeChannel = sb.channel(`turnos_web_${pid}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'turnos_web',
+        filter: `peluqueria_id=eq.${pid}`
+      }, (payload) => {
+        const t = payload.new
+        if (t.estado === 'pendiente') notificarTurno(t)
+      })
+      .subscribe((status) => {
+        console.log('Realtime status:', status)
+      })
+  } catch(e) { console.error('⚠️ Realtime:', e.message) }
 }
 
 // ── SYNC DÍAS BLOQUEADOS ──────────────────────────────────────
@@ -141,6 +178,26 @@ async function syncDiasBloqueados() {
       dias.map(d => ({ fecha: d.fecha, motivo: d.motivo || null, peluqueria_id: pid }))
     )
   } catch(e) { console.error('⚠️ SyncDias:', e.message) }
+}
+
+async function syncBloqueosPeluquero() {
+  try {
+    const pid = await getPid()
+    if (!pid) return
+    const sb = await getSupabase()
+    const bloqueos = db.prepare('SELECT b.*, p.nombre as peluquero_nombre FROM bloqueos_peluquero b JOIN peluqueros p ON b.peluquero_id=p.id').all()
+    await sb.from('bloqueos_peluquero_web').delete().eq('peluqueria_id', pid)
+    if (bloqueos.length) await sb.from('bloqueos_peluquero_web').insert(
+      bloqueos.map(b => ({
+        peluqueria_id:    pid,
+        peluquero_id:     b.peluquero_id,
+        peluquero_nombre: b.peluquero_nombre,
+        desde:            b.desde,
+        hasta:            b.hasta,
+        motivo:           b.motivo || null
+      }))
+    )
+  } catch(e) { console.error('⚠️ SyncBloqueos:', e.message) }
 }
 
 async function syncSupabase() {
@@ -267,13 +324,30 @@ ipcMain.handle('peluqueria:getConfig',()=>{
 ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
   try {
     const sb=await getSupabase()
-    const {data,error}=await sb.from('peluquerias').insert({nombre,email,activo:true}).select().single()
-    if(error) throw error
+
+    // Intentar insertar; si viola unique constraint, recuperar el existente
+    const {data:nueva, error:errInsert} = await sb.from('peluquerias').insert({nombre,email,activo:true}).select().maybeSingle()
+
+    let data
+    if (errInsert) {
+      // Si es error de clave duplicada, buscar el registro existente
+      if (errInsert.code === '23505') {
+        const {data:existente, error:errSelect} = await sb.from('peluquerias').select('*').eq('email', email).maybeSingle()
+        if (errSelect || !existente) return { ok:false, error:'Email ya registrado pero no se pudo recuperar. Usá "Ya tengo ID".' }
+        data = existente
+      } else {
+        throw errInsert
+      }
+    } else {
+      data = nueva
+    }
+
+    const yaExistia = !nueva
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(nombre)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
     await syncSupabase()
-    return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}` }
+    return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}`, yaExistia }
   } catch(e){ return { ok:false, error:e.message } }
 })
 ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
@@ -327,7 +401,7 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
       ...(accion === 'modificado' ? { fecha_propuesta, hora_propuesta, expira_confirmacion_at: expira } : {})
     }).eq('id', id)
 
-    // ✅ NUEVO: si confirmamos, crear turno local para que aparezca en la Agenda
+
     if (accion === 'confirmado') {
       db.prepare(`
         INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
@@ -454,6 +528,22 @@ ipcMain.handle('diasBloqueados:delete', async (_, fecha) => {
   await syncDiasBloqueados(); return true
 })
 
+// BLOQUEOS POR PELUQUERO
+ipcMain.handle('bloqueosPeluquero:getAll', (_, peluquero_id) => {
+  if (peluquero_id) return db.prepare('SELECT * FROM bloqueos_peluquero WHERE peluquero_id=? ORDER BY desde ASC').all(peluquero_id)
+  return db.prepare('SELECT b.*, p.nombre as peluquero_nombre FROM bloqueos_peluquero b JOIN peluqueros p ON b.peluquero_id=p.id ORDER BY b.desde ASC').all()
+})
+ipcMain.handle('bloqueosPeluquero:create', async (_, { peluquero_id, desde, hasta, motivo }) => {
+  const r = db.prepare('INSERT INTO bloqueos_peluquero(peluquero_id, desde, hasta, motivo) VALUES(?,?,?,?)').run(peluquero_id, desde, hasta, motivo || null)
+  await syncBloqueosPeluquero()
+  return r.lastInsertRowid
+})
+ipcMain.handle('bloqueosPeluquero:delete', async (_, id) => {
+  db.prepare('DELETE FROM bloqueos_peluquero WHERE id=?').run(id)
+  await syncBloqueosPeluquero()
+  return true
+})
+
 // LICENCIA
 function verificarLicencia(){
   try {
@@ -539,6 +629,7 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
     }
 
     await syncDiasBloqueados()
+    await syncBloqueosPeluquero()
     return { ok: true, peluqueros: db.prepare('SELECT COUNT(*) as c FROM peluqueros WHERE activo=1').get().c, servicios: db.prepare('SELECT COUNT(*) as c FROM servicios WHERE activo=1').get().c, turnos: turnos.length }
   } catch(e) {
     return { ok: false, error: e.message }
@@ -582,7 +673,11 @@ else {
   app.whenReady().then(()=>{
     initDB(); hacerBackup(); createWindow()
     setTimeout(()=>syncSupabase(), 3000)
-    setTimeout(()=>{ checkNuevosTurnos(); setInterval(checkNuevosTurnos, 60000) }, 8000)
+    setTimeout(async () => {
+    await checkNuevosTurnos()
+    iniciarRealtime()
+    setInterval(checkNuevosTurnos, 3000)
+  }, 8000)
   })
 }
 app.on('window-all-closed',()=>{ if(process.platform!=='darwin') app.quit() })
