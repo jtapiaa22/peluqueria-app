@@ -8,6 +8,8 @@ const { autoUpdater } = require('electron-updater')
 const crypto = require('crypto')
 require('dotenv').config()
 const { dialog } = require('electron')
+const { execSync } = require('child_process')
+const os = require('os')
 
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
@@ -545,35 +547,78 @@ ipcMain.handle('bloqueosPeluquero:delete', async (_, id) => {
 })
 
 // LICENCIA
-function verificarLicencia(){
+function getMachineId() {
   try {
-    const licPath=isDev?path.join(__dirname,'../licencia.lic'):path.join(app.getPath('userData'),'licencia.lic')
-    if(!fs.existsSync(licPath)) return {valida:false,mensaje:'No se encontró archivo de licencia.'}
-    const contenido=fs.readFileSync(licPath,'utf-8').trim()
-    const decoded=Buffer.from(contenido,'base64').toString('utf-8')
-    const datos=JSON.parse(decoded)
-    const firma=crypto.createHmac('sha256',SECRET_KEY).update(`peluapp|${datos.desde}|${datos.vence}`).digest('hex')
-    if(firma!==datos.firma) return {valida:false,mensaje:'Licencia inválida o modificada.'}
-    const ahora=new Date()
-    const hoy=`${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`
-    const fechaHoy=new Date(hoy+'T00:00:00Z')
-    const fechaDesde=new Date(datos.desde+'T00:00:00Z')
-    const fechaVence=new Date(datos.vence+'T00:00:00Z')
-    const uf=db.prepare("SELECT valor FROM configuracion WHERE clave='ultima_fecha_uso'").get()
-    if(uf&&hoy<uf.valor) return {valida:false,mensaje:'Se detectó un cambio en la fecha del sistema.'}
-    const du=db.prepare("SELECT valor FROM configuracion WHERE clave='dias_usados'").get()
-    let diasUsados=[]
-    try{diasUsados=JSON.parse(du?.valor||'[]')}catch{diasUsados=[]}
-    if(!diasUsados.includes(hoy)){diasUsados.push(hoy);db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('dias_usados',?)").run(JSON.stringify(diasUsados))}
-    const total=Math.round((fechaVence-fechaDesde)/(1000*60*60*24))+1
-    if(diasUsados.length>total) return {valida:false,mensaje:'Licencia vencida por días de uso excedidos.'}
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultima_fecha_uso',?)").run(hoy)
-    if(fechaHoy<fechaDesde) return {valida:false,mensaje:`Licencia válida a partir del ${datos.desde}.`}
-    if(fechaHoy>fechaVence) return {valida:false,mensaje:`Licencia vencida el ${datos.vence}.`}
-    const diasRestantes=Math.round((fechaVence-fechaHoy)/(1000*60*60*24))+1
-    return {valida:true,mensaje:`Licencia válida. ${diasRestantes} días restantes.`,vence:datos.vence,diasRestantes}
-  } catch(e){ return {valida:false,mensaje:'Error al leer la licencia: '+e.message} }
+    if (process.platform === 'win32') {
+      const out = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8' })
+      return out.split('REG_SZ')[1]?.trim()
+    } else if (process.platform === 'darwin') {
+      const out = execSync("ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformUUID", { encoding: 'utf8' })
+      return out.split('"')[3]
+    } else {
+      return fs.readFileSync('/etc/machine-id', 'utf8').trim()
+    }
+  } catch {
+    return crypto.createHash('sha256').update(os.hostname() + (os.cpus()[0]?.model || '')).digest('hex')
+  }
 }
+
+function verificarLicencia() {
+  try {
+    const licPath = isDev
+      ? path.join(__dirname, '../licencia.lic')
+      : path.join(app.getPath('userData'), 'licencia.lic')
+
+    if (!fs.existsSync(licPath)) return { valida: false, mensaje: 'No se encontró archivo de licencia.' }
+
+    const contenido = fs.readFileSync(licPath, 'utf-8').trim()
+    const decoded = Buffer.from(contenido, 'base64').toString('utf-8')
+    const datos = JSON.parse(decoded)
+
+    // Verificar machine ID si la licencia lo tiene
+    if (datos.machineId) {
+      const machineId = getMachineId()
+      if (datos.machineId !== machineId) {
+        return { valida: false, mensaje: 'Esta licencia pertenece a otra máquina.' }
+      }
+    }
+
+    // Verificar firma (incluye machineId si existe)
+    const firmaBase = datos.machineId
+      ? `peluapp|${datos.machineId}|${datos.desde}|${datos.vence}`
+      : `peluapp|${datos.desde}|${datos.vence}`
+
+    const firma = crypto.createHmac('sha256', SECRET_KEY).update(firmaBase).digest('hex')
+    if (firma !== datos.firma) return { valida: false, mensaje: 'Licencia inválida o modificada.' }
+
+    const ahora = new Date()
+    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`
+    const fechaHoy = new Date(hoy + 'T00:00:00Z')
+    const fechaDesde = new Date(datos.desde + 'T00:00:00Z')
+    const fechaVence = new Date(datos.vence + 'T00:00:00Z')
+
+    const uf = db.prepare("SELECT valor FROM configuracion WHERE clave='ultima_fecha_uso'").get()
+    if (uf && hoy < uf.valor) return { valida: false, mensaje: 'Fecha del sistema manipulada.' }
+
+    const du = db.prepare("SELECT valor FROM configuracion WHERE clave='dias_usados'").get()
+    const diasUsados = du ? parseInt(du.valor) : 0
+    const total = Math.round((fechaVence - fechaDesde) / (1000 * 60 * 60 * 24)) + 1
+    if (diasUsados > total) return { valida: false, mensaje: 'Licencia vencida por días de uso excedidos.' }
+
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultima_fecha_uso',?)").run(hoy)
+
+    if (fechaHoy < fechaDesde) return { valida: false, mensaje: `La licencia comienza el ${datos.desde}.` }
+    if (fechaHoy > fechaVence) return { valida: false, mensaje: `Licencia vencida el ${datos.vence}.` }
+
+    const diasRestantes = Math.round((fechaVence - fechaHoy) / (1000 * 60 * 60 * 24)) + 1
+    return { valida: true, mensaje: `Licencia válida. ${diasRestantes} días restantes.`, vence: datos.vence, diasRestantes }
+  } catch (e) {
+    return { valida: false, mensaje: 'Error al leer la licencia: ' + e.message }
+  }
+}
+
+// LICENCIAS
+ipcMain.handle('licencia:getMachineId', () => getMachineId())
 ipcMain.handle('licencia:verificar',()=>verificarLicencia())
 ipcMain.handle('licencia:cargar',(_,ruta)=>{ try{ const lp=isDev?path.join(__dirname,'../licencia.lic'):path.join(app.getPath('userData'),'licencia.lic'); fs.copyFileSync(ruta,lp); db.prepare("DELETE FROM configuracion WHERE clave='ultima_fecha_uso'").run(); db.prepare("DELETE FROM configuracion WHERE clave='dias_usados'").run(); return verificarLicencia() }catch{return {valida:false,mensaje:'Error al cargar el archivo.'}} })
 

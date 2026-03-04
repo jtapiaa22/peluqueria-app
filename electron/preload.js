@@ -80,6 +80,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Licencia
   verificarLicencia:    ()      => ipcRenderer.invoke('licencia:verificar'),
   cargarLicencia:       (ruta)  => ipcRenderer.invoke('licencia:cargar', ruta),
+  getMachineId: () => ipcRenderer.invoke('licencia:getMachineId'),
 
   // Actualizador
   checkUpdate:          ()      => ipcRenderer.invoke('updater:check'),
