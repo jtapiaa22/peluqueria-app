@@ -378,6 +378,8 @@ ipcMain.handle('peluqueria:actualizarNombre', async (_, { nombre }) => {
 
     if (error) throw error
 
+    // Actualizar también en local
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(nombre)
 
     return { ok: true }
   } catch (e) {
