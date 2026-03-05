@@ -44,6 +44,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [horario, setHorario]                   = useState(HORARIO_DEFAULT)
   const [horarioLoading, setHorarioLoading]     = useState(false)
   const [horarioGuardado, setHorarioGuardado]   = useState(false)
+  const [backupNubeLoading, setBackupNubeLoading]   = useState(false)
+  const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
+  const [ultimoBackupNube, setUltimoBackupNube]     = useState(null)
 
   const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
 
@@ -51,6 +54,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     window.electronAPI.getNombreApp().then(n => setNombreInput(n))
     window.electronAPI.listarBackups().then(setBackups)
     window.electronAPI.getLogo().then(logo => { if (logo) setLogoPreview(logo) })
+    window.electronAPI.getUltimoBackupNube().then(ts => setUltimoBackupNube(ts))
     cargarWebConfig()
   }, [])
 
@@ -170,7 +174,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const navItems = [
     { id: 'apariencia', label: 'Apariencia', icono: <Palette size={16}/> },
     { id: 'backups',    label: 'Backups',    icono: <HardDrive size={16}/> },
-    { id: 'web',        label: 'Reservas Web', icono: <Globe size={16}/>,
+    { id: 'web',        label: 'Web y Backup', icono: <Globe size={16}/>,
       badge: webPaso === 'configurado' ? '●' : null, badgeColor: '#4ade80' },
     ...(webPaso === 'configurado' ? [{ id: 'horario', label: 'Horario web', icono: <Clock size={16}/> }] : []),
   ]
@@ -302,6 +306,59 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               ) : (
                 <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 20 }}>Todavía no hay backups generados.</p>
               )}
+
+              {/* ── BACKUP EN LA NUBE ── */}
+              <div style={{ marginTop: 32, borderTop: '1px solid var(--border-soft)', paddingTop: 28 }}>
+                <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 15, marginBottom: 4 }}>☁️ Backup en la nube</div>
+                <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>
+                  Subí tus datos a la nube para recuperarlos si cambiás de PC o formateás.
+                  {webPaso !== 'configurado' && <strong style={{ color: '#f59e0b' }}> Requiere estar registrado en "Web y Backup".</strong>}
+                </p>
+                {ultimoBackupNube && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>
+                    Último backup: <strong style={{ color: 'var(--text-main)' }}>{new Date(ultimoBackupNube).toLocaleString('es-AR')}</strong>
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <button className="btn btn-primary" disabled={backupNubeLoading || webPaso !== 'configurado'}
+                    onClick={async () => {
+                      setBackupNubeLoading(true)
+                      const result = await window.electronAPI.syncBackupNube()
+                      setBackupNubeLoading(false)
+                      if (result.ok) {
+                        setUltimoBackupNube(new Date().toISOString())
+                        setModalAlert({ mensaje: `✅ Backup subido: ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                      } else {
+                        setModalAlert({ mensaje: 'Error al hacer backup: ' + result.error, tipo: 'error' })
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {backupNubeLoading
+                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Subiendo...</>
+                      : '☁️ Subir backup ahora'}
+                  </button>
+
+                  <button className="btn btn-secondary" disabled={restoreNubeLoading || webPaso !== 'configurado'}
+                    onClick={async () => {
+                      const confirmar = window.confirm('⚠️ Esto va a reemplazar tus datos locales con los del backup en la nube.\n\n¿Estás seguro?')
+                      if (!confirmar) return
+                      setRestoreNubeLoading(true)
+                      const result = await window.electronAPI.restaurarDesdeNube()
+                      setRestoreNubeLoading(false)
+                      if (result.ok) {
+                        setModalAlert({ mensaje: `✅ Datos restaurados: ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                      } else {
+                        setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {restoreNubeLoading
+                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Restaurando...</>
+                      : '⬇️ Restaurar desde la nube'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

@@ -111,4 +111,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crearBloqueoPeluquero:   (data)         => ipcRenderer.invoke('bloqueosPeluquero:create', data),
   eliminarBloqueoPeluquero:(id)           => ipcRenderer.invoke('bloqueosPeluquero:delete', id),
 
+  // Backup en la nube
+  syncBackupNube:       () => ipcRenderer.invoke('backup:syncNube'),
+  restaurarDesdeNube:   () => ipcRenderer.invoke('backup:restaurarNube'),
+  getUltimoBackupNube:  () => ipcRenderer.invoke('backup:getUltimoSync'),
+
 })
