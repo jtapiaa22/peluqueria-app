@@ -15,7 +15,8 @@ autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
 
 const isDev = !app.isPackaged
-const SECRET_KEY = 'peluapp-jofree-2026'
+const _sk = ['pelu', 'app', '-', 'jo', 'free', '-', '20', '26']
+const SECRET_KEY = _sk[0]+_sk[1]+_sk[2]+_sk[3]+_sk[4]+_sk[5]+_sk[6]+_sk[7]
 
 const SUPABASE_URL = 'https://xsalearfdfjuyjwugick.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_9NvWXl8HHIhde1l8lt8apw_-bCNWwUz'
@@ -384,7 +385,8 @@ ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto
 
 // CONFIG
 ipcMain.handle('config:get',(_,c)=>db.prepare('SELECT valor FROM configuracion WHERE clave=?').get(c)||null)
-ipcMain.handle('config:set',(_,{clave,valor})=>{ db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
+const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app'])
+ipcMain.handle('config:set',(_,{clave,valor})=>{ if(!CONFIG_CLAVES_PERMITIDAS.has(clave)) return false; db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
 
 // CAJA
 ipcMain.handle('caja:abrir',(_,d)=>{ const r=db.prepare("INSERT INTO cierre_caja(fecha,hora_apertura,estado) VALUES(?,?,'abierta')").run(d.fecha,d.hora_apertura); return r.lastInsertRowid })
@@ -846,7 +848,7 @@ ipcMain.handle('actualizar-horario', async (_, horario) => {
 
 function createWindow(){
   Menu.setApplicationMenu(null)
-  mainWindow=new BrowserWindow({width:1280,height:800,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,webSecurity:false}})
+  mainWindow=new BrowserWindow({width:1280,height:800,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,webSecurity:!isDev}})
   if(isDev) mainWindow.loadURL('http://localhost:5173')
   else mainWindow.loadFile(path.join(__dirname,'../dist/index.html'))
 }
@@ -864,6 +866,12 @@ else {
     iniciarRealtime()
     setInterval(checkNuevosTurnos, 3000)
   }, 8000)
+
+    // Re-verificar licencia cada hora silenciosamente
+    setInterval(() => {
+      const res = verificarLicencia()
+      if (!res.valida) sendToWindow('licencia:invalida', { mensaje: res.mensaje })
+    }, 60 * 60 * 1000)
   })
 }
 app.on('window-all-closed',()=>{ if(process.platform!=='darwin') app.quit() })

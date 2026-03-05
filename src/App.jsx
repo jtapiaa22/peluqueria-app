@@ -48,6 +48,10 @@ function App() {
     }
     window.addEventListener('message', handleMessage)
 
+    // Si la licencia se invalida en caliente (vence mientras la app está abierta)
+    const handleLicenciaInvalida = () => setLicenciaValida(false)
+    window.addEventListener('licencia:invalida', handleLicenciaInvalida)
+
     const checkPendientes = async () => {
       try {
         const data = await window.electronAPI.getTurnosWebPendientes()
@@ -59,6 +63,7 @@ function App() {
 
     return () => {
       window.removeEventListener('message', handleMessage)
+      window.removeEventListener('licencia:invalida', handleLicenciaInvalida)
       clearInterval(intervalPendientes)
     }
   }, [])

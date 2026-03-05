@@ -5,6 +5,10 @@ ipcRenderer.on('turnoWeb:nuevo', (_, data) => {
   window.postMessage({ type: 'turnoWeb:nuevo', data }, '*')
 })
 
+ipcRenderer.on('licencia:invalida', (_, data) => {
+  window.dispatchEvent(new CustomEvent('licencia:invalida', { detail: data }))
+})
+
 contextBridge.exposeInMainWorld('electronAPI', {
   // Peluqueros
   getPeluqueros:        ()      => ipcRenderer.invoke('peluqueros:getAll'),
