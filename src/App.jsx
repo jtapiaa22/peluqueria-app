@@ -237,13 +237,24 @@ function App() {
 
           <div className="footer-container">
             <footer className="app-footer">
-              <div className="version-text">
-                v{version} BETA
+              <div
+                className="version-text"
+                style={{
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  padding: '2px 8px',
+                  fontSize: '0.80rem',
+                }}
+              >
+                v{version.split('.').slice(0, 2).join('.')}
               </div>
-              <div className="footer-author">Desarrollado por<br /> <strong style={{color:'var(--text-soft)'}}> Jorge Tapia Ahumada</strong>
+              <div className="footer-author">
+                Desarrollado por<br />
+                <strong style={{ color: 'var(--text-soft)', fontSize: '0.90rem' }}>TADevStudio</strong>
               </div>
             </footer>
           </div>
+
 
         </aside>
 

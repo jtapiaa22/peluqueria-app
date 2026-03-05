@@ -1,8 +1,8 @@
 {
-  "name": "peluqueria-app",
-  "version": "1.0.3",
+  "name": "tadevstudio-peluapp",
+  "version": "1.1.0",
   "description": "Sistema de gestión para peluquería",
-  "author": "Jorge Tapia Ahumada",
+  "author": "TADevStudio",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "build": {
-    "appId": "com.peluqueria.app",
+    "appId": "com.tadevstudio.peluapp",
     "productName": "PeluApp",
     "asar": true,
     "extraResources": [],
