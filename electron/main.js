@@ -364,6 +364,27 @@ ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
     return { ok:true, id:peluqueriaId, link:`${WEB_URL}/?p=${peluqueriaId}` }
   } catch(e){ return { ok:false, error:e.message } }
 })
+
+ipcMain.handle('peluqueria:actualizarNombre', async (_, { nombre }) => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { ok: false, error: 'No hay peluquería vinculada.' }
+
+    const sb = await getSupabase()
+    const { error } = await sb
+      .from('peluquerias')
+      .update({ nombre })
+      .eq('id', pid)
+
+    if (error) throw error
+
+
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('turnosWeb:getPendientes',async()=>{
   try {
     const pid=await getPid(); if(!pid) return []
