@@ -319,29 +319,23 @@ async function syncSupabase() {
     if (!pid) return
     const sb = await getSupabase()
 
-    // Peluqueros activos
-    const pels = db.prepare('SELECT * FROM peluqueros WHERE activo=1').all()
-    for (const p of pels) await sb.from('peluqueros_web').upsert(
-      { id: `${pid}_${p.id}`, nombre: p.nombre, activo: true, peluqueria_id: pid, local_id: p.id },
-      { onConflict: 'id' }
-    )
-    // Peluqueros inactivos
-    const inP = db.prepare('SELECT id FROM peluqueros WHERE activo=0').all()
-    for (const p of inP) await sb.from('peluqueros_web')
-      .update({ activo: false })
-      .eq('id', `${pid}_${p.id}`)
-
-    // Servicios activos
+    const pels  = db.prepare('SELECT * FROM peluqueros WHERE activo=1').all()
+    const inP   = db.prepare('SELECT id FROM peluqueros WHERE activo=0').all()
     const servs = db.prepare('SELECT * FROM servicios WHERE activo=1').all()
-    for (const s of servs) await sb.from('servicios_web').upsert(
-      { id: `${pid}_${s.id}`, nombre: s.nombre, precio: s.precio, activo: true, peluqueria_id: pid, local_id: s.id },
-      { onConflict: 'id' }
-    )
-    // Servicios inactivos
-    const inS = db.prepare('SELECT id FROM servicios WHERE activo=0').all()
-    for (const s of inS) await sb.from('servicios_web')
-      .update({ activo: false })
-      .eq('id', `${pid}_${s.id}`)
+    const inS   = db.prepare('SELECT id FROM servicios WHERE activo=0').all()
+
+    await Promise.all([
+      ...pels.map(p  => sb.from('peluqueros_web').upsert(
+        { id: `${pid}_${p.id}`, nombre: p.nombre, activo: true, peluqueria_id: pid, local_id: p.id },
+        { onConflict: 'id' }
+      )),
+      ...inP.map(p   => sb.from('peluqueros_web').update({ activo: false }).eq('id', `${pid}_${p.id}`)),
+      ...servs.map(s => sb.from('servicios_web').upsert(
+        { id: `${pid}_${s.id}`, nombre: s.nombre, precio: s.precio, activo: true, peluqueria_id: pid, local_id: s.id },
+        { onConflict: 'id' }
+      )),
+      ...inS.map(s   => sb.from('servicios_web').update({ activo: false }).eq('id', `${pid}_${s.id}`)),
+    ])
 
     console.log('✅ Sync Supabase OK')
   } catch(e) { console.error('⚠️ Sync:', e.message) }
@@ -740,6 +734,10 @@ function verificarLicencia() {
     const total = Math.round((fechaVence - fechaDesde) / (1000 * 60 * 60 * 24)) + 1
     if (diasUsados > total) return { valida: false, mensaje: 'Licencia vencida por días de uso excedidos.' }
 
+    // Incrementar días usados solo si es un día nuevo
+    if (!uf || hoy !== uf.valor) {
+      db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('dias_usados',?)").run(String(diasUsados + 1))
+    }
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultima_fecha_uso',?)").run(hoy)
 
     if (fechaHoy < fechaDesde) return { valida: false, mensaje: `La licencia comienza el ${datos.desde}.` }
