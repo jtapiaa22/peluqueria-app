@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { TrendingUp, Scissors, User, Clock, Calendar, Award } from 'lucide-react'
 
 function hoy() {
@@ -19,6 +20,7 @@ export default function Reportes() {
   const [atenciones, setAtenciones] = useState([])
   const [desde, setDesde]           = useState(primerDiaMes())
   const [hasta, setHasta]           = useState(hoy())
+  
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByRango({ desde, hasta })
@@ -64,6 +66,15 @@ export default function Reportes() {
   const peluqueroTop = Object.entries(resumenPorPeluquero).sort((a, b) => b[1].total - a[1].total)[0]
   const servicioTop  = Object.entries(resumenPorServicio).sort((a, b) => b[1].cantidad - a[1].cantidad)[0]
 
+  // Servicios realizados por cada peluquero
+  const serviciosPorPeluquero = atenciones.reduce((acc, a) => {
+    if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = {}
+    if (!acc[a.peluquero_nombre][a.servicio_nombre]) acc[a.peluquero_nombre][a.servicio_nombre] = { cantidad: 0, total: 0 }
+    acc[a.peluquero_nombre][a.servicio_nombre].cantidad++
+    acc[a.peluquero_nombre][a.servicio_nombre].total += Number(a.precio_cobrado)
+    return acc
+  }, {})
+
   const ingresosPorFecha = atenciones.reduce((acc, a) => {
     acc[a.fecha] = (acc[a.fecha] || 0) + Number(a.precio_cobrado)
     return acc
@@ -75,6 +86,12 @@ export default function Reportes() {
   const cantTransferencia = atenciones.filter(a => a.metodo_pago === 'transferencia').length
   const cantMixto         = atenciones.filter(a => a.metodo_pago === 'mixto').length
   const totalMetodos      = atenciones.length || 1
+
+
+  const [peluquerosAbiertos, setPeluquerosAbiertos] = useState({})
+
+  const togglePeluquero = (nombre) => setPeluquerosAbiertos(prev => ({ ...prev, [nombre]: !prev[nombre] }))
+
 
   return (
     <div className="page-animation">
@@ -235,6 +252,103 @@ export default function Reportes() {
           </table>
         </div>
       </div>
+
+      {/* ── SERVICIOS POR PELUQUERO ── */}
+      {!sinDatos && Object.keys(serviciosPorPeluquero).length > 0 && (() => {
+        const peluquerosOrdenados = Object.entries(serviciosPorPeluquero)
+          .sort((a, b) => {
+            const totalA = Object.values(a[1]).reduce((s, d) => s + d.cantidad, 0)
+            const totalB = Object.values(b[1]).reduce((s, d) => s + d.cantidad, 0)
+            return totalB - totalA
+          })
+
+        return (
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3 style={{ marginBottom: 16, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <User size={16} /> Servicios por peluquero
+            </h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Peluquero</th>
+                  <th>Cantidad</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {peluquerosOrdenados.map(([peluquero, servicios]) => {
+                  const totalAtenciones = Object.values(servicios).reduce((s, d) => s + d.cantidad, 0)
+                  const totalMonto      = Object.values(servicios).reduce((s, d) => s + d.total, 0)
+                  const abierto         = !!peluquerosAbiertos[peluquero]
+
+                  return (
+                    <React.Fragment key={peluquero}>
+
+                      {/* ── FILA CABECERA (clickeable) ── */}
+                      <tr
+                        onClick={() => togglePeluquero(peluquero)}
+                        style={{
+                          cursor: 'pointer',
+                          background: abierto ? 'rgba(124,58,237,0.10)' : 'rgba(124,58,237,0.04)',
+                          transition: 'background 0.2s ease',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {/* Flecha */}
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: 22, height: 22, borderRadius: '50%',
+                              background: 'rgba(124,58,237,0.15)', color: '#a78bfa',
+                              fontSize: 11, flexShrink: 0,
+                              transition: 'transform 0.2s ease',
+                              transform: abierto ? 'rotate(90deg)' : 'rotate(0deg)',
+                            }}>▶</span>
+                            <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 14 }}>{peluquero}</span>
+                            <span style={{
+                              background: 'rgba(124,58,237,0.15)', color: '#a78bfa',
+                              borderRadius: 99, fontSize: 11, padding: '2px 8px', fontWeight: 600,
+                            }}>
+                              {totalAtenciones} {totalAtenciones === 1 ? 'atención' : 'atenciones'}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)', fontWeight: 600 }}>{totalAtenciones}</td>
+                        <td style={{ color: '#4ade80', fontWeight: 700 }}>${totalMonto.toLocaleString('es-AR')}</td>
+                      </tr>
+
+                      {/* ── FILAS HIJAS (expandibles) ── */}
+                      <AnimatePresence>
+                        {abierto && Object.entries(servicios)
+                          .sort((a, b) => b[1].cantidad - a[1].cantidad)
+                          .map(([servicio, data], i) => (
+                            <motion.tr
+                              key={servicio}
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -8 }}
+                              transition={{ duration: 0.18, delay: i * 0.04 }}
+                              style={{ background: 'rgba(124,58,237,0.02)' }}
+                            >
+                              <td style={{ paddingLeft: 48, color: 'var(--text-main)', fontSize: 14 }}>
+                                {servicio}
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{data.cantidad}</td>
+                              <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                            </motion.tr>
+                          ))}
+                      </AnimatePresence>
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
+      })()}
+
+
 
       {/* ── ACTIVIDAD POR DÍA DE LA SEMANA ── */}
       {!sinDatos && (

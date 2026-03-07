@@ -115,6 +115,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crearBloqueoPeluquero:   (data)         => ipcRenderer.invoke('bloqueosPeluquero:create', data),
   eliminarBloqueoPeluquero:(id)           => ipcRenderer.invoke('bloqueosPeluquero:delete', id),
 
+  // Tramos de comisión por peluquero
+  getTramosComision:       (peluquero_id) => ipcRenderer.invoke('tramosComision:getByPeluquero', peluquero_id),
+  getAllTramosComision:     ()             => ipcRenderer.invoke('tramosComision:getAll'),
+  saveTramosComision:      (data)         => ipcRenderer.invoke('tramosComision:save', data),
+
   // Backup en la nube
   syncBackupNube:       () => ipcRenderer.invoke('backup:syncNube'),
   restaurarDesdeNube:   () => ipcRenderer.invoke('backup:restaurarNube'),

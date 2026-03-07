@@ -35,8 +35,9 @@ export default function Liquidacion() {
 
   // Estado para confirmar pagos
   const [panelPago, setPanelPago]       = useState(null) // peluquero_id activo
-  const [formPago, setFormPago]         = useState({ fecha_pago: hoy(), notas: '' })
+  const [formPago, setFormPago]         = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
   const [pagosExistentes, setPagosExistentes] = useState([]) // pagos ya hechos en el período
+  const [tramosComision, setTramosComision]   = useState({}) // { [peluquero_id]: [{monto_desde, monto_pago}] }
 
   const { generarReporte } = usePDF()
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -55,12 +56,19 @@ export default function Liquidacion() {
   }
 
   const cargarDatos = async () => {
-    const [p, a] = await Promise.all([
+    const [p, a, todosTramos] = await Promise.all([
       window.electronAPI.getPeluqueros(),
-      window.electronAPI.getAtencionesByRango({ desde, hasta })
+      window.electronAPI.getAtencionesByRango({ desde, hasta }),
+      window.electronAPI.getAllTramosComision()
     ])
     setPeluqueros(p)
     setAtenciones(a)
+    const agrupadosT = {}
+    for (const t of (todosTramos || [])) {
+      if (!agrupadosT[t.peluquero_id]) agrupadosT[t.peluquero_id] = []
+      agrupadosT[t.peluquero_id].push(t)
+    }
+    setTramosComision(agrupadosT)
     // Recargar pagos si hay panel abierto
     if (panelPago) {
       cargarPagosExistentes(panelPago)
@@ -87,7 +95,7 @@ export default function Liquidacion() {
       return
     }
     setPanelPago(peluqueroId)
-    setFormPago({ fecha_pago: hoy(), notas: '' })
+    setFormPago({ fecha_pago: hoy(), notas: '', montoManual: '' })
     await cargarPagosExistentes(peluqueroId)
   }
 
@@ -97,14 +105,20 @@ export default function Liquidacion() {
       return
     }
     const liq = getLiquidacionPeluquero(peluquero.id)
-    if (liq.montoComision <= 0) {
+    if (liq.montoComision <= 0 && !formPago.montoManual) {
       alertar('Este peluquero no tiene monto a pagar en el período.', 'warning')
       return
     }
     const pendiente = liq.montoComision - liq.totalPagado
+    const montoFinal = formPago.montoManual !== '' ? Number(formPago.montoManual) : Math.max(0, pendiente)
+
+    if (montoFinal <= 0) {
+      alertar('El monto a pagar debe ser mayor a $0.', 'warning')
+      return
+    }
 
     confirmar(
-      `¿Confirmar pago de $${pendiente.toLocaleString('es-AR')} a ${peluquero.nombre}?`,
+      `¿Confirmar pago de $${montoFinal.toLocaleString('es-AR')} a ${peluquero.nombre}?`,
       async () => {
         setModalConfirm(null)
         await window.electronAPI.createPago({
@@ -112,7 +126,7 @@ export default function Liquidacion() {
           peluquero_nombre: peluquero.nombre,
           desde,
           hasta,
-          monto:            pendiente,
+          monto:            montoFinal,
           fecha_pago:       formPago.fecha_pago,
           notas:            formPago.notas
         })
@@ -154,12 +168,46 @@ export default function Liquidacion() {
     const atencionesP   = atenciones.filter(a => a.peluquero_id == peluqueroId)
     const totalGenerado = atencionesP.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
     const peluquero     = peluqueros.find(p => p.id == peluqueroId)
-    const comision      = peluquero ? Number(peluquero.comision) : 0
-    const montoComision = (totalGenerado * comision) / 100
-    const totalPagado   = pagosExistentes
+
+    const tramosP   = (tramosComision[peluqueroId] || []).slice().sort((a, b) => Number(a.monto_desde) - Number(b.monto_desde))
+    const usaTramos = tramosP.length > 0
+    const comision  = peluquero ? Number(peluquero.comision) : 0
+
+    let montoComision = 0
+    const desglose = [] // para mostrar detalle por atención
+
+    if (usaTramos) {
+      // Por cada atención, buscar tramo exacto; si no hay coincidencia exacta
+      // usar el tramo más cercano por debajo (floor); si no hay ninguno, usar % normal
+      for (const a of atencionesP) {
+        const precio = Number(a.precio_cobrado)
+        // Buscar coincidencia exacta primero
+        let tramoMatch = tramosP.find(t => Number(t.monto_desde) === precio)
+        // Si no hay exacta, buscar el tramo más alto cuyo monto_desde <= precio
+        if (!tramoMatch) {
+          const candidatos = tramosP.filter(t => Number(t.monto_desde) <= precio)
+          tramoMatch = candidatos.length ? candidatos[candidatos.length - 1] : null
+        }
+        const pago = tramoMatch
+          ? Number(tramoMatch.monto_pago)
+          : (precio * comision) / 100   // fallback a % si no hay tramo
+        montoComision += pago
+        desglose.push({
+          servicio: a.servicio_nombre,
+          precio,
+          pago,
+          usóTramo: !!tramoMatch
+        })
+      }
+    } else {
+      montoComision = (totalGenerado * comision) / 100
+    }
+
+    const totalPagado = pagosExistentes
       .filter(pg => pg.peluquero_id == peluqueroId)
       .reduce((acc, pg) => acc + Number(pg.monto), 0)
-    return { totalGenerado, comision, montoComision, cantidad: atencionesP.length, totalPagado }
+
+    return { totalGenerado, comision, montoComision, cantidad: atencionesP.length, totalPagado, usaTramos, tramosP, desglose }
   }
 
   const peluquerosConDatos = peluqueros.map(p => ({
@@ -312,9 +360,15 @@ export default function Liquidacion() {
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
-                    <span style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                      {p.comision}% de comisión
-                    </span>
+                    {p.usaTramos ? (
+                      <span style={{ background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                        📊 Tramos configurados
+                      </span>
+                    ) : (
+                      <span style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                        {p.comision}% de comisión
+                      </span>
+                    )}
                   </div>
 
                   {/* Stats */}
@@ -328,7 +382,9 @@ export default function Liquidacion() {
                       <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Le corresponde ({p.comision}%)</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>
+                        {p.usaTramos ? 'Le corresponde (tramo)' : `Le corresponde (${p.comision}%)`}
+                      </div>
                       <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
@@ -336,6 +392,40 @@ export default function Liquidacion() {
                       <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
                     </div>
                   </div>
+
+                  {/* Desglose por atención (solo con tramos) */}
+                  {p.usaTramos && p.desglose && p.desglose.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 600, marginBottom: 8 }}>
+                        📋 Desglose por servicio
+                      </div>
+                      <table className="table" style={{ fontSize: 12 }}>
+                        <thead>
+                          <tr>
+                            <th>Servicio</th>
+                            <th>Cobrado</th>
+                            <th>Pago al peluquero</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {p.desglose.map((d, i) => (
+                            <tr key={i}>
+                              <td style={{ color: 'var(--text-soft)' }}>{d.servicio}</td>
+                              <td style={{ color: 'var(--text-muted)' }}>${d.precio.toLocaleString('es-AR')}</td>
+                              <td style={{ color: '#4ade80', fontWeight: 700 }}>
+                                ${d.pago.toLocaleString('es-AR')}
+                                {!d.usóTramo && <span style={{ color: '#facc15', fontSize: 10, marginLeft: 4 }}>(% fallback)</span>}
+                              </td>
+                            </tr>
+                          ))}
+                          <tr style={{ borderTop: '1px solid var(--border-soft)' }}>
+                            <td colSpan={2} style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 13 }}>Total a pagar</td>
+                            <td style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
 
                   {/* Botón confirmar pago */}
                   {p.cantidad > 0 && (
@@ -364,7 +454,7 @@ export default function Liquidacion() {
                       <div style={{ padding: '20px 24px', background: 'rgba(74, 222, 128, 0.03)' }}>
 
                         {/* Formulario de pago */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Período cubierto</label>
                             <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text-soft)' }}>
@@ -372,10 +462,24 @@ export default function Liquidacion() {
                             </div>
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label>Monto pendiente</label>
+                            <label>Monto calculado</label>
                             <div style={{ background: 'var(--bg-main)', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: 10, padding: '10px 14px', fontSize: 15, fontWeight: 700, color: '#f87171' }}>
                               ${Math.max(0, pendiente).toLocaleString('es-AR')}
                             </div>
+                          </div>
+                          <div className="form-group" style={{ margin: 0 }}>
+                            <label>
+                              Monto a pagar
+                              <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 4 }}>(manual)</span>
+                            </label>
+                            <input
+                              className="input"
+                              type="number"
+                              value={formPago.montoManual}
+                              onChange={e => setFormPago({ ...formPago, montoManual: e.target.value })}
+                              placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
+                              style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
+                            />
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Fecha de pago</label>
@@ -389,11 +493,10 @@ export default function Liquidacion() {
                           <button
                             className="btn btn-primary"
                             onClick={() => ejecutarPago(p)}
-                            disabled={pendiente <= 0}
                             style={{ whiteSpace: 'nowrap' }}
                           >
                             <CheckCircle size={15} style={{ marginRight: 6 }} />
-                            {pendiente <= 0 ? 'Ya pagado' : 'Confirmar pago'}
+                            Confirmar pago
                           </button>
                         </div>
 

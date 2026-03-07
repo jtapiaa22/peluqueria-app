@@ -65,6 +65,15 @@ const MIGRATIONS = [
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_bloqueos_peluquero ON bloqueos_peluquero(peluquero_id);`)
+  }},
+  { version: 10, descripcion: 'Tramos de comisión por peluquero', up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS peluquero_tramos(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      peluquero_id INTEGER NOT NULL REFERENCES peluqueros(id),
+      monto_desde REAL NOT NULL,
+      monto_pago REAL NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_tramos_peluquero ON peluquero_tramos(peluquero_id);`)
   }}
 ]
 
@@ -363,6 +372,24 @@ ipcMain.handle('peluqueros:getAll', ()=>db.prepare('SELECT * FROM peluqueros WHE
 ipcMain.handle('peluqueros:create', async(_,d)=>{ const r=db.prepare('INSERT INTO peluqueros(nombre,comision) VALUES(?,?)').run(d.nombre,d.comision); syncSupabase(); return r.lastInsertRowid })
 ipcMain.handle('peluqueros:update', async(_,d)=>{ db.prepare('UPDATE peluqueros SET nombre=?,comision=? WHERE id=?').run(d.nombre,d.comision,d.id); syncSupabase(); return true })
 ipcMain.handle('peluqueros:delete', async(_,id)=>{ db.prepare('UPDATE peluqueros SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
+
+// TRAMOS COMISIÓN
+ipcMain.handle('tramosComision:getByPeluquero', (_, peluquero_id) =>
+  db.prepare('SELECT * FROM peluquero_tramos WHERE peluquero_id=? ORDER BY monto_desde ASC').all(peluquero_id)
+)
+ipcMain.handle('tramosComision:getAll', () =>
+  db.prepare('SELECT * FROM peluquero_tramos ORDER BY peluquero_id, monto_desde ASC').all()
+)
+ipcMain.handle('tramosComision:save', (_, { peluquero_id, tramos }) => {
+  const del = db.prepare('DELETE FROM peluquero_tramos WHERE peluquero_id=?')
+  const ins = db.prepare('INSERT INTO peluquero_tramos(peluquero_id, monto_desde, monto_pago) VALUES(?,?,?)')
+  const tx  = db.transaction(() => {
+    del.run(peluquero_id)
+    for (const t of tramos) ins.run(peluquero_id, Number(t.monto_desde), Number(t.monto_pago))
+  })
+  tx()
+  return true
+})
 
 // SERVICIOS
 ipcMain.handle('servicios:getAll', ()=>db.prepare('SELECT * FROM servicios WHERE activo=1').all())
