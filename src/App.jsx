@@ -246,7 +246,7 @@ function App() {
                   fontSize: '0.80rem',
                 }}
               >
-                v{version.split('.').slice(0, 2).join('.')}
+                {version && `v${version.split('.').slice(0, 2).join('.')}`}
               </div>
               <div className="footer-author">
                 Desarrollado por<br />

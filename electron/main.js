@@ -783,8 +783,8 @@ ipcMain.handle('pdf:guardar',async(_,{buffer,nombreSugerido})=>{ const {filePath
 
 // DASHBOARD
 ipcMain.handle('dashboard:getResumen',()=>{
-  const hoy=new Date(); const fechaHoy=hoy.toISOString().split('T')[0]
-  const ultimos7=[]; for(let i=6;i>=0;i--){const d=new Date(hoy);d.setDate(d.getDate()-i);ultimos7.push(d.toISOString().split('T')[0])}
+  const hoy=new Date(); const fechaHoy=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`
+  const ultimos7=[]; for(let i=6;i>=0;i--){const d=new Date(hoy);d.setDate(d.getDate()-i);ultimos7.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)}
   const atencionesHoy=db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=?`).all(fechaHoy)
   const ingresosPorDia=ultimos7.map(f=>({fecha:f,total:db.prepare('SELECT COALESCE(SUM(precio_cobrado),0) as total FROM atenciones WHERE fecha=?').get(f).total}))
   const pm=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`
