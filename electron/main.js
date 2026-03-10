@@ -593,30 +593,50 @@ ipcMain.handle('turnosWeb:getPendientes',async()=>{
   try {
     const pid=await getPid(); if(!pid) return []
     const sb=await getSupabase()
-    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado','esperando_sena']).order('fecha',{ascending:true}).order('hora',{ascending:true})
+    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado']).order('fecha',{ascending:true}).order('hora',{ascending:true})
+    return data||[]
+  } catch(e){ return [] }
+})
+
+ipcMain.handle('turnosWeb:getSenas', async () => {
+  try {
+    const pid = await getPid()
+    if (!pid) return []
+    const sb = await getSupabase()
     const ahora = new Date().toISOString()
-    // Auto-cancelar vencidos (sin bloquear el retorno)
-    const vencidos = (data||[]).filter(t => t.estado === 'esperando_sena' && t.sena_vence_at && t.sena_vence_at < ahora)
+
+    const { data } = await sb
+      .from('turnos_senas')
+      .select('*')
+      .eq('peluqueria_id', pid)
+      .eq('estado', 'pendiente_sena')
+      .order('fecha', { ascending: true })
+      .order('hora',  { ascending: true })
+
+    // Auto-cancelar vencidos
+    const vencidos = (data || []).filter(t => t.vence_at && t.vence_at < ahora)
     for (const t of vencidos) {
       try {
-        await sb.from('turnos_web').update({ estado:'cancelado', motivo:'Seña no recibida a tiempo.' }).eq('id',t.id)
-        const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(t.id)
+        await sb.from('turnos_senas').update({ estado: 'cancelada' }).eq('id', t.id)
+        await sb.from('turnos_web').update({ estado: 'cancelado', motivo: 'Seña no recibida a tiempo.' }).eq('id', t.turno_web_id)
+        const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(t.turno_web_id)
         if (local) db.prepare('DELETE FROM turnos WHERE id=?').run(local.id)
         const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
         await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-          method:'POST', headers:{'Content-Type':'application/json'},
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: t.cliente_email, nombre: t.cliente_nombre,
             peluqueria_nombre: pelNombre, peluquero_nombre: t.peluquero_nombre,
             peluqueria_id: pid, accion: 'cancelado',
-            fecha_original: t.fecha, hora_original: t.hora?.substring(0,5),
+            fecha_original: t.fecha, hora_original: t.hora?.substring(0, 5),
             motivo: 'La seña no fue recibida a tiempo.'
           })
-        }).catch(()=>{})
+        }).catch(() => {})
       } catch {}
     }
-    return (data||[]).filter(t => !(t.estado==='esperando_sena' && t.sena_vence_at && t.sena_vence_at < ahora))
-  } catch(e){ return [] }
+
+    return (data || []).filter(t => !(t.vence_at && t.vence_at < ahora))
+  } catch (e) { return [] }
 })
 
 ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
@@ -649,14 +669,33 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
       const senaHoras = Number(db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()?.valor || 24)
 
       if (senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
-        // HAY SEÑA: ir directo a esperando_sena, nunca pasar por 'confirmado'
+        // HAY SEÑA: actualizar turnos_web + insertar en turnos_senas
         const venceAt = new Date(Date.now() + senaHoras * 60 * 60 * 1000).toISOString()
-        await sb.from('turnos_web').update({
+
+        const { error: errUpdate } = await sb.from('turnos_web').update({
           estado: 'esperando_sena',
           sena_vence_at: venceAt,
           respondido_at: new Date().toISOString(),
           motivo: motivo || null,
         }).eq('id', id)
+        if (errUpdate) return { ok: false, error: errUpdate.message }
+
+        // Insertar en tabla independiente turnos_senas
+        await sb.from('turnos_senas').insert({
+          turno_web_id:     turno.id,
+          peluqueria_id:    pid,
+          cliente_nombre:   turno.cliente_nombre,
+          cliente_email:    turno.cliente_email,
+          peluquero_nombre: turno.peluquero_nombre,
+          peluquero_id:     turno.peluquero_id,
+          servicio_nombre:  turno.servicio_nombre || null,
+          fecha:            turno.fecha,
+          hora:             turno.hora?.substring(0, 5),
+          monto:            Number(senaMonto),
+          alias:            senaAlias,
+          vence_at:         venceAt,
+          estado:           'pendiente_sena',
+        })
 
         await fetch(`${WEB_URL}/api/notificar-respuesta`, {
           method: 'POST',
@@ -755,32 +794,37 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
   }
 })
 
-ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoId) => {
+ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoSenaId) => {
   try {
     const pid = await getPid()
     const sb = await getSupabase()
-    const { data: turno } = await sb.from('turnos_web').select('*').eq('id', turnoId).single()
-    if (!turno) return { ok: false, error: 'Turno no encontrado' }
 
-    // Actualizar Supabase a confirmado
+    // Leer desde turnos_senas
+    const { data: sena } = await sb.from('turnos_senas').select('*').eq('id', turnoSenaId).single()
+    if (!sena) return { ok: false, error: 'Seña no encontrada' }
+
+    // Marcar seña como pagada
+    await sb.from('turnos_senas').update({ estado: 'pagada' }).eq('id', turnoSenaId)
+
+    // Confirmar turno web
     await sb.from('turnos_web').update({
       estado: 'confirmado',
       respondido_at: new Date().toISOString(),
-    }).eq('id', turnoId)
+    }).eq('id', sena.turno_web_id)
 
-    // Crear turno local (recién ahora)
-    const yaExiste = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(turnoId)
+    // Crear turno local si no existe
+    const yaExiste = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(sena.turno_web_id)
     if (!yaExiste) {
       db.prepare(`
         INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
         VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web (seña confirmada)', ?)
       `).run(
-        turno.peluquero_id || null,
-        turno.servicio_id  || null,
-        turno.cliente_nombre,
-        turno.fecha,
-        turno.hora?.substring(0, 5),
-        turnoId
+        sena.peluquero_id || null,
+        null,
+        sena.cliente_nombre,
+        sena.fecha,
+        sena.hora,
+        sena.turno_web_id
       )
     }
 
@@ -791,20 +835,18 @@ ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoId) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: turno.cliente_email,
-        nombre: turno.cliente_nombre,
+        email: sena.cliente_email,
+        nombre: sena.cliente_nombre,
         peluqueria_nombre: pelNombre,
-        peluquero_nombre: turno.peluquero_nombre,
+        peluquero_nombre: sena.peluquero_nombre,
         peluqueria_id: pid,
         accion: 'confirmado',
-        fecha_original: turno.fecha,
-        hora_original: turno.hora?.substring(0, 5),
+        fecha_original: sena.fecha,
+        hora_original: sena.hora,
       })
     }).catch(() => {})
 
-    return {ok: true}
-
-    
+    return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
   }

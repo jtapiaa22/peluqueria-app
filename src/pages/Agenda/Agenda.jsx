@@ -167,7 +167,9 @@ export default function Agenda() {
   const [diasBloqueados, setDiasBloqueados] = useState([])
   const [motivoBloqueo, setMotivoBloqueo]   = useState('')
   const [modalBloqueo, setModalBloqueo]     = useState(false)
-  const [confirmandoSena, setConfirmandoSena] = useState(null) // turno.id en proceso
+  const [confirmandoSena, setConfirmandoSena] = useState(null)
+  const [pendientesCount, setPendientesCount] = useState(0)
+  const [senasCount, setSenasCount]           = useState(0)
 
   const confirmar = (msg, fn) => setModalConfirm({ mensaje:msg, onConfirm:fn })
   const alertar   = (msg, tipo='info') => setModalAlert({ mensaje:msg, tipo })
@@ -222,9 +224,25 @@ export default function Agenda() {
     try {
       await window.electronAPI.sincronizarCanceladosWeb()
       await window.electronAPI.sincronizarConfirmadosWeb()
-      const data = filtroWeb === 'pendientes'
-        ? await window.electronAPI.getTurnosWebPendientes()
-        : await window.electronAPI.getTurnosWebTodos(`${anio}-${String(mes+1).padStart(2,'0')}`)
+
+      // Cargar ambas fuentes en paralelo — completamente independientes
+      const [pendientes, senas] = await Promise.all([
+        window.electronAPI.getTurnosWebPendientes(),
+        window.electronAPI.getTurnosWebSenas(),
+      ])
+
+      setPendientesCount((pendientes || []).length)
+      setSenasCount((senas || []).length)
+
+      let data
+      if (filtroWeb === 'todos') {
+        data = await window.electronAPI.getTurnosWebTodos(`${anio}-${String(mes+1).padStart(2,'0')}`)
+      } else if (filtroWeb === 'senas') {
+        data = senas
+      } else {
+        data = pendientes
+      }
+
       setTurnosDia(await window.electronAPI.getTurnosByFecha(diaSeleccionado))
       cargarMes()
       setTurnosWeb(data || [])
@@ -301,11 +319,7 @@ export default function Agenda() {
     if (result?.ok) {
       setTurnoResponder(null)
       if (result.esperandoSena) {
-        // Actualizar optimistamente en React state — no esperar el refetch
-        setTurnosWeb(prev => prev.map(t =>
-          t.id === payload.id ? { ...t, estado: 'esperando_sena' } : t
-        ))
-        alertar(`Turno pre-confirmado ✓. Se le envió al cliente los datos para pagar la seña de $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. Tiene ${senaConfig.horas}hs para pagar.`, 'success')
+        alertar(`Seña solicitada ✓. Se le envió al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
       } else {
         const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
         alertar(`Turno ${msgs[payload.accion]}. Email enviado al cliente.`, 'success')
@@ -316,16 +330,16 @@ export default function Agenda() {
     }
   }
 
-  const confirmarSenaPagada = (turno) => {
+  const confirmarSenaPagada = (sena) => {
     confirmar(
-      `¿Confirmar que recibiste la seña de $${senaConfig.monto.toLocaleString('es-AR')} de ${turno.cliente_nombre}?\n\nEsto confirmará el turno definitivamente y notificará al cliente.`,
+      `¿Confirmar que recibiste la seña de $${sena.monto?.toLocaleString('es-AR')} de ${sena.cliente_nombre}?\n\nEsto confirmará el turno definitivamente y notificará al cliente.`,
       async () => {
         setModalConfirm(null)
-        setConfirmandoSena(turno.id)
-        const result = await window.electronAPI.confirmarSena(turno.id)
+        setConfirmandoSena(sena.id)
+        const result = await window.electronAPI.confirmarSena(sena.id)
         setConfirmandoSena(null)
         if (result?.ok) {
-          alertar(`✅ Seña confirmada. Turno de ${turno.cliente_nombre} confirmado. Email enviado.`, 'success')
+          alertar(`✅ Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. Email enviado.`, 'success')
           cargarTurnosWeb(); cargarMes(); cargarDia()
         } else {
           alertar('Error al confirmar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
@@ -337,8 +351,6 @@ export default function Agenda() {
   const dias     = getDiasDelMes(anio, mes)
   const fechaHoy = hoy()
   const dotColor = (ts) => ts.some(t=>t.estado==='pendiente') ? '#fbbf24' : ts.some(t=>t.estado==='confirmado') ? '#4ade80' : '#f87171'
-  // Pendientes incluye: pendiente, modificado y esperando_sena
-  const pendientesCount = turnosWeb.filter(t => t.estado==='pendiente' || t.estado==='modificado' || t.estado==='esperando_sena').length
 
   return (
     <div className="page-animation">
@@ -614,20 +626,31 @@ export default function Agenda() {
                 {pendientesCount} pendiente{pendientesCount!==1?'s':''}
               </div>
             )}
+            {senasCount > 0 && (
+              <div style={{ background:'#fb923c', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
+                💸 {senasCount} seña{senasCount!==1?'s':''}
+              </div>
+            )}
           </div>
           <div style={{ display:'flex', gap:8, alignItems:'center' }}>
             {peluqueriaId && (
               <div style={{ display:'flex', background:'var(--bg-card)', border:'1px solid var(--border-soft)', borderRadius:8, overflow:'hidden' }}>
                 {[
-                  { key:'pendientes', label:'Pendientes' },
-                  { key:'todos',      label:MESES[mes]   },
+                  { key:'pendientes', label:'Pendientes', badge: pendientesCount },
+                  { key:'senas',      label:'💸 Señas',   badge: senasCount      },
+                  { key:'todos',      label:MESES[mes],   badge: 0               },
                 ].map(f=>(
                   <button key={f.key} onClick={()=>setFiltroWeb(f.key)}
-                    style={{ padding:'6px 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, transition:'all 0.15s',
+                    style={{ padding:'6px 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, transition:'all 0.15s', position:'relative',
                       background: filtroWeb===f.key?'var(--accent)':'transparent',
                       color: filtroWeb===f.key?'white':'var(--text-muted)'
                     }}>
                     {f.label}
+                    {f.badge > 0 && filtroWeb !== f.key && (
+                      <span style={{ marginLeft:5, background: f.key==='senas' ? '#fb923c' : '#fbbf24', color:'#000', borderRadius:20, padding:'1px 6px', fontSize:10, fontWeight:700 }}>
+                        {f.badge}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -668,17 +691,18 @@ export default function Agenda() {
             <div className="card" style={{ margin:0, padding:'36px 20px', textAlign:'center' }}>
               <Wifi size={32} color="var(--text-muted)" style={{ marginBottom:10, opacity:0.3 }} />
               <p style={{ color:'var(--text-muted)', fontSize:14 }}>
-                {filtroWeb==='pendientes' ? 'No hay reservas pendientes de respuesta.' : `No hay reservas en ${MESES[mes]}.`}
+                {filtroWeb==='pendientes' ? 'No hay reservas pendientes de respuesta.' : filtroWeb==='senas' ? 'No hay señas pendientes de confirmación.' : `No hay reservas en ${MESES[mes]}.`}
               </p>
             </div>
           ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(320px, 1fr))', gap:14 }}>
               {turnosWeb.map(turno => {
-                const est = ESTADOS_WEB[turno.estado] || ESTADOS_WEB.pendiente
+                // En tab 'senas', turno viene de turnos_senas (tiene .monto, .alias, .vence_at)
+                const esSena = filtroWeb === 'senas'
+                const est = esSena ? ESTADOS_WEB.esperando_sena : (ESTADOS_WEB[turno.estado] || ESTADOS_WEB.pendiente)
                 const { Icon } = est
                 const esPendiente = turno.estado === 'pendiente'
-                const esEsperandoSena = turno.estado === 'esperando_sena'
-                const horas = esEsperandoSena ? horasRestantes(turno.sena_vence_at) : null
+                const horas = esSena ? horasRestantes(turno.vence_at) : null
                 const vencido = horas !== null && horas <= 0
 
                 return (
@@ -688,7 +712,7 @@ export default function Agenda() {
                     <div style={{ padding:'12px 16px', borderBottom:`1px solid ${est.border}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6, color:est.color, fontSize:12, fontWeight:600 }}>
                         <Icon size={13}/>{est.label}
-                        {esEsperandoSena && horas !== null && !vencido && (
+                        {esSena && horas !== null && !vencido && (
                           <span style={{ marginLeft:4, fontSize:10, color:'var(--text-muted)', fontWeight:400 }}>
                             · vence en {horas}hs
                           </span>
@@ -740,7 +764,7 @@ export default function Agenda() {
                       )}
 
                       {/* ── PANEL SEÑA ── */}
-                      {esEsperandoSena && (
+                      {esSena && (
                         <div style={{
                           background: vencido ? 'rgba(248,113,113,0.08)' : 'rgba(251,146,60,0.1)',
                           border: `1px solid ${vencido ? 'rgba(248,113,113,0.3)' : 'rgba(251,146,60,0.35)'}`,
@@ -754,11 +778,11 @@ export default function Agenda() {
                             <>
                               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                                 <span style={{ color:'var(--text-muted)' }}>Monto</span>
-                                <span style={{ color:'white', fontWeight:700 }}>${senaConfig.monto.toLocaleString('es-AR')}</span>
+                                <span style={{ color:'white', fontWeight:700 }}>${Number(turno.monto).toLocaleString('es-AR')}</span>
                               </div>
                               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
                                 <span style={{ color:'var(--text-muted)' }}>Alias / CBU</span>
-                                <span style={{ color:'white', fontWeight:600, fontFamily:'monospace' }}>{senaConfig.alias || '—'}</span>
+                                <span style={{ color:'white', fontWeight:600, fontFamily:'monospace' }}>{turno.alias || '—'}</span>
                               </div>
                               <div style={{ display:'flex', justifyContent:'space-between' }}>
                                 <span style={{ color:'var(--text-muted)' }}>Vence en</span>
@@ -786,7 +810,7 @@ export default function Agenda() {
                         </button>
                       )}
 
-                      {esEsperandoSena && !vencido && (
+                      {esSena && !vencido && (
                         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                           <button className="btn btn-primary"
                             onClick={() => confirmarSenaPagada(turno)}
@@ -802,9 +826,9 @@ export default function Agenda() {
                         </div>
                       )}
 
-                      {esEsperandoSena && vencido && (
+                      {esSena && vencido && (
                         <button className="btn btn-secondary"
-                          onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('Seña no recibida a tiempo. El turno fue cancelado automáticamente.') }}
+                          onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('Seña no recibida a tiempo.') }}
                           style={{ width:'100%', fontSize:12, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
                           Cancelar turno vencido
                         </button>

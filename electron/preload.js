@@ -76,6 +76,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Turnos web (reservas online)
   getTurnosWebPendientes: ()           => ipcRenderer.invoke('turnosWeb:getPendientes'),
+  getTurnosWebSenas:      ()           => ipcRenderer.invoke('turnosWeb:getSenas'),
   getTurnosWebTodos:      (mes)        => ipcRenderer.invoke('turnosWeb:getTodos', mes),
   responderTurnoWeb:      (data)       => ipcRenderer.invoke('turnosWeb:responder', data),
   confirmarSena: (id)   => ipcRenderer.invoke('turnosWeb:confirmarSena', id),
