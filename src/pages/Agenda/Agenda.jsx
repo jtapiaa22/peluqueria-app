@@ -301,6 +301,10 @@ export default function Agenda() {
     if (result?.ok) {
       setTurnoResponder(null)
       if (result.esperandoSena) {
+        // Actualizar optimistamente en React state — no esperar el refetch
+        setTurnosWeb(prev => prev.map(t =>
+          t.id === payload.id ? { ...t, estado: 'esperando_sena' } : t
+        ))
         alertar(`Turno pre-confirmado ✓. Se le envió al cliente los datos para pagar la seña de $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. Tiene ${senaConfig.horas}hs para pagar.`, 'success')
       } else {
         const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }

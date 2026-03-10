@@ -640,34 +640,22 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
     const { data: turno } = await sb.from('turnos_web').select('*').eq('id', id).single()
     if (!turno) return { ok: false, error: 'Turno no encontrado' }
 
-    const expira = accion === 'modificado'
-      ? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
-      : null
-
-    await sb.from('turnos_web').update({
-      estado: accion,
-      motivo: motivo || null,
-      respondido_at: new Date().toISOString(),
-      ...(accion === 'modificado' ? { fecha_propuesta, hora_propuesta, expira_confirmacion_at: expira } : {})
-    }).eq('id', id)
-
-
-
     const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
 
+    // ── CONFIRMADO: chequear seña ANTES de tocar Supabase ──────────────
     if (accion === 'confirmado') {
-      // Verificar si hay seña configurada
       const senaMonto = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_monto'").get()?.valor
       const senaAlias = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()?.valor
       const senaHoras = Number(db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()?.valor || 24)
 
       if (senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
-        // HAY SEÑA: no crear turno local aún, poner en espera
+        // HAY SEÑA: ir directo a esperando_sena, nunca pasar por 'confirmado'
         const venceAt = new Date(Date.now() + senaHoras * 60 * 60 * 1000).toISOString()
         await sb.from('turnos_web').update({
           estado: 'esperando_sena',
           sena_vence_at: venceAt,
           respondido_at: new Date().toISOString(),
+          motivo: motivo || null,
         }).eq('id', id)
 
         await fetch(`${WEB_URL}/api/notificar-respuesta`, {
@@ -686,11 +674,17 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
             sena_alias: senaAlias,
             sena_horas: senaHoras,
           })
-        })
+        }).catch(() => {})
         return { ok: true, esperandoSena: true }
       }
 
-      // SIN SEÑA: confirmar directamente (flujo original)
+      // SIN SEÑA: confirmar directo
+      await sb.from('turnos_web').update({
+        estado: 'confirmado',
+        motivo: motivo || null,
+        respondido_at: new Date().toISOString(),
+      }).eq('id', id)
+
       db.prepare(`
         INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
         VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web', ?)
@@ -702,17 +696,40 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
         turno.hora?.substring(0, 5),
         turno.id
       )
+
+      await fetch(`${WEB_URL}/api/notificar-respuesta`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: turno.cliente_email,
+          nombre: turno.cliente_nombre,
+          peluqueria_nombre: pelNombre,
+          peluquero_nombre: turno.peluquero_nombre,
+          peluqueria_id: pid,
+          accion: 'confirmado',
+          fecha_original: turno.fecha,
+          hora_original: turno.hora?.substring(0, 5),
+        })
+      }).catch(() => {})
+      return { ok: true }
     }
 
-    // Si cancelamos desde la app, borrar el turno local vinculado
+    // ── MODIFICADO / RECHAZADO / CANCELADO ─────────────────────────────
+    const expira = accion === 'modificado'
+      ? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
+      : null
+
+    await sb.from('turnos_web').update({
+      estado: accion,
+      motivo: motivo || null,
+      respondido_at: new Date().toISOString(),
+      ...(accion === 'modificado' ? { fecha_propuesta, hora_propuesta, expira_confirmacion_at: expira } : {})
+    }).eq('id', id)
+
     if (accion === 'cancelado') {
       const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(turno.id)
       if (local) db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
     }
-
-
-
-    
 
     await fetch(`${WEB_URL}/api/notificar-respuesta`, {
       method: 'POST',
@@ -730,7 +747,7 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
         hora_propuesta,
         motivo
       })
-    })
+    }).catch(() => {})
 
     return { ok: true }
   } catch (e) {
@@ -783,9 +800,11 @@ ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoId) => {
         fecha_original: turno.fecha,
         hora_original: turno.hora?.substring(0, 5),
       })
-    })
+    }).catch(() => {})
 
-    return { ok: true }
+    return {ok: true}
+
+    
   } catch (e) {
     return { ok: false, error: e.message }
   }

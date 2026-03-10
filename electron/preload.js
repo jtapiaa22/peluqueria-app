@@ -78,6 +78,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTurnosWebPendientes: ()           => ipcRenderer.invoke('turnosWeb:getPendientes'),
   getTurnosWebTodos:      (mes)        => ipcRenderer.invoke('turnosWeb:getTodos', mes),
   responderTurnoWeb:      (data)       => ipcRenderer.invoke('turnosWeb:responder', data),
+  confirmarSena: (id)   => ipcRenderer.invoke('turnosWeb:confirmarSena', id),
+  guardarSena:   (data) => ipcRenderer.invoke('peluqueria:guardarSena',   data),
 
   // Dashboard
   getDashboard:         ()      => ipcRenderer.invoke('dashboard:getResumen'),
