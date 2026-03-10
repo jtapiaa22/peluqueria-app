@@ -24,6 +24,12 @@ const formVacio = {
   monto_transferencia: ''
 }
 
+const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const formatMes = (mes) => {
+  const [anio, m] = mes.split('-')
+  return `${MESES_NOMBRE[parseInt(m) - 1]} ${anio}`
+}
+
 export default function Atenciones() {
   const [atenciones, setAtenciones]     = useState([])
   const [peluqueros, setPeluqueros]     = useState([])
@@ -36,6 +42,8 @@ export default function Atenciones() {
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
   const [form, setForm]                 = useState(formVacio)
+  const [valesMes, setValesMes]         = useState([])
+  const [mostrarVales, setMostrarVales] = useState(false)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -48,11 +56,16 @@ export default function Atenciones() {
     const caja = await window.electronAPI.getCajaAbierta()
     setCajaAbierta(caja)
   }
+  const cargarVales = async () => {
+    const data = await window.electronAPI.getValesPorMes()
+    setValesMes(data)
+  }
 
   useEffect(() => {
     window.electronAPI.getPeluqueros().then(setPeluqueros)
     window.electronAPI.getServicios().then(setServicios)
     verificarCaja()
+    cargarVales()
   }, [])
 
   useEffect(() => { cargar() }, [fechaFiltro])
@@ -64,7 +77,12 @@ export default function Atenciones() {
   }
 
   const onMetodoPagoChange = (e) => {
-    setForm({ ...form, metodo_pago: e.target.value, nombre_transferencia: '', monto_efectivo: '', monto_transferencia: '' })
+    const metodo = e.target.value
+    if (metodo === 'vale') {
+      setForm({ ...form, metodo_pago: 'vale', servicio_id: '', precio_cobrado: '', nombre_transferencia: '', monto_efectivo: '', monto_transferencia: '' })
+    } else {
+      setForm({ ...form, metodo_pago: metodo, nombre_transferencia: '', monto_efectivo: '', monto_transferencia: '' })
+    }
   }
 
   const abrirFormNuevo = () => {
@@ -77,7 +95,7 @@ export default function Atenciones() {
     setEditando(a.id)
     setForm({
       peluquero_id:         String(a.peluquero_id),
-      servicio_id:          String(a.servicio_id),
+      servicio_id:          a.servicio_id ? String(a.servicio_id) : '',
       precio_cobrado:       a.precio_cobrado,
       metodo_pago:          a.metodo_pago,
       nombre_transferencia: a.nombre_transferencia || '',
@@ -89,12 +107,15 @@ export default function Atenciones() {
   }
 
   const guardar = async () => {
-    if (!form.peluquero_id || !form.servicio_id) {
-      alertar('Por favor completá todos los campos obligatorios.', 'warning')
+    if (!form.peluquero_id) {
+      alertar('Seleccioná el peluquero.', 'warning')
       return
     }
 
-    if (form.metodo_pago === 'mixto') {
+    if (form.metodo_pago === 'vale') {
+      // Sin validaciones adicionales — solo se registra el peluquero
+    } else if (form.metodo_pago === 'mixto') {
+      if (!form.servicio_id) { alertar('Seleccioná el servicio.', 'warning'); return }
       if (!form.monto_efectivo || !form.monto_transferencia) {
         alertar('Ingresá ambos montos para el pago mixto.', 'warning')
         return
@@ -104,6 +125,7 @@ export default function Atenciones() {
         return
       }
     } else {
+      if (!form.servicio_id) { alertar('Seleccioná el servicio.', 'warning'); return }
       if (!form.precio_cobrado) {
         alertar('Ingresá el precio cobrado.', 'warning')
         return
@@ -134,6 +156,7 @@ export default function Atenciones() {
     setEditando(null)
     setMostrarForm(false)
     cargar()
+    cargarVales()
   }
 
   const eliminar = (id) => {
@@ -141,12 +164,32 @@ export default function Atenciones() {
       setModalConfirm(null)
       await window.electronAPI.deleteAtencion(id)
       cargar()
+      cargarVales()
     })
   }
 
-  const totalDia = atenciones.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+  // Los vales no suman al total del día (no se cobran en caja)
+  const totalDia = atenciones
+    .filter(a => a.metodo_pago !== 'vale')
+    .reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+
+  const valesHoy = atenciones.filter(a => a.metodo_pago === 'vale').length
+
+  // Agrupar vales por mes para el panel
+  const valesAgrupados = valesMes.reduce((acc, v) => {
+    if (!acc[v.mes]) acc[v.mes] = []
+    acc[v.mes].push(v)
+    return acc
+  }, {})
 
   const BadgePago = ({ a }) => {
+    if (a.metodo_pago === 'vale') {
+      return (
+        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
+          Vale
+        </span>
+      )
+    }
     if (a.metodo_pago === 'mixto') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -190,59 +233,53 @@ export default function Atenciones() {
       {/* ── MODAL DETALLE ── */}
       <AnimatePresence>
         {detalle && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          >
-            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 30, width: 400, position: 'relative' }}>
-              <button onClick={() => setDetalle(null)} style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-                <X size={20} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 420, position: 'relative' }}>
+              <button onClick={() => setDetalle(null)}
+                style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={18} />
               </button>
               <h3 style={{ color: '#a78bfa', marginBottom: 20 }}>Detalle de atención</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  ['Peluquero',      detalle.peluquero_nombre],
-                  ['Servicio',       detalle.servicio_nombre],
-                  ['Precio cobrado', `$${Number(detalle.precio_cobrado).toLocaleString('es-AR')}`],
-                  ['Horario',        `${detalle.hora}hs`],
-                  ['Fecha',          detalle.fecha],
-                ].map(([label, valor]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-                    <span style={{ color: 'var(--text-main)' }}>{valor}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Peluquero</span>
+                  <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{detalle.peluquero_nombre}</span>
+                </div>
+                {detalle.metodo_pago !== 'vale' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Servicio</span>
+                    <span style={{ color: 'var(--text-main)' }}>{detalle.servicio_nombre}</span>
                   </div>
-                ))}
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Método de pago</span>
                   <BadgePago a={detalle} />
                 </div>
-
-                {detalle.metodo_pago === 'mixto' && (
-                  <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Efectivo</span>
-                      <span style={{ color: '#4ade80', fontWeight: 600 }}>${Number(detalle.monto_efectivo).toLocaleString('es-AR')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Transferencia</span>
-                      <span style={{ color: '#c084fc', fontWeight: 600 }}>${Number(detalle.monto_transferencia).toLocaleString('es-AR')}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ color: 'var(--text-muted)' }}>Transferido por</span>
-                      <span style={{ color: '#c084fc', fontWeight: 600 }}>{detalle.nombre_transferencia || '-'}</span>
-                    </div>
+                {detalle.metodo_pago !== 'vale' && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Precio cobrado</span>
+                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.precio_cobrado).toLocaleString('es-AR')}</span>
                   </div>
                 )}
-
-                {detalle.metodo_pago === 'transferencia' && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-soft)', paddingTop: 12 }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Transferido por</span>
-                    <span style={{ color: '#c084fc', fontWeight: 600 }}>{detalle.nombre_transferencia || '-'}</span>
+                {detalle.nombre_transferencia && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Transferencia de</span>
+                    <span style={{ color: 'var(--text-main)' }}>{detalle.nombre_transferencia}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Fecha y hora</span>
+                  <span style={{ color: 'var(--text-main)' }}>{detalle.fecha} {detalle.hora}hs</span>
+                </div>
+                {detalle.metodo_pago === 'vale' && (
+                  <div style={{ marginTop: 8, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
+                    💳 Atención por vale — no impacta en caja ni balances.
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -250,11 +287,16 @@ export default function Atenciones() {
       {/* ── HEADER ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 className="page-title" style={{ margin: 0 }}>Atenciones</h1>
-        {cajaAbierta && (
-          <button className="btn btn-primary" onClick={abrirFormNuevo}>
-            <Plus size={16} style={{ marginRight: 6 }} /> Registrar
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary" onClick={() => setMostrarVales(v => !v)}>
+            🎫 Vales por mes
           </button>
-        )}
+          {cajaAbierta && (
+            <button className="btn btn-primary" onClick={abrirFormNuevo}>
+              <Plus size={16} style={{ marginRight: 6 }} /> Registrar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Aviso caja cerrada */}
@@ -294,7 +336,13 @@ export default function Atenciones() {
                 </div>
                 <div className="form-group">
                   <label>Servicio</label>
-                  <select className="input" value={form.servicio_id} onChange={onServicioChange}>
+                  <select
+                    className="input"
+                    value={form.servicio_id}
+                    onChange={onServicioChange}
+                    disabled={form.metodo_pago === 'vale'}
+                    style={{ opacity: form.metodo_pago === 'vale' ? 0.4 : 1 }}
+                  >
                     <option value="">Seleccionar...</option>
                     {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre} — ${Number(s.precio).toLocaleString('es-AR')}</option>)}
                   </select>
@@ -305,10 +353,11 @@ export default function Atenciones() {
                     <option value="efectivo">Efectivo</option>
                     <option value="transferencia">Transferencia</option>
                     <option value="mixto">Mixto (efectivo + transferencia)</option>
+                    <option value="vale">Vale</option>
                   </select>
                 </div>
 
-                {form.metodo_pago !== 'mixto' && (
+                {form.metodo_pago !== 'mixto' && form.metodo_pago !== 'vale' && (
                   <div className="form-group">
                     <label>Precio cobrado</label>
                     <input
@@ -317,6 +366,12 @@ export default function Atenciones() {
                       onChange={e => setForm({ ...form, precio_cobrado: e.target.value })}
                       placeholder="Se completa automático"
                     />
+                  </div>
+                )}
+
+                {form.metodo_pago === 'vale' && (
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
+                    💳 Vale: no suma en caja. Solo se registra el peluquero.
                   </div>
                 )}
 
@@ -382,14 +437,81 @@ export default function Atenciones() {
         )}
       </AnimatePresence>
 
+      {/* ── PANEL VALES POR MES ── */}
+      <AnimatePresence>
+        {mostrarVales && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{ marginBottom: 20 }}
+          >
+            <div className="card">
+              <h3 style={{ color: '#fbbf24', marginBottom: 16, fontSize: 15 }}>🎫 Vales por mes</h3>
+              {Object.keys(valesAgrupados).length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No hay vales registrados todavía.</p>
+              ) : (
+                Object.entries(valesAgrupados).map(([mes, filas]) => (
+                  <div key={mes} style={{ marginBottom: 20 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+                      {formatMes(mes)}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                      {filas.map(f => (
+                        <div key={f.peluquero_nombre} style={{
+                          background: 'rgba(251,191,36,0.08)',
+                          border: '1px solid rgba(251,191,36,0.25)',
+                          borderRadius: 10, padding: '12px 18px',
+                          minWidth: 110, textAlign: 'center'
+                        }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{f.peluquero_nombre}</div>
+                          <div style={{ fontSize: 28, color: '#fbbf24', fontWeight: 700, lineHeight: 1 }}>{f.cantidad}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                            {f.cantidad === 1 ? 'vale' : 'vales'}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* ── TOTAL DEL MES ── */}
+                      {filas.length > 1 && (
+                        <div style={{
+                          background: 'rgba(167,139,250,0.08)',
+                          border: '1px solid rgba(167,139,250,0.3)',
+                          borderRadius: 10, padding: '12px 18px',
+                          minWidth: 110, textAlign: 'center',
+                          alignSelf: 'center'
+                        }}>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total</div>
+                          <div style={{ fontSize: 28, color: '#a78bfa', fontWeight: 700, lineHeight: 1 }}>
+                            {filas.reduce((acc, f) => acc + f.cantidad, 0)}
+                          </div>
+                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>vales</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── FILTRO + TOTAL ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Ver día</label>
           <input className="input" type="date" value={fechaFiltro} onChange={e => setFechaFiltro(e.target.value)} style={{ width: 'auto' }} />
         </div>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 18px', fontSize: 15 }}>
-          Total del día: <strong style={{ color: '#a78bfa' }}>${totalDia.toLocaleString('es-AR')}</strong>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {valesHoy > 0 && (
+            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: '#fbbf24' }}>
+              🎫 {valesHoy} vale{valesHoy > 1 ? 's' : ''} hoy
+            </div>
+          )}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 18px', fontSize: 15 }}>
+            Total del día: <strong style={{ color: '#a78bfa' }}>${totalDia.toLocaleString('es-AR')}</strong>
+          </div>
         </div>
       </div>
 
@@ -409,8 +531,8 @@ export default function Atenciones() {
             {atenciones.map(a => (
               <tr key={a.id}>
                 <td>{a.peluquero_nombre}</td>
-                <td>{a.servicio_nombre}</td>
-                <td>${Number(a.precio_cobrado).toLocaleString('es-AR')}</td>
+                <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : a.servicio_nombre}</td>
+                <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}</td>
                 <td><BadgePago a={a} /></td>
                 <td>
                   <div style={{ display: 'flex', gap: 8 }}>

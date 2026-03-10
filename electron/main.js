@@ -74,7 +74,33 @@ const MIGRATIONS = [
       monto_pago REAL NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_tramos_peluquero ON peluquero_tramos(peluquero_id);`)
-  }}
+  }},
+  { version: 11, descripcion: 'servicio_id nullable para vale', up: (db) => {
+    db.exec(`
+      CREATE TABLE atenciones_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        peluquero_id INTEGER NOT NULL REFERENCES peluqueros(id),
+        servicio_id INTEGER REFERENCES servicios(id),
+        precio_cobrado REAL NOT NULL,
+        metodo_pago TEXT NOT NULL,
+        nombre_transferencia TEXT,
+        fecha TEXT NOT NULL,
+        hora TEXT NOT NULL,
+        monto_efectivo REAL DEFAULT 0,
+        monto_transferencia REAL DEFAULT 0
+      );
+      INSERT INTO atenciones_new SELECT * FROM atenciones;
+      DROP TABLE atenciones;
+      ALTER TABLE atenciones_new RENAME TO atenciones;
+      CREATE INDEX IF NOT EXISTS idx_atenciones_fecha ON atenciones(fecha);
+      CREATE INDEX IF NOT EXISTS idx_atenciones_peluquero ON atenciones(peluquero_id);
+    `)
+  }},
+  { version: 12, descripcion: 'Config senia web', up: (db) =>{
+    for (const c of ['sena_monto', 'sena_alias', 'sena_horas_vencimiento']){
+      if(!db.prepare("SELECT id FROM configuracion WHERE clave=?").get(c)) db.prepare("INSERT INTO configuracion(clave, valor) VALUES(?,?)").run(c, '')
+    }
+  }},
 ]
 
 function runMigrations() {
@@ -398,15 +424,27 @@ ipcMain.handle('servicios:update', async(_,d)=>{ db.prepare('UPDATE servicios SE
 ipcMain.handle('servicios:delete', async(_,id)=>{ db.prepare('UPDATE servicios SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
 
 // ATENCIONES
-ipcMain.handle('atenciones:create',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),Number(d.servicio_id),pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); syncRegistroBackup('atenciones_backup',{id:r.lastInsertRowid,peluquero_id:Number(d.peluquero_id),servicio_id:Number(d.servicio_id),precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return r.lastInsertRowid })
-ipcMain.handle('atenciones:getByFecha',(_,f)=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? ORDER BY a.id DESC`).all(f))
-ipcMain.handle('atenciones:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha DESC,a.hora DESC`).all(desde,hasta))
+ipcMain.handle('atenciones:create',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); syncRegistroBackup('atenciones_backup',{id:r.lastInsertRowid,peluquero_id:Number(d.peluquero_id),servicio_id:sid,precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return r.lastInsertRowid })
+ipcMain.handle('atenciones:getByFecha',(_,f)=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? ORDER BY a.id DESC`).all(f))
+ipcMain.handle('atenciones:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha DESC,a.hora DESC`).all(desde,hasta))
 ipcMain.handle('atenciones:delete',async(_,id)=>{ db.prepare('DELETE FROM atenciones WHERE id=?').run(id); deleteRegistroBackup('atenciones_backup',id); return true })
-ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),Number(d.servicio_id),pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); syncRegistroBackup('atenciones_backup',{id:d.id,peluquero_id:Number(d.peluquero_id),servicio_id:Number(d.servicio_id),precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return true })
+ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); syncRegistroBackup('atenciones_backup',{id:d.id,peluquero_id:Number(d.peluquero_id),servicio_id:sid,precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return true })
+ipcMain.handle('atenciones:getValesPorMes', () =>
+  db.prepare(`
+    SELECT strftime('%Y-%m', a.fecha) as mes,
+           p.nombre as peluquero_nombre,
+           COUNT(*) as cantidad
+    FROM atenciones a
+    JOIN peluqueros p ON a.peluquero_id = p.id
+    WHERE a.metodo_pago = 'vale'
+    GROUP BY mes, a.peluquero_id
+    ORDER BY mes DESC, p.nombre ASC
+  `).all()
+)
 
 // CONFIG
 ipcMain.handle('config:get',(_,c)=>db.prepare('SELECT valor FROM configuracion WHERE clave=?').get(c)||null)
-const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app'])
+const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app','sena_monto','sena_alias','sena_horas_vencimiento'])
 ipcMain.handle('config:set',(_,{clave,valor})=>{ if(!CONFIG_CLAVES_PERMITIDAS.has(clave)) return false; db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
 
 // CAJA
@@ -414,7 +452,8 @@ ipcMain.handle('caja:abrir',(_,d)=>{ const r=db.prepare("INSERT INTO cierre_caja
 ipcMain.handle('caja:getCajaAbierta',()=>db.prepare("SELECT * FROM cierre_caja WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get()||null)
 ipcMain.handle('caja:cerrar',async(_,d)=>{ db.prepare(`UPDATE cierre_caja SET hora_cierre=?,total_efectivo=?,total_transferencia=?,total_general=?,observaciones=?,estado='cerrada' WHERE id=?`).run(d.hora_cierre,d.total_efectivo,d.total_transferencia,d.total_general,d.observaciones||null,d.id); const cierre=db.prepare('SELECT * FROM cierre_caja WHERE id=?').get(d.id); if(cierre) syncRegistroBackup('cierres_caja_backup',cierre); return true })
 ipcMain.handle('caja:getCierres',(_,f)=>f?db.prepare("SELECT * FROM cierre_caja WHERE fecha=? AND estado='cerrada' ORDER BY hora_apertura ASC").all(f):db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY fecha DESC,hora_apertura ASC").all())
-ipcMain.handle('caja:getDetalleCierre',(_,{hora_apertura,hora_cierre,fecha})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? AND a.hora>=? AND a.hora<=? ORDER BY a.hora ASC`).all(fecha,hora_apertura,hora_cierre))
+ipcMain.handle('caja:getDetalleCierre',(_,{hora_apertura,hora_cierre,fecha})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? AND a.hora>=? AND a.hora<=? ORDER BY a.hora ASC`).all(fecha,hora_apertura,hora_cierre))
+
 
 // BACKUP
 ipcMain.handle('backup:abrirCarpeta',()=>{ const d=isDev?path.join(__dirname,'../backups'):path.join(app.getPath('userData'),'backups'); if(!fs.existsSync(d))fs.mkdirSync(d,{recursive:true}); shell.openPath(d); return true })
@@ -452,9 +491,39 @@ ipcMain.handle('peluqueria:getConfig',()=>{
   const nombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()
   const email  = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_email'").get()
   const horarioRaw = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_horario'").get()
+  const senaMonto  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_monto'").get()
+  const senaAlias  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()
+  const senaHoras  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()
   let horario = null
   try { horario = horarioRaw ? JSON.parse(horarioRaw.valor) : null } catch {}
-  return { id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'', horario }
+  return {
+    id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'', horario,
+    sena_monto: senaMonto?.valor || '',
+    sena_alias: senaAlias?.valor || '',
+    sena_horas_vencimiento: senaHoras?.valor || '24',
+  }
+})
+ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sena_horas_vencimiento }) => {
+  try {
+    // Guardar en local
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_monto',?)").run(String(sena_monto || ''))
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_alias',?)").run(sena_alias || '')
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_horas_vencimiento',?)").run(String(sena_horas_vencimiento || 24))
+
+    // Sincronizar con Supabase si está registrada
+    const pid = await getPid()
+    if (pid) {
+      const sb = await getSupabase()
+      await sb.from('peluquerias').update({
+        sena_monto: sena_monto ? Number(sena_monto) : null,
+        sena_alias: sena_alias || null,
+        sena_horas_vencimiento: Number(sena_horas_vencimiento) || 24,
+      }).eq('id', pid)
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
 })
 ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
   try {
@@ -524,10 +593,32 @@ ipcMain.handle('turnosWeb:getPendientes',async()=>{
   try {
     const pid=await getPid(); if(!pid) return []
     const sb=await getSupabase()
-    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado']).order('fecha',{ascending:true}).order('hora',{ascending:true})
-    return data||[]
+    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado','esperando_sena']).order('fecha',{ascending:true}).order('hora',{ascending:true})
+    const ahora = new Date().toISOString()
+    // Auto-cancelar vencidos (sin bloquear el retorno)
+    const vencidos = (data||[]).filter(t => t.estado === 'esperando_sena' && t.sena_vence_at && t.sena_vence_at < ahora)
+    for (const t of vencidos) {
+      try {
+        await sb.from('turnos_web').update({ estado:'cancelado', motivo:'Seña no recibida a tiempo.' }).eq('id',t.id)
+        const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(t.id)
+        if (local) db.prepare('DELETE FROM turnos WHERE id=?').run(local.id)
+        const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
+        await fetch(`${WEB_URL}/api/notificar-respuesta`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            email: t.cliente_email, nombre: t.cliente_nombre,
+            peluqueria_nombre: pelNombre, peluquero_nombre: t.peluquero_nombre,
+            peluqueria_id: pid, accion: 'cancelado',
+            fecha_original: t.fecha, hora_original: t.hora?.substring(0,5),
+            motivo: 'La seña no fue recibida a tiempo.'
+          })
+        }).catch(()=>{})
+      } catch {}
+    }
+    return (data||[]).filter(t => !(t.estado==='esperando_sena' && t.sena_vence_at && t.sena_vence_at < ahora))
   } catch(e){ return [] }
 })
+
 ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
   try {
     const pid=await getPid(); if(!pid) return []
@@ -540,6 +631,7 @@ ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
     return data||[]
   } catch(e){ return [] }
 })
+
 ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, hora_propuesta, motivo }) => {
   try {
     const pid = await getPid()
@@ -560,7 +652,45 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
     }).eq('id', id)
 
 
+
+    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
+
     if (accion === 'confirmado') {
+      // Verificar si hay seña configurada
+      const senaMonto = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_monto'").get()?.valor
+      const senaAlias = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()?.valor
+      const senaHoras = Number(db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()?.valor || 24)
+
+      if (senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
+        // HAY SEÑA: no crear turno local aún, poner en espera
+        const venceAt = new Date(Date.now() + senaHoras * 60 * 60 * 1000).toISOString()
+        await sb.from('turnos_web').update({
+          estado: 'esperando_sena',
+          sena_vence_at: venceAt,
+          respondido_at: new Date().toISOString(),
+        }).eq('id', id)
+
+        await fetch(`${WEB_URL}/api/notificar-respuesta`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: turno.cliente_email,
+            nombre: turno.cliente_nombre,
+            peluqueria_nombre: pelNombre,
+            peluquero_nombre: turno.peluquero_nombre,
+            peluqueria_id: pid,
+            accion: 'esperando_sena',
+            fecha_original: turno.fecha,
+            hora_original: turno.hora?.substring(0, 5),
+            sena_monto: Number(senaMonto),
+            sena_alias: senaAlias,
+            sena_horas: senaHoras,
+          })
+        })
+        return { ok: true, esperandoSena: true }
+      }
+
+      // SIN SEÑA: confirmar directamente (flujo original)
       db.prepare(`
         INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
         VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web', ?)
@@ -582,7 +712,7 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
 
 
 
-    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
+    
 
     await fetch(`${WEB_URL}/api/notificar-respuesta`, {
       method: 'POST',
@@ -599,6 +729,59 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
         fecha_propuesta,
         hora_propuesta,
         motivo
+      })
+    })
+
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoId) => {
+  try {
+    const pid = await getPid()
+    const sb = await getSupabase()
+    const { data: turno } = await sb.from('turnos_web').select('*').eq('id', turnoId).single()
+    if (!turno) return { ok: false, error: 'Turno no encontrado' }
+
+    // Actualizar Supabase a confirmado
+    await sb.from('turnos_web').update({
+      estado: 'confirmado',
+      respondido_at: new Date().toISOString(),
+    }).eq('id', turnoId)
+
+    // Crear turno local (recién ahora)
+    const yaExiste = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(turnoId)
+    if (!yaExiste) {
+      db.prepare(`
+        INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
+        VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web (seña confirmada)', ?)
+      `).run(
+        turno.peluquero_id || null,
+        turno.servicio_id  || null,
+        turno.cliente_nombre,
+        turno.fecha,
+        turno.hora?.substring(0, 5),
+        turnoId
+      )
+    }
+
+    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
+
+    // Email de confirmación al cliente
+    await fetch(`${WEB_URL}/api/notificar-respuesta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: turno.cliente_email,
+        nombre: turno.cliente_nombre,
+        peluqueria_nombre: pelNombre,
+        peluquero_nombre: turno.peluquero_nombre,
+        peluqueria_id: pid,
+        accion: 'confirmado',
+        fecha_original: turno.fecha,
+        hora_original: turno.hora?.substring(0, 5),
       })
     })
 

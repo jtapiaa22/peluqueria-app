@@ -33,11 +33,10 @@ export default function Liquidacion() {
   const [cambiarPass, setCambiarPass]   = useState(false)
   const [passForm, setPassForm]         = useState({ actual: '', nueva: '', repetir: '' })
 
-  // Estado para confirmar pagos
-  const [panelPago, setPanelPago]       = useState(null) // peluquero_id activo
+  const [panelPago, setPanelPago]       = useState(null)
   const [formPago, setFormPago]         = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
-  const [pagosExistentes, setPagosExistentes] = useState([]) // pagos ya hechos en el período
-  const [tramosComision, setTramosComision]   = useState({}) // { [peluquero_id]: [{monto_desde, monto_pago}] }
+  const [pagosExistentes, setPagosExistentes] = useState([])
+  const [tramosComision, setTramosComision]   = useState({})
 
   const { generarReporte } = usePDF()
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -69,7 +68,6 @@ export default function Liquidacion() {
       agrupadosT[t.peluquero_id].push(t)
     }
     setTramosComision(agrupadosT)
-    // Recargar pagos si hay panel abierto
     if (panelPago) {
       cargarPagosExistentes(panelPago)
     }
@@ -165,8 +163,12 @@ export default function Liquidacion() {
   }
 
   const getLiquidacionPeluquero = (peluqueroId) => {
-    const atencionesP   = atenciones.filter(a => a.peluquero_id == peluqueroId)
-    const totalGenerado = atencionesP.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+    const atencionesP = atenciones.filter(a => a.peluquero_id == peluqueroId)
+    // Separar vales: no generan ingreso ni comisión
+    const atencionesReales = atencionesP.filter(a => a.metodo_pago !== 'vale')
+    const cantVales        = atencionesP.filter(a => a.metodo_pago === 'vale').length
+
+    const totalGenerado = atencionesReales.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
     const peluquero     = peluqueros.find(p => p.id == peluqueroId)
 
     const tramosP   = (tramosComision[peluqueroId] || []).slice().sort((a, b) => Number(a.monto_desde) - Number(b.monto_desde))
@@ -174,29 +176,26 @@ export default function Liquidacion() {
     const comision  = peluquero ? Number(peluquero.comision) : 0
 
     let montoComision = 0
-    const desglose = [] // para mostrar detalle por atención
+    const desglose = []
 
     if (usaTramos) {
-      // Por cada atención, buscar tramo exacto; si no hay coincidencia exacta
-      // usar el tramo más cercano por debajo (floor); si no hay ninguno, usar % normal
-      for (const a of atencionesP) {
+      for (const a of atencionesReales) {
         const precio = Number(a.precio_cobrado)
-        // Buscar coincidencia exacta primero
         let tramoMatch = tramosP.find(t => Number(t.monto_desde) === precio)
-        // Si no hay exacta, buscar el tramo más alto cuyo monto_desde <= precio
         if (!tramoMatch) {
           const candidatos = tramosP.filter(t => Number(t.monto_desde) <= precio)
           tramoMatch = candidatos.length ? candidatos[candidatos.length - 1] : null
         }
         const pago = tramoMatch
           ? Number(tramoMatch.monto_pago)
-          : (precio * comision) / 100   // fallback a % si no hay tramo
+          : (precio * comision) / 100
         montoComision += pago
         desglose.push({
-          servicio: a.servicio_nombre,
+          servicio:  a.servicio_nombre || 'Sin nombre',
           precio,
           pago,
-          usóTramo: !!tramoMatch
+          usóTramo: !!tramoMatch,
+          esVale:   false
         })
       }
     } else {
@@ -207,7 +206,17 @@ export default function Liquidacion() {
       .filter(pg => pg.peluquero_id == peluqueroId)
       .reduce((acc, pg) => acc + Number(pg.monto), 0)
 
-    return { totalGenerado, comision, montoComision, cantidad: atencionesP.length, totalPagado, usaTramos, tramosP, desglose }
+    return {
+      totalGenerado,
+      comision,
+      montoComision,
+      cantidad: atencionesReales.length, // solo cortes reales
+      cantVales,
+      totalPagado,
+      usaTramos,
+      tramosP,
+      desglose
+    }
   }
 
   const peluquerosConDatos = peluqueros.map(p => ({
@@ -222,10 +231,11 @@ export default function Liquidacion() {
     await generarReporte({
       titulo: 'Liquidación de comisiones',
       subtitulo: `Período: ${desde} al ${hasta}`,
-      columnas: ['Peluquero', 'Atenciones', 'Total generado', 'Comisión %', 'A pagar'],
+      columnas: ['Peluquero', 'Cortes', 'Vales', 'Total generado', 'Comisión %', 'A pagar'],
       filas: peluquerosConDatos.map(p => [
         p.nombre,
         String(p.cantidad),
+        p.cantVales > 0 ? `🎫 ${p.cantVales}` : '—',
         `$${p.totalGenerado.toLocaleString('es-AR')}`,
         `${p.comision}%`,
         `$${p.montoComision.toLocaleString('es-AR')}`
@@ -333,6 +343,7 @@ export default function Liquidacion() {
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total a pagar en comisiones</div>
@@ -359,7 +370,14 @@ export default function Liquidacion() {
                 {/* Cabecera peluquero */}
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
+                      {p.cantVales > 0 && (
+                        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                          🎫 {p.cantVales} vale{p.cantVales > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                     {p.usaTramos ? (
                       <span style={{ background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
                         📊 Tramos configurados
@@ -371,12 +389,18 @@ export default function Liquidacion() {
                     )}
                   </div>
 
-                  {/* Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+                  {/* Stats — solo cortes reales, vales aparte */}
+                  <div style={{ display: 'grid', gridTemplateColumns: p.cantVales > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Atenciones</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Cortes</div>
                       <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>{p.cantidad}</div>
                     </div>
+                    {p.cantVales > 0 && (
+                      <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Vales 🎫</div>
+                        <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 20 }}>{p.cantVales}</div>
+                      </div>
+                    )}
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total generado</div>
                       <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
@@ -418,6 +442,16 @@ export default function Liquidacion() {
                               </td>
                             </tr>
                           ))}
+                          {/* Vales informativos al final del desglose */}
+                          {p.cantVales > 0 && (
+                            <tr style={{ background: 'rgba(251,191,36,0.05)', borderTop: '1px dashed rgba(251,191,36,0.3)' }}>
+                              <td style={{ color: '#fbbf24', fontStyle: 'italic' }}>
+                                🎫 Vale × {p.cantVales} (no genera comisión)
+                              </td>
+                              <td style={{ color: 'var(--text-muted)' }}>—</td>
+                              <td style={{ color: 'var(--text-muted)' }}>—</td>
+                            </tr>
+                          )}
                           <tr style={{ borderTop: '1px solid var(--border-soft)' }}>
                             <td colSpan={2} style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 13 }}>Total a pagar</td>
                             <td style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
@@ -427,8 +461,15 @@ export default function Liquidacion() {
                     </div>
                   )}
 
+                  {/* Si usa % simple y tiene vales, mostrar nota */}
+                  {!p.usaTramos && p.cantVales > 0 && (
+                    <div style={{ marginBottom: 16, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#fbbf24' }}>
+                      🎫 Este peluquero tiene {p.cantVales} vale{p.cantVales > 1 ? 's' : ''} en el período. Los vales no se incluyen en el total generado ni en la comisión.
+                    </div>
+                  )}
+
                   {/* Botón confirmar pago */}
-                  {p.cantidad > 0 && (
+                  {(p.cantidad > 0 || p.cantVales > 0) && (
                     <button
                       className="btn btn-secondary"
                       onClick={() => abrirPanelPago(p.id)}

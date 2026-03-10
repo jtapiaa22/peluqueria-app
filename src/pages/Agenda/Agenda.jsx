@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban, DollarSign } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -13,11 +13,12 @@ const ESTADOS = {
 }
 
 const ESTADOS_WEB = {
-  pendiente:  { label: 'Esperando respuesta',  color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.3)',  Icon: Clock       },
-  modificado: { label: 'Esperando OK cliente', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  Icon: AlertCircle },
-  confirmado: { label: 'Confirmado',           color: '#4ade80', bg: 'rgba(74,222,128,0.06)',  border: 'rgba(74,222,128,0.2)',  Icon: CheckCircle },
-  rechazado:  { label: 'Rechazado',            color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)', Icon: XCircle     },
-  cancelado:  { label: 'Cancelado',            color: '#71717a', bg: 'rgba(113,113,122,0.06)', border: 'rgba(113,113,122,0.2)', Icon: XCircle     },
+  pendiente:      { label: 'Esperando respuesta',  color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.3)',  Icon: Clock       },
+  modificado:     { label: 'Esperando OK cliente', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  Icon: AlertCircle },
+  esperando_sena: { label: 'Esperando seña',       color: '#fb923c', bg: 'rgba(251,146,60,0.08)',  border: 'rgba(251,146,60,0.3)',  Icon: DollarSign  },
+  confirmado:     { label: 'Confirmado',           color: '#4ade80', bg: 'rgba(74,222,128,0.06)',  border: 'rgba(74,222,128,0.2)',  Icon: CheckCircle },
+  rechazado:      { label: 'Rechazado',            color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)', Icon: XCircle     },
+  cancelado:      { label: 'Cancelado',            color: '#71717a', bg: 'rgba(113,113,122,0.06)', border: 'rgba(113,113,122,0.2)', Icon: XCircle     },
 }
 
 function hoy() {
@@ -43,6 +44,14 @@ function getDiasDelMes(anio, mes) {
   for (let i = 0; i < primerDia; i++) dias.push(null)
   for (let d = 1; d <= totalDias; d++) dias.push(d)
   return dias
+}
+
+// Calcula cuántas horas faltan para que venza la seña
+function horasRestantes(venceAt) {
+  if (!venceAt) return null
+  const diff = new Date(venceAt) - new Date()
+  if (diff <= 0) return 0
+  return Math.ceil(diff / (1000 * 60 * 60))
 }
 
 // ── MODAL RESPONDER TURNO WEB ──────────────────────────────────
@@ -150,6 +159,7 @@ export default function Agenda() {
   const [loadingWeb, setLoadingWeb]     = useState(false)
   const [sinConexion, setSinConexion]   = useState(false)
   const [peluqueriaId, setPeluqueriaId] = useState(null)
+  const [senaConfig, setSenaConfig]     = useState({ monto: 0, alias: '', horas: 24 })
   const [turnoResponder, setTurnoResponder] = useState(null)
   const [filtroWeb, setFiltroWeb]       = useState('pendientes')
   const [turnoCancelar, setTurnoCancelar]       = useState(null)
@@ -157,6 +167,7 @@ export default function Agenda() {
   const [diasBloqueados, setDiasBloqueados] = useState([])
   const [motivoBloqueo, setMotivoBloqueo]   = useState('')
   const [modalBloqueo, setModalBloqueo]     = useState(false)
+  const [confirmandoSena, setConfirmandoSena] = useState(null) // turno.id en proceso
 
   const confirmar = (msg, fn) => setModalConfirm({ mensaje:msg, onConfirm:fn })
   const alertar   = (msg, tipo='info') => setModalAlert({ mensaje:msg, tipo })
@@ -167,12 +178,19 @@ export default function Agenda() {
   useEffect(() => {
     window.electronAPI.getPeluqueros().then(setPeluqueros)
     window.electronAPI.getServicios().then(setServicios)
-    window.electronAPI.getPeluqueriaConfig().then(cfg => { if (cfg?.id) setPeluqueriaId(cfg.id) })
+    window.electronAPI.getPeluqueriaConfig().then(cfg => {
+      if (cfg?.id) {
+        setPeluqueriaId(cfg.id)
+        setSenaConfig({
+          monto: Number(cfg.sena_monto) || 0,
+          alias: cfg.sena_alias || '',
+          horas: Number(cfg.sena_horas_vencimiento) || 24,
+        })
+      }
+    })
     window.electronAPI.sincronizarCanceladosWeb()
     window.electronAPI.sincronizarConfirmadosWeb()
     cargarDiasBloqueados()
-    // Escuchar notificación de turno nuevo → refrescar lista
-    // Escuchar turno nuevo via postMessage
     const handleTurnoNuevo = (e) => {
       if (e.data?.type === 'turnoWeb:nuevo') {
         setFiltroWeb('pendientes')
@@ -282,18 +300,41 @@ export default function Agenda() {
     const result = await window.electronAPI.responderTurnoWeb(payload)
     if (result?.ok) {
       setTurnoResponder(null)
-      const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
-      alertar(`Turno ${msgs[payload.accion]}. Email enviado al cliente.`, 'success')
+      if (result.esperandoSena) {
+        alertar(`Turno pre-confirmado ✓. Se le envió al cliente los datos para pagar la seña de $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. Tiene ${senaConfig.horas}hs para pagar.`, 'success')
+      } else {
+        const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
+        alertar(`Turno ${msgs[payload.accion]}. Email enviado al cliente.`, 'success')
+      }
       cargarTurnosWeb(); cargarMes(); cargarDia()
     } else {
       alertar('Error al responder: ' + (result?.error || 'Intentá de nuevo.'), 'error')
     }
   }
 
+  const confirmarSenaPagada = (turno) => {
+    confirmar(
+      `¿Confirmar que recibiste la seña de $${senaConfig.monto.toLocaleString('es-AR')} de ${turno.cliente_nombre}?\n\nEsto confirmará el turno definitivamente y notificará al cliente.`,
+      async () => {
+        setModalConfirm(null)
+        setConfirmandoSena(turno.id)
+        const result = await window.electronAPI.confirmarSena(turno.id)
+        setConfirmandoSena(null)
+        if (result?.ok) {
+          alertar(`✅ Seña confirmada. Turno de ${turno.cliente_nombre} confirmado. Email enviado.`, 'success')
+          cargarTurnosWeb(); cargarMes(); cargarDia()
+        } else {
+          alertar('Error al confirmar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
+        }
+      }
+    )
+  }
+
   const dias     = getDiasDelMes(anio, mes)
   const fechaHoy = hoy()
   const dotColor = (ts) => ts.some(t=>t.estado==='pendiente') ? '#fbbf24' : ts.some(t=>t.estado==='confirmado') ? '#4ade80' : '#f87171'
-  const pendientesCount = turnosWeb.filter(t => t.estado==='pendiente'||t.estado==='modificado').length
+  // Pendientes incluye: pendiente, modificado y esperando_sena
+  const pendientesCount = turnosWeb.filter(t => t.estado==='pendiente' || t.estado==='modificado' || t.estado==='esperando_sena').length
 
   return (
     <div className="page-animation">
@@ -445,7 +486,6 @@ export default function Agenda() {
               )}
             </div>
             <div style={{ display:'flex', gap:8 }}>
-              {/* Botón bloquear / desbloquear */}
               {peluqueriaId && (
                 estaBloquado
                   ? <button className="btn btn-secondary" onClick={desbloquearDia}
@@ -633,6 +673,10 @@ export default function Agenda() {
                 const est = ESTADOS_WEB[turno.estado] || ESTADOS_WEB.pendiente
                 const { Icon } = est
                 const esPendiente = turno.estado === 'pendiente'
+                const esEsperandoSena = turno.estado === 'esperando_sena'
+                const horas = esEsperandoSena ? horasRestantes(turno.sena_vence_at) : null
+                const vencido = horas !== null && horas <= 0
+
                 return (
                   <motion.div key={turno.id} initial={{ opacity:0,y:8 }} animate={{ opacity:1,y:0 }}
                     className="card"
@@ -640,6 +684,14 @@ export default function Agenda() {
                     <div style={{ padding:'12px 16px', borderBottom:`1px solid ${est.border}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6, color:est.color, fontSize:12, fontWeight:600 }}>
                         <Icon size={13}/>{est.label}
+                        {esEsperandoSena && horas !== null && !vencido && (
+                          <span style={{ marginLeft:4, fontSize:10, color:'var(--text-muted)', fontWeight:400 }}>
+                            · vence en {horas}hs
+                          </span>
+                        )}
+                        {vencido && (
+                          <span style={{ marginLeft:4, fontSize:10, color:'#f87171', fontWeight:600 }}>· vencida</span>
+                        )}
                       </div>
                       <span style={{ fontSize:15, color:'var(--text-main)', fontWeight:600 }}>
                         {formatFechaCorta(turno.fecha)} · {turno.hora?.substring(0,5)}hs
@@ -667,6 +719,7 @@ export default function Agenda() {
                           </div>
                         )}
                       </div>
+
                       {turno.estado === 'modificado' && turno.fecha_propuesta && (
                         <div style={{ background:'rgba(96,165,250,0.1)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontSize:12 }}>
                           <div style={{ color:'#60a5fa', fontWeight:600, marginBottom:5, fontSize:11 }}>⏳ ESPERANDO OK DEL CLIENTE</div>
@@ -681,15 +734,78 @@ export default function Agenda() {
                           {turno.motivo && <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:6, fontStyle:'italic' }}>💬 {turno.motivo}</div>}
                         </div>
                       )}
+
+                      {/* ── PANEL SEÑA ── */}
+                      {esEsperandoSena && (
+                        <div style={{
+                          background: vencido ? 'rgba(248,113,113,0.08)' : 'rgba(251,146,60,0.1)',
+                          border: `1px solid ${vencido ? 'rgba(248,113,113,0.3)' : 'rgba(251,146,60,0.35)'}`,
+                          borderRadius:8, padding:'12px 14px', marginBottom:14, fontSize:12
+                        }}>
+                          <div style={{ color: vencido ? '#f87171' : '#fb923c', fontWeight:700, marginBottom:8, fontSize:11, display:'flex', alignItems:'center', gap:5 }}>
+                            <DollarSign size={11} />
+                            {vencido ? 'SEÑA VENCIDA — NO PAGÓ' : 'ESPERANDO PAGO DE SEÑA'}
+                          </div>
+                          {!vencido && (
+                            <>
+                              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                                <span style={{ color:'var(--text-muted)' }}>Monto</span>
+                                <span style={{ color:'white', fontWeight:700 }}>${senaConfig.monto.toLocaleString('es-AR')}</span>
+                              </div>
+                              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                                <span style={{ color:'var(--text-muted)' }}>Alias / CBU</span>
+                                <span style={{ color:'white', fontWeight:600, fontFamily:'monospace' }}>{senaConfig.alias || '—'}</span>
+                              </div>
+                              <div style={{ display:'flex', justifyContent:'space-between' }}>
+                                <span style={{ color:'var(--text-muted)' }}>Vence en</span>
+                                <span style={{ color: horas <= 3 ? '#f87171' : '#fb923c', fontWeight:600 }}>{horas}hs</span>
+                              </div>
+                            </>
+                          )}
+                          {vencido && (
+                            <p style={{ color:'var(--text-muted)', fontSize:11, margin:0 }}>
+                              El cliente no pagó la seña a tiempo. Podés cancelar el turno.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {(turno.estado==='rechazado'||turno.estado==='cancelado') && turno.motivo && (
                         <div style={{ fontSize:11, color:'var(--text-muted)', fontStyle:'italic', marginBottom:10 }}>💬 {turno.motivo}</div>
                       )}
+
+                      {/* ── ACCIONES ── */}
                       {esPendiente && (
                         <button className="btn btn-primary" onClick={() => setTurnoResponder(turno)}
                           style={{ width:'100%', fontSize:13, justifyContent:'center' }}>
                           Responder →
                         </button>
                       )}
+
+                      {esEsperandoSena && !vencido && (
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          <button className="btn btn-primary"
+                            onClick={() => confirmarSenaPagada(turno)}
+                            disabled={confirmandoSena === turno.id}
+                            style={{ width:'100%', fontSize:13, justifyContent:'center', background:'rgba(74,222,128,0.15)', borderColor:'rgba(74,222,128,0.4)', color:'#4ade80' }}>
+                            {confirmandoSena === turno.id ? 'Confirmando...' : '✓ Recibí la seña — Confirmar turno'}
+                          </button>
+                          <button className="btn btn-secondary"
+                            onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('No se recibió el pago de la seña.') }}
+                            style={{ width:'100%', fontSize:12, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                            Cancelar (no pagó)
+                          </button>
+                        </div>
+                      )}
+
+                      {esEsperandoSena && vencido && (
+                        <button className="btn btn-secondary"
+                          onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('Seña no recibida a tiempo. El turno fue cancelado automáticamente.') }}
+                          style={{ width:'100%', fontSize:12, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                          Cancelar turno vencido
+                        </button>
+                      )}
+
                       {turno.estado === 'confirmado' && (
                         <button className="btn btn-secondary"
                           onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('') }}

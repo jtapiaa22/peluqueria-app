@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ModalAlert } from '../../components/Modal'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
   '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
@@ -48,6 +48,13 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
   const [ultimoBackupNube, setUltimoBackupNube]     = useState(null)
 
+  // ── SEÑA ──
+  const [senaMonto, setSenaMonto]           = useState('')
+  const [senaAlias, setSenaAlias]           = useState('')
+  const [senaHoras, setSenaHoras]           = useState('24')
+  const [senaLoading, setSenaLoading]       = useState(false)
+  const [senaGuardada, setSenaGuardada]     = useState(false)
+
   const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
 
   useEffect(() => {
@@ -64,6 +71,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     setWebPaso(cfg?.id ? 'configurado' : 'sin_config')
     if (cfg?.horario) setHorario({ ...HORARIO_DEFAULT, ...cfg.horario })
     if (cfg?.nombre) setNuevoNombreWeb(cfg.nombre)
+    if (cfg?.sena_monto) setSenaMonto(cfg.sena_monto)
+    if (cfg?.sena_alias) setSenaAlias(cfg.sena_alias)
+    if (cfg?.sena_horas_vencimiento) setSenaHoras(cfg.sena_horas_vencimiento)
   }
 
   const guardarNombre = async () => {
@@ -99,75 +109,98 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   }
 
   const registrarPeluqueria = async () => {
-    if (!webForm.nombre.trim()) { setModalAlert({ mensaje: 'Ingresá el nombre de la peluquería.', tipo: 'warning' }); return }
-    if (!webForm.email.trim() || !webForm.email.includes('@')) { setModalAlert({ mensaje: 'Ingresá un email válido.', tipo: 'warning' }); return }
+    if (!webForm.nombre.trim() || !webForm.email.trim()) {
+      setModalAlert({ mensaje: 'Completá nombre y email.', tipo: 'warning' }); return
+    }
     setWebLoading(true)
-    const result = await window.electronAPI.registrarPeluqueria({ nombre: webForm.nombre.trim(), email: webForm.email.trim() })
+    const result = await window.electronAPI.registrarPeluqueria(webForm)
     setWebLoading(false)
-    if (result.ok) {
+    if (result?.ok) {
       await cargarWebConfig()
-      setModalAlert({ mensaje: result.yaExistia ? '✅ Ya existía una peluquería con ese email. Se vinculó automáticamente con el ID existente.' : '¡Peluquería registrada! Ya podés compartir el link.', tipo: 'success' })
+      setModalAlert({ mensaje: result.yaExistia ? '✅ ID recuperado. Esta peluquería ya estaba registrada.' : '✅ ¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
     } else {
-      setModalAlert({ mensaje: 'Error al registrar: ' + (result.error || 'Intentá de nuevo.'), tipo: 'error' })
+      setModalAlert({ mensaje: 'Error: ' + (result?.error || 'Intentá de nuevo.'), tipo: 'error' })
     }
   }
 
   const vincularPeluqueria = async () => {
-    if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Ingresá el ID de la peluquería.', tipo: 'warning' }); return }
+    if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
-    const result = await window.electronAPI.vincularPeluqueria({ peluqueriaId: webVincularId.trim() })
+    const result = await window.electronAPI.vincularPeluqueria({ id: webVincularId.trim() })
     setWebLoading(false)
-    if (result.ok) { await cargarWebConfig(); setModalAlert({ mensaje: 'Peluquería vinculada.', tipo: 'success' }) }
-    else { setModalAlert({ mensaje: 'Error: ' + (result.error || 'ID no encontrado.'), tipo: 'error' }) }
+    if (result?.ok) {
+      await cargarWebConfig()
+      setModalAlert({ mensaje: '✅ Peluquería vinculada correctamente.', tipo: 'success' })
+    } else {
+      setModalAlert({ mensaje: 'Error: ' + (result?.error || 'ID no encontrado.'), tipo: 'error' })
+    }
   }
 
-  const guardarNombreWeb = async () => {
-    if (!nuevoNombreWeb.trim()) return
-    setGuardandoNombre(true)
-    const result = await window.electronAPI.actualizarNombreWeb(nuevoNombreWeb.trim())
-    setGuardandoNombre(false)
-    if (result.ok) {
-      setWebConfig(c => ({ ...c, nombre: nuevoNombreWeb.trim() }))
-      setEditandoNombre(false)
-      setModalAlert({ mensaje: 'Nombre actualizado en la web.', tipo: 'success' })
-    } else {
-      setModalAlert({ mensaje: 'Error al actualizar: ' + result.error, tipo: 'error' })
-    }
+  const copiarLink = async () => {
+    await navigator.clipboard.writeText(webLink)
+    setLinkCopiado(true)
+    setTimeout(() => setLinkCopiado(false), 2000)
   }
 
   const sincronizar = async () => {
     setSyncLoading(true); setSyncResultado(null)
     const result = await window.electronAPI.sincronizarPeluqueria()
     setSyncLoading(false)
-    if (result.ok) setSyncResultado({ ok: true, msg: `✅ ${result.peluqueros} peluqueros, ${result.servicios} servicios, ${result.turnos} turnos` })
-    else setSyncResultado({ ok: false, msg: '❌ ' + result.error })
-    setTimeout(() => setSyncResultado(null), 5000)
+    setSyncResultado(result?.ok
+      ? { ok: true,  msg: `✅ Sincronizado: ${result.peluqueros} peluqueros, ${result.servicios} servicios.` }
+      : { ok: false, msg: '❌ Error al sincronizar. Revisá la conexión.' }
+    )
   }
 
-  const copiarLink = () => {
-    navigator.clipboard.writeText(webLink)
-    setLinkCopiado(true); setTimeout(() => setLinkCopiado(false), 2000)
+  const guardarNombreWeb = async () => {
+    if (!nuevoNombreWeb.trim()) return
+    setGuardandoNombre(true)
+    await window.electronAPI.actualizarNombreWeb(nuevoNombreWeb.trim())
+    setGuardandoNombre(false)
+    setEditandoNombre(false)
+    setWebConfig(c => ({ ...c, nombre: nuevoNombreWeb.trim() }))
   }
 
   const toggleDia = (num) => {
-    setHorario(h => ({ ...h, dias: h.dias.includes(num) ? h.dias.filter(d => d !== num) : [...h.dias, num] }))
+    setHorario(h => ({
+      ...h,
+      dias: h.dias.includes(num) ? h.dias.filter(d => d !== num) : [...h.dias, num]
+    }))
   }
 
   const guardarHorario = async () => {
     const bloquesActivos = horario.bloques.filter(b => b.activo)
     if (horario.dias.length === 0) { setModalAlert({ mensaje: 'Seleccioná al menos un día.', tipo: 'warning' }); return }
     if (bloquesActivos.length === 0) { setModalAlert({ mensaje: 'Activá al menos un bloque horario.', tipo: 'warning' }); return }
-    for (const b of bloquesActivos) {
-      if (b.inicio >= b.fin) { setModalAlert({ mensaje: 'La apertura debe ser menor al cierre.', tipo: 'warning' }); return }
-    }
-    if (bloquesActivos.length === 2 && bloquesActivos[0].fin > bloquesActivos[1].inicio) {
-      setModalAlert({ mensaje: 'Los bloques no pueden superponerse.', tipo: 'warning' }); return
-    }
     setHorarioLoading(true)
     const result = await window.electronAPI.actualizarHorario(horario)
     setHorarioLoading(false)
-    if (result.ok) { setHorarioGuardado(true); setTimeout(() => setHorarioGuardado(false), 2500) }
+    if (result?.ok) {
+      setHorarioGuardado(true)
+      setTimeout(() => setHorarioGuardado(false), 2500)
+    }
     else { setModalAlert({ mensaje: 'Error al guardar: ' + (result.error || 'Intentá de nuevo.'), tipo: 'error' }) }
+  }
+
+  const guardarSena = async () => {
+    const monto = Number(senaMonto)
+    if (monto > 0 && !senaAlias.trim()) {
+      setModalAlert({ mensaje: 'Si configurás un monto de seña, tenés que ingresar el alias o CBU.', tipo: 'warning' })
+      return
+    }
+    setSenaLoading(true)
+    const result = await window.electronAPI.guardarSena({
+      sena_monto: monto || 0,
+      sena_alias: senaAlias.trim(),
+      sena_horas_vencimiento: Number(senaHoras) || 24,
+    })
+    setSenaLoading(false)
+    if (result?.ok) {
+      setSenaGuardada(true)
+      setTimeout(() => setSenaGuardada(false), 2500)
+    } else {
+      setModalAlert({ mensaje: 'Error al guardar seña: ' + (result?.error || 'Intentá de nuevo.'), tipo: 'error' })
+    }
   }
 
   // ── Nav items ──────────────────────────────────────────────────────────────
@@ -176,7 +209,10 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     { id: 'backups',    label: 'Backups',    icono: <HardDrive size={16}/> },
     { id: 'web',        label: 'Web y Backup', icono: <Globe size={16}/>,
       badge: webPaso === 'configurado' ? '●' : null, badgeColor: '#4ade80' },
-    ...(webPaso === 'configurado' ? [{ id: 'horario', label: 'Horario web', icono: <Clock size={16}/> }] : []),
+    ...(webPaso === 'configurado' ? [
+      { id: 'horario', label: 'Horario web', icono: <Clock size={16}/> },
+      { id: 'sena',    label: 'Seña',        icono: <DollarSign size={16}/> },
+    ] : []),
   ]
 
   return (
@@ -621,6 +657,110 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }}/> Guardando...</>
                   : horarioGuardado ? <><Check size={14} color="#4ade80"/> ¡Guardado!</>
                   : '💾 Guardar horario'}
+              </button>
+            </div>
+          )}
+
+          {/* ── SEÑA ── */}
+          {seccion === 'sena' && webPaso === 'configurado' && (
+            <div>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>Seña para reservas web</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28, lineHeight: 1.6 }}>
+                Cuando un cliente pide turno y vos lo confirmás, se le pedirá que pague una seña por transferencia antes de que el turno quede definitivo.
+                Dejá el monto en 0 para desactivar las señas.
+              </p>
+
+              {/* Monto */}
+              <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Monto de la seña</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>En pesos. Dejá en 0 para no cobrar seña.</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 260 }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 18, fontWeight: 700 }}>$</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={senaMonto}
+                    onChange={e => setSenaMonto(e.target.value)}
+                    placeholder="Ej: 5000"
+                    style={{ flex: 1, fontSize: 16, fontWeight: 600 }}
+                  />
+                </div>
+                {Number(senaMonto) > 0 && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: '#4ade80' }}>
+                    ✅ Se pedirá seña de <strong>${Number(senaMonto).toLocaleString('es-AR')}</strong> al confirmar cada turno.
+                  </div>
+                )}
+                {(!senaMonto || Number(senaMonto) === 0) && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                    ℹ️ Señas desactivadas — los turnos se confirman directamente.
+                  </div>
+                )}
+              </div>
+
+              {/* Alias / CBU */}
+              <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Alias o CBU para recibir la seña</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+                  Este alias o CBU le aparecerá al cliente en el email de instrucciones de pago.
+                </div>
+                <input
+                  className="input"
+                  value={senaAlias}
+                  onChange={e => setSenaAlias(e.target.value)}
+                  placeholder="Ej: barberia.eljefe o 0000003100..."
+                  style={{ maxWidth: 380, fontFamily: 'monospace', fontSize: 13 }}
+                />
+              </div>
+
+              {/* Horas de vencimiento */}
+              <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Tiempo límite para pagar</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+                  Si el cliente no paga en este tiempo, el turno se cancela automáticamente.
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { val: '12', label: '12 hs' },
+                    { val: '24', label: '24 hs' },
+                    { val: '48', label: '48 hs' },
+                  ].map(({ val, label }) => (
+                    <button key={val} onClick={() => setSenaHoras(val)}
+                      style={{
+                        padding: '8px 22px', borderRadius: 8, border: '1px solid',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                        borderColor: senaHoras === val ? '#fb923c' : 'var(--border-soft)',
+                        background:  senaHoras === val ? 'rgba(251,146,60,0.15)' : 'transparent',
+                        color:       senaHoras === val ? '#fb923c' : 'var(--text-muted)',
+                      }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              {Number(senaMonto) > 0 && senaAlias.trim() && (
+                <div style={{
+                  background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.25)',
+                  borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13,
+                  color: 'var(--text-muted)', lineHeight: 1.8
+                }}>
+                  <div style={{ color: '#fb923c', fontWeight: 700, marginBottom: 6, fontSize: 12 }}>💸 PREVIEW — LO QUE VE EL CLIENTE EN EL EMAIL</div>
+                  <div>Tu turno está pre-confirmado.</div>
+                  <div>Transferí <strong style={{ color: 'var(--text-main)' }}>${Number(senaMonto).toLocaleString('es-AR')}</strong> al alias <strong style={{ color: 'var(--text-main)', fontFamily:'monospace' }}>{senaAlias}</strong> para confirmarlo definitivamente.</div>
+                  <div>Tenés <strong style={{ color: '#fb923c' }}>{senaHoras} horas</strong> para pagar, o el turno se cancelará automáticamente.</div>
+                </div>
+              )}
+
+              {/* Guardar */}
+              <button className="btn btn-primary" onClick={guardarSena} disabled={senaLoading}
+                style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {senaLoading
+                  ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }}/> Guardando...</>
+                  : senaGuardada ? <><Check size={14} color="#4ade80"/> ¡Guardado!</>
+                  : '💾 Guardar configuración de seña'}
               </button>
             </div>
           )}

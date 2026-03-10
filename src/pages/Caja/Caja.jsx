@@ -24,7 +24,6 @@ export default function Caja() {
   const [detalleCierre, setDetalleCierre]   = useState(null)
   const [modalConfirm, setModalConfirm]     = useState(null)
   const [modalAlert, setModalAlert]         = useState(null)
-  // ── NUEVO: accordion por fecha ──
   const [fechasAbiertas, setFechasAbiertas] = useState({})
   const toggleFecha = (fecha) =>
     setFechasAbiertas(prev => ({ ...prev, [fecha]: !prev[fecha] }))
@@ -60,6 +59,7 @@ export default function Caja() {
     setModalConfirm(null)
     const atencionesDelTurno = await window.electronAPI.getAtencionesByFecha(cajaAbierta.fecha)
     const atencionesEnTurno  = atencionesDelTurno.filter(a => a.hora >= cajaAbierta.hora_apertura)
+    // Los vales tienen monto_efectivo=0 y monto_transferencia=0, así que no afectan los totales
     const efectivoTurno      = atencionesEnTurno.reduce((acc, a) => acc + Number(a.monto_efectivo      || 0), 0)
     const transferenciaTurno = atencionesEnTurno.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
     await window.electronAPI.cerrarCaja({
@@ -90,29 +90,48 @@ export default function Caja() {
   useEffect(() => { if (vistaActiva === 'historial') cargarCierres(fechaHistorial) }, [vistaActiva])
 
 
+  // Los vales no suman a los totales de caja (monto_efectivo y monto_transferencia son 0)
   const totalEfectivo      = atenciones.reduce((acc, a) => acc + Number(a.monto_efectivo      || 0), 0)
   const totalTransferencia = atenciones.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
   const totalGeneral       = totalEfectivo + totalTransferencia
 
+  const atencionesReales = atenciones.filter(a => a.metodo_pago !== 'vale')
+  const valesHoy         = atenciones.filter(a => a.metodo_pago === 'vale')
 
+  // Resumen por peluquero: solo atenciones reales para el total, pero mostramos vales aparte
   const resumenPorPeluquero = atenciones.reduce((acc, a) => {
-    if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = 0
-    acc[a.peluquero_nombre] += Number(a.precio_cobrado)
+    if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = { total: 0, cortes: 0, vales: 0 }
+    if (a.metodo_pago === 'vale') {
+      acc[a.peluquero_nombre].vales += 1
+    } else {
+      acc[a.peluquero_nombre].total  += Number(a.precio_cobrado)
+      acc[a.peluquero_nombre].cortes += 1
+    }
     return acc
   }, {})
 
-
   const resumenPorPeluqueroCierre = detalleCierre
     ? detalleCierre.atenciones.reduce((acc, a) => {
-        if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = { total: 0, atenciones: 0 }
-        acc[a.peluquero_nombre].total      += Number(a.precio_cobrado)
-        acc[a.peluquero_nombre].atenciones += 1
+        if (!acc[a.peluquero_nombre]) acc[a.peluquero_nombre] = { total: 0, atenciones: 0, vales: 0 }
+        if (a.metodo_pago === 'vale') {
+          acc[a.peluquero_nombre].vales += 1
+        } else {
+          acc[a.peluquero_nombre].total      += Number(a.precio_cobrado)
+          acc[a.peluquero_nombre].atenciones += 1
+        }
         return acc
       }, {})
     : {}
 
 
   const BadgePago = ({ a }) => {
+    if (a.metodo_pago === 'vale') {
+      return (
+        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+          Vale
+        </span>
+      )
+    }
     if (a.metodo_pago === 'mixto') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -228,12 +247,22 @@ export default function Caja() {
               {/* Por peluquero */}
               <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Por peluquero</h4>
               <table className="table" style={{ marginBottom: 24 }}>
-                <thead><tr><th>Peluquero</th><th>Atenciones</th><th>Total</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Peluquero</th>
+                    <th>Cortes</th>
+                    <th>Vales 🎫</th>
+                    <th>Total generado</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {Object.entries(resumenPorPeluqueroCierre).map(([nombre, data]) => (
                     <tr key={nombre}>
                       <td>{nombre}</td>
                       <td>{data.atenciones}</td>
+                      <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                        {data.vales > 0 ? data.vales : '—'}
+                      </td>
                       <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
                     </tr>
                   ))}
@@ -256,11 +285,15 @@ export default function Caja() {
                 </thead>
                 <tbody>
                   {detalleCierre.atenciones.map(a => (
-                    <tr key={a.id}>
+                    <tr key={a.id} style={{ opacity: a.metodo_pago === 'vale' ? 0.75 : 1 }}>
                       <td>{a.hora}hs</td>
                       <td>{a.peluquero_nombre}</td>
-                      <td>{a.servicio_nombre}</td>
-                      <td style={{ color: '#4ade80', fontWeight: 600 }}>${Number(a.precio_cobrado).toLocaleString('es-AR')}</td>
+                      <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : 'var(--text-main)', fontStyle: a.metodo_pago === 'vale' ? 'italic' : 'normal' }}>
+                        {a.metodo_pago === 'vale' ? '— vale —' : (a.servicio_nombre || '-')}
+                      </td>
+                      <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : '#4ade80', fontWeight: 600 }}>
+                        {a.metodo_pago === 'vale' ? '—' : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}
+                      </td>
                       <td><BadgePago a={a} /></td>
                       <td style={{ color: 'var(--text-muted)' }}>{a.nombre_transferencia || '-'}</td>
                     </tr>
@@ -317,26 +350,31 @@ export default function Caja() {
           )}
 
 
-          {/* Cards totales */}
+          {/* Cards totales — los vales no suman */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Efectivo</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
-                {atenciones.filter(a => a.metodo_pago === 'efectivo' || a.metodo_pago === 'mixto').length} atenciones
+                {atencionesReales.filter(a => a.metodo_pago === 'efectivo' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Transferencia</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#c084fc' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
-                {atenciones.filter(a => a.metodo_pago === 'transferencia' || a.metodo_pago === 'mixto').length} atenciones
+                {atencionesReales.filter(a => a.metodo_pago === 'transferencia' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total general</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#a78bfa' }}>${totalGeneral.toLocaleString('es-AR')}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{atenciones.length} atenciones en total</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
+                {atencionesReales.length} cortes
+                {valesHoy.length > 0 && (
+                  <span style={{ marginLeft: 6, color: '#fbbf24' }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} 🎫</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -345,20 +383,27 @@ export default function Caja() {
           <div className="card">
             <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>Generado por peluquero</h3>
             <table className="table">
-              <thead><tr><th>Peluquero</th><th>Total generado</th><th>Cantidad de cortes</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Peluquero</th>
+                  <th>Total generado</th>
+                  <th>Cortes</th>
+                  <th>Vales 🎫</th>
+                </tr>
+              </thead>
               <tbody>
                 {Object.keys(resumenPorPeluquero).length === 0
-                  ? <tr><td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>Sin atenciones para este día</td></tr>
+                  ? <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>Sin atenciones para este día</td></tr>
                   : Object.entries(resumenPorPeluquero)
-                      .sort((a, b) =>
-                        atenciones.filter(at => at.peluquero_nombre === b[0]).length -
-                        atenciones.filter(at => at.peluquero_nombre === a[0]).length
-                      )
-                      .map(([nombre, total]) => (
+                      .sort((a, b) => b[1].total - a[1].total)
+                      .map(([nombre, data]) => (
                         <tr key={nombre}>
                           <td>{nombre}</td>
-                          <td style={{ color: '#4ade80', fontWeight: 600 }}>${total.toLocaleString('es-AR')}</td>
-                          <td>{atenciones.filter(a => a.peluquero_nombre === nombre).length}</td>
+                          <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                          <td>{data.cortes}</td>
+                          <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                            {data.vales > 0 ? data.vales : '—'}
+                          </td>
                         </tr>
                       ))
                 }
@@ -459,7 +504,6 @@ export default function Caja() {
                                 >
                                   <td colSpan={2} style={{ padding: '14px 16px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                      {/* Flecha */}
                                       <span style={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -473,11 +517,9 @@ export default function Caja() {
                                         transform: abierta ? 'rotate(90deg)' : 'rotate(0deg)',
                                         flexShrink: 0,
                                       }}>▶</span>
-                                      {/* Fecha */}
                                       <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 14 }}>
                                         {fecha}
                                       </span>
-                                      {/* Badge turnos */}
                                       <span style={{
                                         background: 'rgba(124, 58, 237, 0.15)',
                                         color: '#a78bfa',
@@ -490,7 +532,6 @@ export default function Caja() {
                                       </span>
                                     </div>
                                   </td>
-                                  {/* Columnas vacías de apertura/cierre en fila resumen */}
                                   <td />
                                   <td style={{ color: '#4ade80', fontWeight: 600 }}>
                                     ${efectivoDia.toLocaleString('es-AR')}
@@ -508,7 +549,7 @@ export default function Caja() {
 
                                 {/* ── FILAS HIJAS expandibles ── */}
                                 <AnimatePresence>
-                                  {abierta && turnos.map((c, i) => {   {/* ← AGREGAR i */}
+                                  {abierta && turnos.map((c, i) => {
                                     const cierreOtroDia = c.hora_cierre && c.hora_cierre < c.hora_apertura
                                     const fechaCierre = cierreOtroDia
                                       ? (() => {

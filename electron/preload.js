@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAtencionesByRango: (rango) => ipcRenderer.invoke('atenciones:getByRango', rango),
   deleteAtencion:       (id)    => ipcRenderer.invoke('atenciones:delete', id),
   updateAtencion:       (data)  => ipcRenderer.invoke('atenciones:update', data),
+  getValesPorMes:       ()      => ipcRenderer.invoke('atenciones:getValesPorMes'),
 
   // Configuración
   getConfig:            (clave) => ipcRenderer.invoke('config:get', clave),
