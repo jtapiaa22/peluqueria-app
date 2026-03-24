@@ -51,6 +51,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
   const [ultimoBackupNube, setUltimoBackupNube]     = useState(null)
   const [confirmandoRestore, setConfirmandoRestore] = useState(false)
+  const [mostrarRestoreModal, setMostrarRestoreModal] = useState(false)
+  const [restoreAutoLoading, setRestoreAutoLoading]   = useState(false)
 
   // ── SEÑA ──
   const [senaMonto, setSenaMonto]           = useState('')
@@ -122,6 +124,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (result?.ok) {
       await cargarWebConfig()
       setModalAlert({ mensaje: result.yaExistia ? '✅ ID recuperado. Esta peluquería ya estaba registrada.' : '✅ ¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
+      // Chequear si hay backup en la nube
+      const backup = await window.electronAPI.existeBackupNube()
+      if (backup?.existe) setMostrarRestoreModal(true)
     } else {
       setModalAlert({ mensaje: 'Error: ' + (result?.error || 'Intentá de nuevo.'), tipo: 'error' })
     }
@@ -135,6 +140,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (result?.ok) {
       await cargarWebConfig()
       setModalAlert({ mensaje: '✅ Peluquería vinculada correctamente.', tipo: 'success' })
+      // Chequear si hay backup en la nube
+      const backup = await window.electronAPI.existeBackupNube()
+      if (backup?.existe) setMostrarRestoreModal(true)
     } else {
       setModalAlert({ mensaje: 'Error: ' + (result?.error || 'ID no encontrado.'), tipo: 'error' })
     }
@@ -226,6 +234,73 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   return (
     <div className="page-animation">
       {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
+
+      {/* Modal: backup encontrado en la nube */}
+      {mostrarRestoreModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
+            borderRadius: 16, padding: '32px 28px', maxWidth: 440, width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: 20 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>☁️</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 18, marginBottom: 8 }}>
+                Backup encontrado en la nube
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+                Encontramos un backup anterior de esta peluquería. ¿Querés restaurar tus datos o empezar de cero?
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)',
+              borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 13,
+              color: 'var(--text-muted)', lineHeight: 1.6,
+            }}>
+              <strong style={{ color: '#c4b5fd' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br/><br/>
+              <strong style={{ color: '#c4b5fd' }}>Empezar de cero</strong> va a mantener la base actual vacía y subir una nueva a la nube.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button className="btn btn-primary"
+                disabled={restoreAutoLoading}
+                onClick={async () => {
+                  setRestoreAutoLoading(true)
+                  const result = await window.electronAPI.restaurarDesdeNube()
+                  setRestoreAutoLoading(false)
+                  setMostrarRestoreModal(false)
+                  if (result.ok) {
+                    setModalAlert({ mensaje: `✅ Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                    await cargarWebConfig()
+                  } else {
+                    setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
+                  }
+                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px' }}>
+                {restoreAutoLoading
+                  ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Restaurando...</>
+                  : '⬇️ Restaurar mis datos'}
+              </button>
+
+              <button className="btn btn-secondary"
+                disabled={restoreAutoLoading}
+                onClick={async () => {
+                  setMostrarRestoreModal(false)
+                  await window.electronAPI.syncBackupNube()
+                  setModalAlert({ mensaje: 'Base nueva creada. El backup anterior fue reemplazado.', tipo: 'success' })
+                }}
+                style={{ width: '100%', padding: '12px 20px' }}>
+                🆕 Empezar de cero
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <h1 className="page-title">Configuración</h1>
 

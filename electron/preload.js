@@ -128,5 +128,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   syncBackupNube:       () => ipcRenderer.invoke('backup:syncNube'),
   restaurarDesdeNube:   () => ipcRenderer.invoke('backup:restaurarNube'),
   getUltimoBackupNube:  () => ipcRenderer.invoke('backup:getUltimoSync'),
+  existeBackupNube:     () => ipcRenderer.invoke('backup:existeEnNube'),
 
 })

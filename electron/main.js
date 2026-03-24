@@ -1005,6 +1005,18 @@ ipcMain.handle('backup:restaurarNube', async () => restaurarDesdeNube())
 ipcMain.handle('backup:getUltimoSync', () => {
   return db.prepare("SELECT valor FROM configuracion WHERE clave='ultimo_backup_nube'").get()?.valor || null
 })
+ipcMain.handle('backup:existeEnNube', async () => {
+  try {
+    const pid = await getPid()
+    if (!pid) return { existe: false }
+    const sb = await getSupabase()
+    const { data, error } = await sb.storage
+      .from('backups-db')
+      .list(pid)
+    if (error) return { existe: false }
+    return { existe: data?.some(f => f.name === 'database.sqlite') || false }
+  } catch { return { existe: false } }
+})
 
 // LICENCIAS
 ipcMain.handle('licencia:getMachineId', () => getMachineId())
@@ -1100,25 +1112,47 @@ function createWindow(){
   else mainWindow.loadFile(path.join(__dirname,'../dist/index.html'))
 }
 
-const gotTheLock=app.requestSingleInstanceLock()
-if(!gotTheLock){ app.quit() }
-else {
-  app.on('second-instance',()=>{ if(mainWindow){if(mainWindow.isMinimized())mainWindow.restore();mainWindow.focus()} })
-  app.whenReady().then(()=>{
-    initDB(); hacerBackup(); createWindow()
-    setTimeout(()=>syncSupabase(), 3000)
-    setTimeout(()=>syncBackupCompleto(), 10000)
-    setTimeout(async () => {
-    await checkNuevosTurnos()
-    iniciarRealtime()
-    setInterval(checkNuevosTurnos, 3000)
-  }, 8000)
+const gotTheLock = app.requestSingleInstanceLock()
 
-    // Re-verificar licencia cada hora silenciosamente
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.focus()
+    }
+  })
+
+  app.whenReady().then(() => {
+    initDB()
+    hacerBackup()
+    createWindow()
+
+    // 3s — Sync inicial con Supabase
+    setTimeout(() => syncSupabase(), 3000)
+
+    // 8s — Verificar turnos nuevos y arrancar realtime
+    setTimeout(async () => {
+      await checkNuevosTurnos()
+      iniciarRealtime()
+      setInterval(checkNuevosTurnos, 3000)
+    }, 8000)
+
+    // 10s — Auto-backup nube solo si la base tiene datos reales
+    setTimeout(async () => {
+      const tiene = db.prepare('SELECT COUNT(*) as c FROM atenciones').get().c
+      if (tiene > 0) syncBackupCompleto()
+    }, 10000)
+
+    // Cada 1h — Re-verificar licencia silenciosamente
     setInterval(() => {
       const res = verificarLicencia()
       if (!res.valida) sendToWindow('licencia:invalida', { mensaje: res.mensaje })
     }, 60 * 60 * 1000)
   })
 }
-app.on('window-all-closed',()=>{ if(process.platform!=='darwin') app.quit() })
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit()
+})
