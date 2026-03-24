@@ -50,6 +50,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [backupNubeLoading, setBackupNubeLoading]   = useState(false)
   const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
   const [ultimoBackupNube, setUltimoBackupNube]     = useState(null)
+  const [confirmandoRestore, setConfirmandoRestore] = useState(false)
 
   // ── SEÑA ──
   const [senaMonto, setSenaMonto]           = useState('')
@@ -371,7 +372,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       setBackupNubeLoading(false)
                       if (result.ok) {
                         setUltimoBackupNube(new Date().toISOString())
-                        setModalAlert({ mensaje: `✅ Backup subido: ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                        setModalAlert({ mensaje: `✅ Backup subido: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
                       } else {
                         setModalAlert({ mensaje: 'Error al hacer backup: ' + result.error, tipo: 'error' })
                       }
@@ -383,24 +384,50 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   </button>
 
                   <button className="btn btn-secondary" disabled={restoreNubeLoading || webPaso !== 'configurado'}
-                    onClick={async () => {
-                      const confirmar = window.confirm('⚠️ Esto va a reemplazar tus datos locales con los del backup en la nube.\n\n¿Estás seguro?')
-                      if (!confirmar) return
-                      setRestoreNubeLoading(true)
-                      const result = await window.electronAPI.restaurarDesdeNube()
-                      setRestoreNubeLoading(false)
-                      if (result.ok) {
-                        setModalAlert({ mensaje: `✅ Datos restaurados: ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
-                      } else {
-                        setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
-                      }
-                    }}
+                    onClick={() => setConfirmandoRestore(true)}
                     style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {restoreNubeLoading
                       ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Restaurando...</>
                       : '⬇️ Restaurar desde la nube'}
                   </button>
                 </div>
+
+                {/* Confirmación in-app (reemplaza window.confirm) */}
+                {confirmandoRestore && (
+                  <div style={{
+                    marginTop: 16, padding: '18px 20px',
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: 12,
+                  }}>
+                    <div style={{ fontWeight: 700, color: '#f87171', fontSize: 14, marginBottom: 8 }}>⚠️ ¿Estás seguro?</div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+                      Esto va a <strong style={{ color: '#f87171' }}>reemplazar todos tus datos locales</strong> (peluqueros, servicios, atenciones, gastos, pagos y cierres) con los del último backup en la nube.
+                    </p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button className="btn btn-danger"
+                        disabled={restoreNubeLoading}
+                        onClick={async () => {
+                          setConfirmandoRestore(false)
+                          setRestoreNubeLoading(true)
+                          const result = await window.electronAPI.restaurarDesdeNube()
+                          setRestoreNubeLoading(false)
+                          if (result.ok) {
+                            setModalAlert({ mensaje: `✅ Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                          } else {
+                            setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
+                          }
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                        Sí, restaurar todo
+                      </button>
+                      <button className="btn btn-secondary"
+                        onClick={() => setConfirmandoRestore(false)}
+                        style={{ fontSize: 13 }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -238,112 +238,90 @@ async function syncBloqueosPeluquero() {
   } catch(e) { console.error('⚠️ SyncBloqueos:', e.message) }
 }
 
-// ── BACKUP EN LA NUBE ─────────────────────────────────────────
+// ── BACKUP EN LA NUBE (Supabase Storage) ─────────────────────
 async function syncBackupCompleto() {
   try {
     const pid = await getPid()
     if (!pid) return { ok: false, error: 'No hay peluquería vinculada.' }
-    const sb = await getSupabase()
 
-    const peluqueros = db.prepare('SELECT * FROM peluqueros').all()
-    if (peluqueros.length) await sb.from('peluqueros_backup').upsert(
-      peluqueros.map(p => ({ ...p, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
-    const servicios = db.prepare('SELECT * FROM servicios').all()
-    if (servicios.length) await sb.from('servicios_backup').upsert(
-      servicios.map(s => ({ ...s, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
-    const atenciones = db.prepare('SELECT * FROM atenciones').all()
-    if (atenciones.length) await sb.from('atenciones_backup').upsert(
-      atenciones.map(a => ({ ...a, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
-    const gastos = db.prepare('SELECT * FROM gastos').all()
-    if (gastos.length) await sb.from('gastos_backup').upsert(
-      gastos.map(g => ({ ...g, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
-    const pagos = db.prepare('SELECT * FROM pagos_peluqueros').all()
-    if (pagos.length) await sb.from('pagos_peluqueros_backup').upsert(
-      pagos.map(p => ({ ...p, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
-    const cierres = db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada'").all()
-    if (cierres.length) await sb.from('cierres_caja_backup').upsert(
-      cierres.map(c => ({ ...c, peluqueria_id: pid })), { onConflict: 'id,peluqueria_id' }
-    )
+    // Crear copia segura del sqlite
+    const tempPath = path.join(app.getPath('temp'), `peluapp_backup_${Date.now()}.sqlite`)
+    await db.backup(tempPath)
+
+    // Leer y subir a Supabase Storage
+    const fileBuffer = fs.readFileSync(tempPath)
+    const sb = await getSupabase()
+    const { error } = await sb.storage
+      .from('backups-db')
+      .upload(`${pid}/database.sqlite`, fileBuffer, {
+        contentType: 'application/x-sqlite3',
+        upsert: true
+      })
+
+    // Limpiar temp
+    try { fs.unlinkSync(tempPath) } catch {}
+
+    if (error) throw error
+
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultimo_backup_nube',?)").run(new Date().toISOString())
-    return { ok: true, peluqueros: peluqueros.length, servicios: servicios.length, atenciones: atenciones.length, gastos: gastos.length, pagos: pagos.length, cierres: cierres.length }
+
+    // Stats para mostrar en la UI
+    const peluqueros = db.prepare('SELECT COUNT(*) as c FROM peluqueros').get().c
+    const servicios  = db.prepare('SELECT COUNT(*) as c FROM servicios').get().c
+    const atenciones = db.prepare('SELECT COUNT(*) as c FROM atenciones').get().c
+    const gastos     = db.prepare('SELECT COUNT(*) as c FROM gastos').get().c
+    const cierres    = db.prepare("SELECT COUNT(*) as c FROM cierre_caja WHERE estado='cerrada'").get().c
+
+    return { ok: true, peluqueros, servicios, atenciones, gastos, cierres }
   } catch(e) { return { ok: false, error: e.message } }
-}
-
-async function syncRegistroBackup(tabla, datos) {
-  try {
-    const pid = await getPid(); if (!pid) return
-    const sb = await getSupabase()
-    await sb.from(tabla).upsert({ ...datos, peluqueria_id: pid }, { onConflict: 'id,peluqueria_id' })
-  } catch(e) { console.error(`⚠️ SyncBackup ${tabla}:`, e.message) }
-}
-
-async function deleteRegistroBackup(tabla, id) {
-  try {
-    const pid = await getPid(); if (!pid) return
-    const sb = await getSupabase()
-    await sb.from(tabla).delete().eq('id', id).eq('peluqueria_id', pid)
-  } catch(e) { console.error(`⚠️ DeleteBackup ${tabla}:`, e.message) }
 }
 
 async function restaurarDesdeNube() {
   try {
     const pid = await getPid()
     if (!pid) return { ok: false, error: 'No hay peluquería vinculada.' }
+
     const sb = await getSupabase()
+    const { data, error } = await sb.storage
+      .from('backups-db')
+      .download(`${pid}/database.sqlite`)
 
-    db.pragma('foreign_keys = OFF')
+    if (error) throw error
+    if (!data) return { ok: false, error: 'No se encontró backup en la nube.' }
 
-    const { data: peluqueros } = await sb.from('peluqueros_backup').select('*').eq('peluqueria_id', pid)
-    if (peluqueros?.length) {
-      db.prepare('DELETE FROM peluqueros').run()
-      const ins = db.prepare('INSERT OR REPLACE INTO peluqueros(id,nombre,comision,activo) VALUES(?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.nombre,r.comision||0,r.activo??1) })(peluqueros)
+    // Convertir blob a buffer y guardar en temp
+    const buffer = Buffer.from(await data.arrayBuffer())
+    const tempPath = path.join(app.getPath('temp'), `peluapp_restore_${Date.now()}.sqlite`)
+    fs.writeFileSync(tempPath, buffer)
+
+    // Verificar que sea un sqlite válido
+    try {
+      const testDb = new Database(tempPath, { readonly: true })
+      testDb.close()
+    } catch {
+      fs.unlinkSync(tempPath)
+      return { ok: false, error: 'El archivo descargado no es una base de datos válida.' }
     }
 
-    const { data: servicios } = await sb.from('servicios_backup').select('*').eq('peluqueria_id', pid)
-    if (servicios?.length) {
-      db.prepare('DELETE FROM servicios').run()
-      const ins = db.prepare('INSERT OR REPLACE INTO servicios(id,nombre,precio,activo) VALUES(?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.nombre,r.precio,r.activo??1) })(servicios)
-    }
-
-    const { data: atenciones } = await sb.from('atenciones_backup').select('*').eq('peluqueria_id', pid)
-    if (atenciones?.length) {
-      db.prepare('DELETE FROM atenciones').run()
-      const ins = db.prepare('INSERT OR REPLACE INTO atenciones(id,peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.peluquero_id,r.servicio_id,r.precio_cobrado,r.metodo_pago,r.nombre_transferencia||null,r.fecha,r.hora,r.monto_efectivo||0,r.monto_transferencia||0) })(atenciones)
-    }
-
-    const { data: gastos } = await sb.from('gastos_backup').select('*').eq('peluqueria_id', pid)
-    if (gastos?.length) {
-      db.prepare('DELETE FROM gastos').run()
-      const ins = db.prepare('INSERT OR REPLACE INTO gastos(id,descripcion,monto,fecha,categoria) VALUES(?,?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.descripcion,r.monto,r.fecha,r.categoria||null) })(gastos)
-    }
-
-    const { data: pagos } = await sb.from('pagos_peluqueros_backup').select('*').eq('peluqueria_id', pid)
-    if (pagos?.length) {
-      db.prepare('DELETE FROM pagos_peluqueros').run()
-      const ins = db.prepare('INSERT OR REPLACE INTO pagos_peluqueros(id,peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas) VALUES(?,?,?,?,?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.peluquero_id,r.peluquero_nombre,r.desde,r.hasta,r.monto,r.fecha_pago,r.notas||null) })(pagos)
-    }
-
-    const { data: cierres } = await sb.from('cierres_caja_backup').select('*').eq('peluqueria_id', pid)
-    if (cierres?.length) {
-      db.prepare("DELETE FROM cierre_caja WHERE estado='cerrada'").run()
-      const ins = db.prepare('INSERT OR REPLACE INTO cierre_caja(id,fecha,hora_apertura,hora_cierre,total_efectivo,total_transferencia,total_general,observaciones,estado) VALUES(?,?,?,?,?,?,?,?,?)')
-      db.transaction((rows) => { for (const r of rows) ins.run(r.id,r.fecha,r.hora_apertura,r.hora_cierre||null,r.total_efectivo||0,r.total_transferencia||0,r.total_general||0,r.observaciones||null,r.estado) })(cierres)
-    }
-
+    // Cerrar DB actual → reemplazar → reabrir
+    db.close()
+    fs.copyFileSync(tempPath, dbPath)
+    try { fs.unlinkSync(tempPath) } catch {}
+    db = new Database(dbPath)
+    db.pragma('journal_mode = WAL')
     db.pragma('foreign_keys = ON')
-    return { ok: true, peluqueros: peluqueros?.length||0, servicios: servicios?.length||0, atenciones: atenciones?.length||0, gastos: gastos?.length||0, pagos: pagos?.length||0, cierres: cierres?.length||0 }
+
+    // Stats
+    const peluqueros = db.prepare('SELECT COUNT(*) as c FROM peluqueros').get().c
+    const servicios  = db.prepare('SELECT COUNT(*) as c FROM servicios').get().c
+    const atenciones = db.prepare('SELECT COUNT(*) as c FROM atenciones').get().c
+    const gastos     = db.prepare('SELECT COUNT(*) as c FROM gastos').get().c
+    const cierres    = db.prepare("SELECT COUNT(*) as c FROM cierre_caja WHERE estado='cerrada'").get().c
+
+    return { ok: true, peluqueros, servicios, atenciones, gastos, cierres }
   } catch(e) {
-    db.pragma('foreign_keys = ON')
+    // Si falló, intentar reabrir la DB original
+    try { db = new Database(dbPath); db.pragma('journal_mode = WAL'); db.pragma('foreign_keys = ON') } catch {}
     return { ok: false, error: e.message }
   }
 }
@@ -424,11 +402,11 @@ ipcMain.handle('servicios:update', async(_,d)=>{ db.prepare('UPDATE servicios SE
 ipcMain.handle('servicios:delete', async(_,id)=>{ db.prepare('UPDATE servicios SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
 
 // ATENCIONES
-ipcMain.handle('atenciones:create',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); syncRegistroBackup('atenciones_backup',{id:r.lastInsertRowid,peluquero_id:Number(d.peluquero_id),servicio_id:sid,precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return r.lastInsertRowid })
+ipcMain.handle('atenciones:create',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); return r.lastInsertRowid })
 ipcMain.handle('atenciones:getByFecha',(_,f)=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? ORDER BY a.id DESC`).all(f))
 ipcMain.handle('atenciones:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha DESC,a.hora DESC`).all(desde,hasta))
-ipcMain.handle('atenciones:delete',async(_,id)=>{ db.prepare('DELETE FROM atenciones WHERE id=?').run(id); deleteRegistroBackup('atenciones_backup',id); return true })
-ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); syncRegistroBackup('atenciones_backup',{id:d.id,peluquero_id:Number(d.peluquero_id),servicio_id:sid,precio_cobrado:pf,metodo_pago:d.metodo_pago,nombre_transferencia:d.nombre_transferencia||null,fecha:d.fecha,hora:d.hora,monto_efectivo:me,monto_transferencia:mt}); return true })
+ipcMain.handle('atenciones:delete',async(_,id)=>{ db.prepare('DELETE FROM atenciones WHERE id=?').run(id); return true })
+ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); return true })
 ipcMain.handle('atenciones:getValesPorMes', () =>
   db.prepare(`
     SELECT strftime('%Y-%m', a.fecha) as mes,
@@ -450,7 +428,7 @@ ipcMain.handle('config:set',(_,{clave,valor})=>{ if(!CONFIG_CLAVES_PERMITIDAS.ha
 // CAJA
 ipcMain.handle('caja:abrir',(_,d)=>{ const r=db.prepare("INSERT INTO cierre_caja(fecha,hora_apertura,estado) VALUES(?,?,'abierta')").run(d.fecha,d.hora_apertura); return r.lastInsertRowid })
 ipcMain.handle('caja:getCajaAbierta',()=>db.prepare("SELECT * FROM cierre_caja WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get()||null)
-ipcMain.handle('caja:cerrar',async(_,d)=>{ db.prepare(`UPDATE cierre_caja SET hora_cierre=?,total_efectivo=?,total_transferencia=?,total_general=?,observaciones=?,estado='cerrada' WHERE id=?`).run(d.hora_cierre,d.total_efectivo,d.total_transferencia,d.total_general,d.observaciones||null,d.id); const cierre=db.prepare('SELECT * FROM cierre_caja WHERE id=?').get(d.id); if(cierre) syncRegistroBackup('cierres_caja_backup',cierre); return true })
+ipcMain.handle('caja:cerrar',async(_,d)=>{ db.prepare(`UPDATE cierre_caja SET hora_cierre=?,total_efectivo=?,total_transferencia=?,total_general=?,observaciones=?,estado='cerrada' WHERE id=?`).run(d.hora_cierre,d.total_efectivo,d.total_transferencia,d.total_general,d.observaciones||null,d.id); return true })
 ipcMain.handle('caja:getCierres',(_,f)=>f?db.prepare("SELECT * FROM cierre_caja WHERE fecha=? AND estado='cerrada' ORDER BY hora_apertura ASC").all(f):db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY fecha DESC,hora_apertura ASC").all())
 ipcMain.handle('caja:getDetalleCierre',(_,{hora_apertura,hora_cierre,fecha})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? AND a.hora>=? AND a.hora<=? ORDER BY a.hora ASC`).all(fecha,hora_apertura,hora_cierre))
 
@@ -468,15 +446,15 @@ ipcMain.handle('gastos:getResumenMensual',()=>{
   const meses=new Set([...g.map(r=>r.mes),...p.map(r=>r.mes)])
   return Array.from(meses).sort().reverse().map(mes=>{ const gr=g.find(r=>r.mes===mes)||{total_gastos:0,cantidad_gastos:0}; const pr=p.find(r=>r.mes===mes)||{total_pagos:0,cantidad_pagos:0}; return {mes,total_gastos:Number(gr.total_gastos)||0,cantidad_gastos:Number(gr.cantidad_gastos)||0,total_pagos:Number(pr.total_pagos)||0,cantidad_pagos:Number(pr.cantidad_pagos)||0} })
 })
-ipcMain.handle('gastos:create',async(_,d)=>{ const r=db.prepare('INSERT INTO gastos(descripcion,monto,fecha,categoria) VALUES(?,?,?,?)').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null); syncRegistroBackup('gastos_backup',{id:r.lastInsertRowid,descripcion:d.descripcion,monto:Number(d.monto),fecha:d.fecha,categoria:d.categoria||null}); return r.lastInsertRowid })
-ipcMain.handle('gastos:update',async(_,d)=>{ db.prepare('UPDATE gastos SET descripcion=?,monto=?,fecha=?,categoria=? WHERE id=?').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null,d.id); syncRegistroBackup('gastos_backup',{id:d.id,descripcion:d.descripcion,monto:Number(d.monto),fecha:d.fecha,categoria:d.categoria||null}); return true })
-ipcMain.handle('gastos:delete',async(_,id)=>{ db.prepare('DELETE FROM gastos WHERE id=?').run(id); deleteRegistroBackup('gastos_backup',id); return true })
+ipcMain.handle('gastos:create',async(_,d)=>{ const r=db.prepare('INSERT INTO gastos(descripcion,monto,fecha,categoria) VALUES(?,?,?,?)').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null); return r.lastInsertRowid })
+ipcMain.handle('gastos:update',async(_,d)=>{ db.prepare('UPDATE gastos SET descripcion=?,monto=?,fecha=?,categoria=? WHERE id=?').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null,d.id); return true })
+ipcMain.handle('gastos:delete',async(_,id)=>{ db.prepare('DELETE FROM gastos WHERE id=?').run(id); return true })
 
 // PAGOS PELUQUEROS
-ipcMain.handle('pagos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null); syncRegistroBackup('pagos_peluqueros_backup',{id:r.lastInsertRowid,peluquero_id:d.peluquero_id,peluquero_nombre:d.peluquero_nombre,desde:d.desde,hasta:d.hasta,monto:Number(d.monto),fecha_pago:d.fecha_pago,notas:d.notas||null}); return r.lastInsertRowid })
+ipcMain.handle('pagos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null); return r.lastInsertRowid })
 ipcMain.handle('pagos:getByMes',(_,mes)=>{ const [a,m]=mes.split('-'); const desde=`${a}-${m}-01`; const u=new Date(parseInt(a),parseInt(m),0).getDate(); const hasta=`${a}-${m}-${String(u).padStart(2,'0')}`; return db.prepare('SELECT * FROM pagos_peluqueros WHERE fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC,id DESC').all(desde,hasta) })
 ipcMain.handle('pagos:getByPeluqueroYRango',(_,{peluquero_id,desde,hasta})=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? AND fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC').all(peluquero_id,desde,hasta))
-ipcMain.handle('pagos:delete',async(_,id)=>{ db.prepare('DELETE FROM pagos_peluqueros WHERE id=?').run(id); deleteRegistroBackup('pagos_peluqueros_backup',id); return true })
+ipcMain.handle('pagos:delete',async(_,id)=>{ db.prepare('DELETE FROM pagos_peluqueros WHERE id=?').run(id); return true })
 
 // TURNOS MANUALES
 ipcMain.handle('turnos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO turnos(peluquero_id,servicio_id,cliente_nombre,fecha,hora,estado,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id||null,d.servicio_id||null,d.cliente_nombre,d.fecha,d.hora,d.estado||'pendiente',d.notas||null); await syncTurnoManual({id:r.lastInsertRowid,peluquero_id:d.peluquero_id,fecha:d.fecha,hora:d.hora}); return r.lastInsertRowid })
