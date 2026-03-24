@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ModalAlert } from '../../components/Modal'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
   '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
@@ -14,6 +14,7 @@ const DIAS = [
   { num: 4, label: 'Jue' }, { num: 5, label: 'Vie' }, { num: 6, label: 'Sáb' },
   { num: 0, label: 'Dom' },
 ]
+
 const HORARIO_DEFAULT = {
   bloques: [
     { activo: true,  inicio: '09:00', fin: '13:00' },
@@ -21,6 +22,8 @@ const HORARIO_DEFAULT = {
   ],
   intervalo: 30,
   dias: [1, 2, 3, 4, 5, 6],
+  modo: 'normal',
+  fecha_unica: null,
 }
 
 export default function Configuracion({ onNombreChange, onLogoChange, tema, onToggleTema }) {
@@ -170,7 +173,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
   const guardarHorario = async () => {
     const bloquesActivos = horario.bloques.filter(b => b.activo)
-    if (horario.dias.length === 0) { setModalAlert({ mensaje: 'Seleccioná al menos un día.', tipo: 'warning' }); return }
+    if (horario.modo === 'fecha_unica') {
+      if (!horario.fecha_unica) { setModalAlert({ mensaje: 'Seleccioná una fecha.', tipo: 'warning' }); return }
+    } else {
+      if (horario.dias.length === 0) { setModalAlert({ mensaje: 'Seleccioná al menos un día.', tipo: 'warning' }); return }
+    }
     if (bloquesActivos.length === 0) { setModalAlert({ mensaje: 'Activá al menos un bloque horario.', tipo: 'warning' }); return }
     setHorarioLoading(true)
     const result = await window.electronAPI.actualizarHorario(horario)
@@ -558,24 +565,82 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>Horario de atención web</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28 }}>Configurá qué días y horarios van a ver tus clientes al reservar online.</p>
 
-              {/* Días */}
+              {/* Modo */}
               <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
-                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 12 }}>Días de atención</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {DIAS.map(({ num, label }) => (
-                    <button key={num} onClick={() => toggleDia(num)}
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 12 }}>Modo de disponibilidad</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  {[
+                    { val: 'normal',       label: '📅 Días de la semana', desc: 'Lun, Mar, Mié...' },
+                    { val: 'fecha_unica',  label: '📌 Día específico',    desc: 'Solo una fecha' },
+                  ].map(({ val, label, desc }) => (
+                    <button key={val}
+                      onClick={() => setHorario(h => ({ ...h, modo: val }))}
                       style={{
-                        padding: '7px 16px', borderRadius: 8, border: '1px solid',
-                        fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                        borderColor: horario.dias.includes(num) ? '#7c3aed' : 'var(--border-soft)',
-                        background:  horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
-                        color:       horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
+                        flex: 1, padding: '14px 16px', borderRadius: 10,
+                        border: '1px solid',
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        textAlign: 'left',
+                        borderColor: (horario.modo || 'normal') === val ? '#7c3aed' : 'var(--border-soft)',
+                        background:  (horario.modo || 'normal') === val ? 'rgba(124,58,237,0.12)' : 'transparent',
                       }}>
-                      {label}
+                      <div style={{
+                        fontWeight: 600, fontSize: 13, marginBottom: 2,
+                        color: (horario.modo || 'normal') === val ? '#c4b5fd' : 'var(--text-main)',
+                      }}>{label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Días (modo normal) */}
+              {(horario.modo || 'normal') === 'normal' && (
+                <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 12 }}>Días de atención</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {DIAS.map(({ num, label }) => (
+                      <button key={num} onClick={() => toggleDia(num)}
+                        style={{
+                          padding: '7px 16px', borderRadius: 8, border: '1px solid',
+                          fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                          borderColor: horario.dias.includes(num) ? '#7c3aed' : 'var(--border-soft)',
+                          background:  horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
+                          color:       horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
+                        }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fecha específica (modo fecha_unica) */}
+              {horario.modo === 'fecha_unica' && (
+                <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Fecha disponible</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+                    Los clientes solo van a poder sacar turno para este día.
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <CalendarDays size={18} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                    <input
+                      type="date"
+                      className="input"
+                      value={horario.fecha_unica || ''}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => setHorario(h => ({ ...h, fecha_unica: e.target.value || null }))}
+                      style={{ maxWidth: 220, fontSize: 14, fontWeight: 600 }}
+                    />
+                  </div>
+                  {horario.fecha_unica && (
+                    <div style={{ marginTop: 10, fontSize: 12, color: '#4ade80' }}>
+                      ✅ Solo se mostrarán turnos para el <strong>
+                        {new Date(horario.fecha_unica + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Bloques */}
               <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
@@ -645,7 +710,19 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               {/* Preview + Guardar */}
               {horario.bloques.some(b => b.activo) && (
                 <div style={{ background:'var(--bg-main)', border:'1px solid var(--border-soft)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'var(--text-muted)', lineHeight:1.8 }}>
-                  📅 <strong style={{ color:'#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+                  {(horario.modo || 'normal') === 'fecha_unica' ? (
+                    <>
+                      📌 Solo el <strong style={{ color:'#c4b5fd' }}>
+                        {horario.fecha_unica
+                          ? new Date(horario.fecha_unica + 'T12:00:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+                          : '(sin fecha)'}
+                      </strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+                    </>
+                  ) : (
+                    <>
+                      📅 <strong style={{ color:'#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+                    </>
+                  )}
                   {horario.bloques.filter(b => b.activo).map((b, i) => (
                     <span key={i}>{i > 0 && ' · '}<strong style={{ color:'var(--text-main)' }}>{b.inicio}</strong> a <strong style={{ color:'var(--text-main)' }}>{b.fin}</strong></span>
                   ))}
