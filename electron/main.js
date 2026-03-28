@@ -581,7 +581,6 @@ ipcMain.handle('turnosWeb:getSenas', async () => {
     const pid = await getPid()
     if (!pid) return []
     const sb = await getSupabase()
-    const ahora = new Date().toISOString()
 
     const { data } = await sb
       .from('turnos_senas')
@@ -591,29 +590,7 @@ ipcMain.handle('turnosWeb:getSenas', async () => {
       .order('fecha', { ascending: true })
       .order('hora',  { ascending: true })
 
-    // Auto-cancelar vencidos
-    const vencidos = (data || []).filter(t => t.vence_at && t.vence_at < ahora)
-    for (const t of vencidos) {
-      try {
-        await sb.from('turnos_senas').update({ estado: 'cancelada' }).eq('id', t.id)
-        await sb.from('turnos_web').update({ estado: 'cancelado', motivo: 'Seña no recibida a tiempo.' }).eq('id', t.turno_web_id)
-        const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(t.turno_web_id)
-        if (local) db.prepare('DELETE FROM turnos WHERE id=?').run(local.id)
-        const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
-        await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: t.cliente_email, nombre: t.cliente_nombre,
-            peluqueria_nombre: pelNombre, peluquero_nombre: t.peluquero_nombre,
-            peluqueria_id: pid, accion: 'cancelado',
-            fecha_original: t.fecha, hora_original: t.hora?.substring(0, 5),
-            motivo: 'La seña no fue recibida a tiempo.'
-          })
-        }).catch(() => {})
-      } catch {}
-    }
-
-    return (data || []).filter(t => !(t.vence_at && t.vence_at < ahora))
+    return data || []
   } catch (e) { return [] }
 })
 
@@ -1058,20 +1035,22 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
     const pid = await getPid()
     if (!pid) return { ok: false, error: 'No hay peluquería configurada.' }
 
-    // Sync peluqueros y servicios
     await syncSupabase()
 
-    // Sync todos los turnos manuales existentes
     const sb = await getSupabase()
     const turnos = db.prepare('SELECT * FROM turnos').all()
-    for (const t of turnos) {
-      await sb.from('turnos_manuales_web').upsert({
-        id: `${pid}_${t.id}`,
-        peluquero_id: t.peluquero_id,
-        fecha: t.fecha,
-        hora: t.hora,
-        peluqueria_id: pid
-      }, { onConflict: 'id' })
+
+    if (turnos.length) {
+      await sb.from('turnos_manuales_web').upsert(
+        turnos.map(t => ({
+          id: `${pid}_${t.id}`,
+          peluquero_id: t.peluquero_id,
+          fecha: t.fecha,
+          hora: t.hora,
+          peluqueria_id: pid
+        })),
+        { onConflict: 'id' }
+      )
     }
 
     await syncDiasBloqueados()
@@ -1136,7 +1115,7 @@ if (!gotTheLock) {
     setTimeout(async () => {
       await checkNuevosTurnos()
       iniciarRealtime()
-      setInterval(checkNuevosTurnos, 3000)
+      setInterval(checkNuevosTurnos, 20000)
     }, 8000)
 
     // 10s — Auto-backup nube solo si la base tiene datos reales
