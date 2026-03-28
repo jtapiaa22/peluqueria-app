@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Lock, CheckCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { ModalAlert, ModalConfirm } from '../../components/Modal'
 import { usePDF } from '../../hooks/usePDF'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,16 +22,12 @@ function formatFecha(f) {
 }
 
 export default function Liquidacion() {
-  const [desbloqueado, setDesbloqueado] = useState(false)
-  const [password, setPassword]         = useState('')
   const [peluqueros, setPeluqueros]     = useState([])
   const [atenciones, setAtenciones]     = useState([])
   const [desde, setDesde]               = useState(primerDiaMes())
   const [hasta, setHasta]               = useState(hoy())
   const [modalAlert, setModalAlert]     = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
-  const [cambiarPass, setCambiarPass]   = useState(false)
-  const [passForm, setPassForm]         = useState({ actual: '', nueva: '', repetir: '' })
 
   const [panelPago, setPanelPago]       = useState(null)
   const [formPago, setFormPago]         = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
@@ -41,18 +37,6 @@ export default function Liquidacion() {
   const { generarReporte } = usePDF()
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
   const confirmar = (mensaje, onConfirm)     => setModalConfirm({ mensaje, onConfirm })
-
-  const desbloquear = async () => {
-    const result = await window.electronAPI.getConfig('password_liquidacion')
-    if (result && result.valor === password) {
-      setDesbloqueado(true)
-      setPassword('')
-      cargarDatos()
-    } else {
-      alertar('Contraseña incorrecta.', 'error')
-      setPassword('')
-    }
-  }
 
   const cargarDatos = async () => {
     const [p, a, todosTramos] = await Promise.all([
@@ -74,7 +58,7 @@ export default function Liquidacion() {
   }
 
   useEffect(() => {
-    if (desbloqueado) cargarDatos()
+    cargarDatos()
   }, [desde, hasta])
 
   const cargarPagosExistentes = async (peluqueroId) => {
@@ -140,26 +124,6 @@ export default function Liquidacion() {
       await window.electronAPI.deletePago(pago.id)
       await cargarPagosExistentes(pago.peluquero_id)
     })
-  }
-
-  const cambiarContrasena = async () => {
-    if (!passForm.actual || !passForm.nueva || !passForm.repetir) {
-      alertar('Completá todos los campos.', 'warning')
-      return
-    }
-    if (passForm.nueva !== passForm.repetir) {
-      alertar('La nueva contraseña no coincide.', 'error')
-      return
-    }
-    const result = await window.electronAPI.getConfig('password_liquidacion')
-    if (result && result.valor !== passForm.actual) {
-      alertar('La contraseña actual es incorrecta.', 'error')
-      return
-    }
-    await window.electronAPI.setConfig({ clave: 'password_liquidacion', valor: passForm.nueva })
-    alertar('Contraseña actualizada correctamente.', 'success')
-    setPassForm({ actual: '', nueva: '', repetir: '' })
-    setCambiarPass(false)
   }
 
   const getLiquidacionPeluquero = (peluqueroId) => {
@@ -248,40 +212,7 @@ export default function Liquidacion() {
     })
   }
 
-  // ── Pantalla de login ──
-  if (!desbloqueado) {
-    return (
-      <div>
-        {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
-        <h1 className="page-title">Liquidación</h1>
-        <div style={{ maxWidth: 380, margin: '60px auto' }}>
-          <div className="card" style={{ textAlign: 'center' }}>
-            <Lock size={40} style={{ color: '#a78bfa', marginBottom: 16 }} />
-            <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Sección privada</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>
-              Ingresá la contraseña para acceder a las liquidaciones.
-            </p>
-            <div className="form-group" style={{ textAlign: 'left' }}>
-              <label>Contraseña</label>
-              <input
-                className="input"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && desbloquear()}
-                placeholder="••••••••"
-              />
-            </div>
-            <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} onClick={desbloquear}>
-              Ingresar
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Vista desbloqueada ──
+  // ── Vista principal ──
   return (
     <div className="page-animation">
       {modalAlert  && <ModalAlert   mensaje={modalAlert.mensaje}   tipo={modalAlert.tipo}   onClose={() => setModalAlert(null)} />}
@@ -292,42 +223,8 @@ export default function Liquidacion() {
         <h1 className="page-title" style={{ margin: 0 }}>Liquidación</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-secondary" onClick={exportarPDF}>Exportar PDF</button>
-          <button className="btn btn-secondary" onClick={() => setCambiarPass(!cambiarPass)}>Cambiar contraseña</button>
-          <button className="btn btn-secondary" onClick={() => setDesbloqueado(false)}>
-            <Lock size={14} style={{ marginRight: 6 }} />Bloquear
-          </button>
         </div>
       </div>
-
-      {/* Cambiar contraseña */}
-      <AnimatePresence>
-        {cambiarPass && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="card"
-          >
-            <div style={{ maxWidth: 400, marginBottom: 8 }}>
-              <h3 style={{ color: '#a78bfa', marginBottom: 16 }}>Cambiar contraseña</h3>
-              <div className="form-group">
-                <label>Contraseña actual</label>
-                <input className="input" type="password" value={passForm.actual} onChange={e => setPassForm({ ...passForm, actual: e.target.value })} placeholder="••••••••" />
-              </div>
-              <div className="form-group">
-                <label>Nueva contraseña</label>
-                <input className="input" type="password" value={passForm.nueva} onChange={e => setPassForm({ ...passForm, nueva: e.target.value })} placeholder="••••••••" />
-              </div>
-              <div className="form-group">
-                <label>Repetir nueva contraseña</label>
-                <input className="input" type="password" value={passForm.repetir} onChange={e => setPassForm({ ...passForm, repetir: e.target.value })} placeholder="••••••••" />
-              </div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-primary" onClick={cambiarContrasena}>Guardar</button>
-                <button className="btn btn-secondary" onClick={() => setCambiarPass(false)}>Cancelar</button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Filtro de período */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>

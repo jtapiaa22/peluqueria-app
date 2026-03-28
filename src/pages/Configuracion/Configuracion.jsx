@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ModalAlert } from '../../components/Modal'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
   '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
@@ -61,6 +61,169 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [senaLoading, setSenaLoading]       = useState(false)
   const [senaGuardada, setSenaGuardada]     = useState(false)
 
+  // ── SEGURIDAD ──
+  const SECCIONES_PROTEGIBLES = [
+    { key: 'password_dashboard',    label: 'Dashboard',    icono: '📊' },
+    { key: 'password_agenda',       label: 'Agenda',       icono: '📅' },
+    { key: 'password_peluqueros',   label: 'Peluqueros',   icono: '👥' },
+    { key: 'password_servicios',    label: 'Servicios',    icono: '✂️' },
+    { key: 'password_atenciones',   label: 'Atenciones',   icono: '📋' },
+    { key: 'password_reportes',     label: 'Reportes',     icono: '📈' },
+    { key: 'password_caja',         label: 'Caja',         icono: '💰' },
+    { key: 'password_liquidacion',  label: 'Liquidación',  icono: '🔒' },
+    { key: 'password_gastos',       label: 'Gastos',       icono: '📉' },
+  ]
+  const PREGUNTAS_SEGURIDAD = [
+    '¿Nombre de tu primera mascota?',
+    '¿En qué ciudad naciste?',
+    '¿Cuál es tu comida favorita?',
+    '¿Nombre de tu mejor amigo/a de la infancia?',
+    '¿Cuál fue tu primer auto o moto?',
+    '¿Cómo se llama tu mamá?',
+  ]
+  const [passwordsSecciones, setPasswordsSecciones] = useState({})
+  const [editandoPassword, setEditandoPassword]     = useState(null)
+  const [passFormSeg, setPassFormSeg]               = useState({ nueva: '', repetir: '' })
+  const [showPassSeg, setShowPassSeg]               = useState(false)
+
+  // Master password state
+  const [maestraCargando, setMaestraCargando]       = useState(true)
+  const [tieneMaestra, setTieneMaestra]             = useState(false)
+  const [seguridadDesbloqueada, setSeguridadDesbloqueada] = useState(false)
+  const [maestraInput, setMaestraInput]             = useState('')
+  const [maestraError, setMaestraError]             = useState('')
+  const [showMaestraInput, setShowMaestraInput]     = useState(false)
+
+  // Setup master password (first time)
+  const [setupMaestra, setSetupMaestra] = useState({ pass: '', repetir: '', pregunta: '', respuesta: '' })
+  const [showSetupPass, setShowSetupPass] = useState(false)
+
+  // Recovery flow
+  const [modoRecuperacion, setModoRecuperacion]     = useState(false)
+  const [preguntaActual, setPreguntaActual]         = useState('')
+  const [respuestaInput, setRespuestaInput]         = useState('')
+  const [recoveryError, setRecoveryError]           = useState('')
+  const [recoveryExito, setRecoveryExito]           = useState(false)
+  const [nuevaMaestraRecovery, setNuevaMaestraRecovery] = useState({ pass: '', repetir: '' })
+  const [showRecoveryPass, setShowRecoveryPass]     = useState(false)
+
+  const cargarEstadoMaestra = async () => {
+    setMaestraCargando(true)
+    const val = await window.electronAPI.getConfig('password_maestra')
+    setTieneMaestra(!!(val?.valor))
+    setMaestraCargando(false)
+  }
+
+  const cargarPasswordsSecciones = async () => {
+    const result = {}
+    for (const s of SECCIONES_PROTEGIBLES) {
+      const val = await window.electronAPI.getConfig(s.key)
+      result[s.key] = !!(val?.valor)
+    }
+    setPasswordsSecciones(result)
+  }
+
+  const desbloquearMaestra = async () => {
+    if (!maestraInput.trim()) return
+    const result = await window.electronAPI.getConfig('password_maestra')
+    if (result && result.valor === maestraInput) {
+      setSeguridadDesbloqueada(true)
+      setMaestraInput('')
+      setMaestraError('')
+      setShowMaestraInput(false)
+    } else {
+      setMaestraError('Contraseña maestra incorrecta.')
+      setMaestraInput('')
+    }
+  }
+
+  const crearMaestra = async () => {
+    if (!setupMaestra.pass.trim()) {
+      setModalAlert({ mensaje: 'Ingresá una contraseña maestra.', tipo: 'warning' }); return
+    }
+    if (setupMaestra.pass !== setupMaestra.repetir) {
+      setModalAlert({ mensaje: 'Las contraseñas no coinciden.', tipo: 'error' }); return
+    }
+    if (!setupMaestra.pregunta) {
+      setModalAlert({ mensaje: 'Elegí una pregunta de seguridad.', tipo: 'warning' }); return
+    }
+    if (!setupMaestra.respuesta.trim()) {
+      setModalAlert({ mensaje: 'Ingresá la respuesta a la pregunta de seguridad.', tipo: 'warning' }); return
+    }
+    await window.electronAPI.setConfig({ clave: 'password_maestra', valor: setupMaestra.pass })
+    await window.electronAPI.setConfig({ clave: 'pregunta_seguridad', valor: setupMaestra.pregunta })
+    await window.electronAPI.setConfig({ clave: 'respuesta_seguridad', valor: setupMaestra.respuesta.trim().toLowerCase() })
+    setTieneMaestra(true)
+    setSeguridadDesbloqueada(true)
+    setSetupMaestra({ pass: '', repetir: '', pregunta: '', respuesta: '' })
+    setShowSetupPass(false)
+    setModalAlert({ mensaje: '✅ Contraseña maestra creada. Ya podés proteger las secciones.', tipo: 'success' })
+  }
+
+  const iniciarRecuperacion = async () => {
+    const preg = await window.electronAPI.getConfig('pregunta_seguridad')
+    if (!preg?.valor) {
+      setModalAlert({ mensaje: 'No hay pregunta de seguridad configurada. Contactá al soporte.', tipo: 'error' })
+      return
+    }
+    setPreguntaActual(preg.valor)
+    setModoRecuperacion(true)
+    setRecoveryError('')
+    setRecoveryExito(false)
+    setRespuestaInput('')
+    setNuevaMaestraRecovery({ pass: '', repetir: '' })
+    setShowRecoveryPass(false)
+  }
+
+  const verificarRespuesta = async () => {
+    if (!respuestaInput.trim()) return
+    const resp = await window.electronAPI.getConfig('respuesta_seguridad')
+    if (resp && resp.valor === respuestaInput.trim().toLowerCase()) {
+      setRecoveryExito(true)
+      setRecoveryError('')
+    } else {
+      setRecoveryError('Respuesta incorrecta.')
+      setRespuestaInput('')
+    }
+  }
+
+  const guardarNuevaMaestra = async () => {
+    if (!nuevaMaestraRecovery.pass.trim()) {
+      setModalAlert({ mensaje: 'Ingresá la nueva contraseña maestra.', tipo: 'warning' }); return
+    }
+    if (nuevaMaestraRecovery.pass !== nuevaMaestraRecovery.repetir) {
+      setModalAlert({ mensaje: 'Las contraseñas no coinciden.', tipo: 'error' }); return
+    }
+    await window.electronAPI.setConfig({ clave: 'password_maestra', valor: nuevaMaestraRecovery.pass })
+    setSeguridadDesbloqueada(true)
+    setModoRecuperacion(false)
+    setRecoveryExito(false)
+    setNuevaMaestraRecovery({ pass: '', repetir: '' })
+    setShowRecoveryPass(false)
+    setModalAlert({ mensaje: '✅ Contraseña maestra actualizada.', tipo: 'success' })
+  }
+
+  const guardarPasswordSeccion = async (key) => {
+    if (!passFormSeg.nueva.trim()) {
+      setModalAlert({ mensaje: 'Ingresá una contraseña.', tipo: 'warning' }); return
+    }
+    if (passFormSeg.nueva !== passFormSeg.repetir) {
+      setModalAlert({ mensaje: 'Las contraseñas no coinciden.', tipo: 'error' }); return
+    }
+    await window.electronAPI.setConfig({ clave: key, valor: passFormSeg.nueva })
+    setModalAlert({ mensaje: '✅ Contraseña configurada correctamente.', tipo: 'success' })
+    setEditandoPassword(null)
+    setPassFormSeg({ nueva: '', repetir: '' })
+    setShowPassSeg(false)
+    await cargarPasswordsSecciones()
+  }
+
+  const quitarPasswordSeccion = async (key) => {
+    await window.electronAPI.setConfig({ clave: key, valor: '' })
+    setModalAlert({ mensaje: '✅ Contraseña eliminada. La sección ya no está protegida.', tipo: 'success' })
+    await cargarPasswordsSecciones()
+  }
+
   const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
 
   useEffect(() => {
@@ -69,6 +232,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     window.electronAPI.getLogo().then(logo => { if (logo) setLogoPreview(logo) })
     window.electronAPI.getUltimoBackupNube().then(ts => setUltimoBackupNube(ts))
     cargarWebConfig()
+    cargarPasswordsSecciones()
+    cargarEstadoMaestra()
   }, [])
 
   const cargarWebConfig = async () => {
@@ -220,8 +385,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   }
 
   // ── Nav items ──────────────────────────────────────────────────────────────
+  const seccionesProtegidas = Object.values(passwordsSecciones).filter(Boolean).length
   const navItems = [
     { id: 'apariencia', label: 'Apariencia', icono: <Palette size={16}/> },
+    { id: 'seguridad',  label: 'Seguridad',  icono: <Shield size={16}/>,
+      badge: seccionesProtegidas > 0 ? String(seccionesProtegidas) : null, badgeColor: '#a78bfa' },
     { id: 'backups',    label: 'Backups',    icono: <HardDrive size={16}/> },
     { id: 'web',        label: 'Web y Backup', icono: <Globe size={16}/>,
       badge: webPaso === 'configurado' ? '●' : null, badgeColor: '#4ade80' },
@@ -397,6 +565,321 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   {logoPreview ? 'Cambiar logo' : 'Subir logo'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── SEGURIDAD ── */}
+          {seccion === 'seguridad' && (
+            <div>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>Seguridad</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28, lineHeight: 1.6 }}>
+                Protegé con contraseña las secciones que no querés que otros vean.
+              </p>
+
+              {/* ── CARGANDO ── */}
+              {maestraCargando && (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>
+                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite', marginBottom: 10, display: 'block', margin: '0 auto 10px' }} />
+                  Cargando...
+                </div>
+              )}
+
+              {/* ── SETUP: primera vez, crear contraseña maestra ── */}
+              {!maestraCargando && !tieneMaestra && (
+                <div style={{ maxWidth: 420 }}>
+                  <div style={{
+                    background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)',
+                    borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13,
+                    color: 'var(--text-muted)', lineHeight: 1.6,
+                  }}>
+                    <Shield size={14} style={{ verticalAlign: 'middle', marginRight: 6, color: '#a78bfa' }} />
+                    Para proteger las secciones, primero tenés que crear una <strong style={{ color: '#c4b5fd' }}>contraseña maestra</strong>. Es la clave que te va a pedir cada vez que quieras gestionar las contraseñas.
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Contraseña maestra</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        className="input"
+                        type={showSetupPass ? 'text' : 'password'}
+                        value={setupMaestra.pass}
+                        onChange={e => setSetupMaestra({ ...setupMaestra, pass: e.target.value })}
+                        placeholder="••••••••"
+                        autoFocus
+                        style={{ paddingRight: 40 }}
+                      />
+                      <button type="button" onClick={() => setShowSetupPass(!showSetupPass)}
+                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+                        {showSetupPass ? <EyeOff size={15}/> : <Eye size={15}/>}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontSize: 13 }}>Repetir contraseña maestra</label>
+                    <input className="input" type={showSetupPass ? 'text' : 'password'} value={setupMaestra.repetir}
+                      onChange={e => setSetupMaestra({ ...setupMaestra, repetir: e.target.value })} placeholder="••••••••" />
+                  </div>
+                  {setupMaestra.pass && setupMaestra.repetir && setupMaestra.pass !== setupMaestra.repetir && (
+                    <div style={{ color: '#f87171', fontSize: 12, marginBottom: 10 }}>Las contraseñas no coinciden.</div>
+                  )}
+
+                  <div style={{ borderTop: '1px solid var(--border-soft)', paddingTop: 20, marginTop: 20 }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: 13 }}>Pregunta de seguridad</label>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 8 }}>Por si olvidás la contraseña maestra.</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {PREGUNTAS_SEGURIDAD.map(p => (
+                          <button key={p} onClick={() => setSetupMaestra({ ...setupMaestra, pregunta: p })}
+                            style={{
+                              padding: '9px 14px', borderRadius: 8, border: '1px solid',
+                              fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
+                              borderColor: setupMaestra.pregunta === p ? '#a78bfa' : 'var(--border-soft)',
+                              background: setupMaestra.pregunta === p ? 'rgba(167,139,250,0.12)' : 'transparent',
+                              color: setupMaestra.pregunta === p ? '#c4b5fd' : 'var(--text-muted)',
+                              fontWeight: setupMaestra.pregunta === p ? 600 : 400,
+                            }}>
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {setupMaestra.pregunta && (
+                      <div className="form-group">
+                        <label style={{ fontSize: 13 }}>Tu respuesta</label>
+                        <input className="input" value={setupMaestra.respuesta}
+                          onChange={e => setSetupMaestra({ ...setupMaestra, respuesta: e.target.value })}
+                          placeholder="Tu respuesta..." />
+                        <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>No importan mayúsculas/minúsculas.</div>
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="btn btn-primary" onClick={crearMaestra} style={{ marginTop: 16, width: '100%' }}>
+                    🔐 Crear contraseña maestra
+                  </button>
+                </div>
+              )}
+
+              {/* ── LOCK: pedir contraseña maestra para entrar ── */}
+              {!maestraCargando && tieneMaestra && !seguridadDesbloqueada && !modoRecuperacion && (
+                <div style={{ maxWidth: 380, margin: '30px auto' }}>
+                  <div className="card" style={{ textAlign: 'center' }}>
+                    <Lock size={40} style={{ color: '#a78bfa', marginBottom: 16 }} />
+                    <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Contraseña maestra</h3>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+                      Ingresá la contraseña maestra para gestionar las contraseñas de las secciones.
+                    </p>
+                    <div className="form-group" style={{ textAlign: 'left' }}>
+                      <label>Contraseña</label>
+                      <div style={{ position: 'relative' }}>
+                        <input className="input" type={showMaestraInput ? 'text' : 'password'} value={maestraInput}
+                          onChange={e => { setMaestraInput(e.target.value); setMaestraError('') }}
+                          onKeyDown={e => e.key === 'Enter' && desbloquearMaestra()}
+                          placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
+                        <button type="button" onClick={() => setShowMaestraInput(!showMaestraInput)}
+                          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+                          {showMaestraInput ? <EyeOff size={15}/> : <Eye size={15}/>}
+                        </button>
+                      </div>
+                    </div>
+                    {maestraError && (
+                      <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#f87171', fontSize: 13, textAlign: 'left' }}>
+                        {maestraError}
+                      </div>
+                    )}
+                    <button className="btn btn-primary" style={{ width: '100%', marginTop: 4 }} onClick={desbloquearMaestra}>
+                      Ingresar
+                    </button>
+                    <button onClick={iniciarRecuperacion}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 12, marginTop: 16, textDecoration: 'underline' }}>
+                      Olvidé mi contraseña maestra
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── RECOVERY: pregunta de seguridad ── */}
+              {!maestraCargando && tieneMaestra && !seguridadDesbloqueada && modoRecuperacion && (
+                <div style={{ maxWidth: 420, margin: '20px auto' }}>
+                  <div className="card">
+                    <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                      <div style={{ fontSize: 36, marginBottom: 10 }}>🔑</div>
+                      <h3 style={{ color: 'var(--text-main)', marginBottom: 6 }}>Recuperar contraseña maestra</h3>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Respondé la pregunta de seguridad para crear una nueva.</p>
+                    </div>
+
+                    {!recoveryExito ? (
+                      <>
+                        <div style={{
+                          background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)',
+                          borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 14,
+                          color: '#c4b5fd', fontWeight: 600, textAlign: 'center',
+                        }}>
+                          {preguntaActual}
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 13 }}>Tu respuesta</label>
+                          <input className="input" value={respuestaInput}
+                            onChange={e => { setRespuestaInput(e.target.value); setRecoveryError('') }}
+                            onKeyDown={e => e.key === 'Enter' && verificarRespuesta()}
+                            placeholder="Escribí tu respuesta..." autoFocus />
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>No importan mayúsculas/minúsculas.</div>
+                        </div>
+                        {recoveryError && (
+                          <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '8px 12px', marginBottom: 12, color: '#f87171', fontSize: 13 }}>
+                            {recoveryError}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                          <button className="btn btn-primary" onClick={verificarRespuesta} style={{ flex: 1 }}>Verificar</button>
+                          <button className="btn btn-secondary" onClick={() => { setModoRecuperacion(false); setRespuestaInput(''); setRecoveryError('') }}>Cancelar</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 10, padding: '10px 16px', marginBottom: 20, color: '#4ade80', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>
+                          ✅ Respuesta correcta. Creá tu nueva contraseña maestra.
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 13 }}>Nueva contraseña maestra</label>
+                          <div style={{ position: 'relative' }}>
+                            <input className="input" type={showRecoveryPass ? 'text' : 'password'} value={nuevaMaestraRecovery.pass}
+                              onChange={e => setNuevaMaestraRecovery({ ...nuevaMaestraRecovery, pass: e.target.value })}
+                              placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
+                            <button type="button" onClick={() => setShowRecoveryPass(!showRecoveryPass)}
+                              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+                              {showRecoveryPass ? <EyeOff size={15}/> : <Eye size={15}/>}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label style={{ fontSize: 13 }}>Repetir nueva contraseña</label>
+                          <input className="input" type={showRecoveryPass ? 'text' : 'password'} value={nuevaMaestraRecovery.repetir}
+                            onChange={e => setNuevaMaestraRecovery({ ...nuevaMaestraRecovery, repetir: e.target.value })}
+                            onKeyDown={e => e.key === 'Enter' && guardarNuevaMaestra()}
+                            placeholder="••••••••" />
+                        </div>
+                        {nuevaMaestraRecovery.pass && nuevaMaestraRecovery.repetir && nuevaMaestraRecovery.pass !== nuevaMaestraRecovery.repetir && (
+                          <div style={{ color: '#f87171', fontSize: 12, marginBottom: 10 }}>Las contraseñas no coinciden.</div>
+                        )}
+                        <button className="btn btn-primary" onClick={guardarNuevaMaestra} style={{ width: '100%' }}>
+                          Guardar nueva contraseña maestra
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── DESBLOQUEADO: lista de secciones protegibles ── */}
+              {!maestraCargando && tieneMaestra && seguridadDesbloqueada && (
+                <div>
+                  <div style={{
+                    background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)',
+                    borderRadius: 10, padding: '10px 16px', marginBottom: 24, fontSize: 13,
+                    color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}>
+                    <span><Unlock size={13} style={{ verticalAlign: 'middle', marginRight: 6 }} />Contraseña maestra verificada</span>
+                    <button onClick={() => { setSeguridadDesbloqueada(false); setMaestraInput('') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 12, fontWeight: 600 }}>
+                      <Lock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />Bloquear
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {SECCIONES_PROTEGIBLES.map((s, idx) => {
+                      const tienePass = passwordsSecciones[s.key]
+                      const editando = editandoPassword === s.key
+                      return (
+                        <div key={s.key} style={{
+                          borderBottom: idx < SECCIONES_PROTEGIBLES.length - 1 ? '1px solid var(--border-soft)' : 'none',
+                          padding: '16px 0',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 18 }}>{s.icono}</span>
+                              <div>
+                                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14 }}>{s.label}</div>
+                                <div style={{ fontSize: 12, color: tienePass ? '#4ade80' : 'var(--text-muted)', marginTop: 2 }}>
+                                  {tienePass
+                                    ? <><Lock size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />Protegido con contraseña</>
+                                    : <><Unlock size={11} style={{ verticalAlign: 'middle', marginRight: 4 }} />Sin contraseña</>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button className="btn btn-secondary"
+                                onClick={() => {
+                                  if (editando) {
+                                    setEditandoPassword(null)
+                                    setPassFormSeg({ nueva: '', repetir: '' })
+                                    setShowPassSeg(false)
+                                  } else {
+                                    setEditandoPassword(s.key)
+                                    setPassFormSeg({ nueva: '', repetir: '' })
+                                    setShowPassSeg(false)
+                                  }
+                                }}
+                                style={{ fontSize: 12, padding: '6px 14px' }}>
+                                {editando ? 'Cancelar' : tienePass ? 'Cambiar' : 'Poner contraseña'}
+                              </button>
+                              {tienePass && !editando && (
+                                <button className="btn btn-secondary"
+                                  onClick={() => quitarPasswordSeccion(s.key)}
+                                  title="Quitar contraseña"
+                                  style={{ fontSize: 12, padding: '6px 10px', color: '#f87171' }}>
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {editando && (
+                            <div style={{
+                              marginTop: 14, padding: '16px 18px',
+                              background: 'var(--bg-main)', border: '1px solid var(--border-soft)',
+                              borderRadius: 10,
+                            }}>
+                              <div style={{ maxWidth: 320 }}>
+                                <div className="form-group">
+                                  <label style={{ fontSize: 13 }}>Nueva contraseña</label>
+                                  <div style={{ position: 'relative' }}>
+                                    <input className="input" type={showPassSeg ? 'text' : 'password'}
+                                      value={passFormSeg.nueva}
+                                      onChange={e => setPassFormSeg({ ...passFormSeg, nueva: e.target.value })}
+                                      placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
+                                    <button type="button" onClick={() => setShowPassSeg(!showPassSeg)}
+                                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
+                                      {showPassSeg ? <EyeOff size={15}/> : <Eye size={15}/>}
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="form-group">
+                                  <label style={{ fontSize: 13 }}>Repetir contraseña</label>
+                                  <input className="input" type={showPassSeg ? 'text' : 'password'}
+                                    value={passFormSeg.repetir}
+                                    onChange={e => setPassFormSeg({ ...passFormSeg, repetir: e.target.value })}
+                                    onKeyDown={e => e.key === 'Enter' && guardarPasswordSeccion(s.key)}
+                                    placeholder="••••••••" />
+                                </div>
+                                {passFormSeg.nueva && passFormSeg.repetir && passFormSeg.nueva !== passFormSeg.repetir && (
+                                  <div style={{ color: '#f87171', fontSize: 12, marginBottom: 10 }}>Las contraseñas no coinciden.</div>
+                                )}
+                                <button className="btn btn-primary" onClick={() => guardarPasswordSeccion(s.key)} style={{ fontSize: 13 }}>
+                                  {tienePass ? 'Actualizar contraseña' : 'Guardar contraseña'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

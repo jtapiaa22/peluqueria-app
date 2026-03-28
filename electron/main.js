@@ -422,7 +422,7 @@ ipcMain.handle('atenciones:getValesPorMes', () =>
 
 // CONFIG
 ipcMain.handle('config:get',(_,c)=>db.prepare('SELECT valor FROM configuracion WHERE clave=?').get(c)||null)
-const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app','sena_monto','sena_alias','sena_horas_vencimiento'])
+const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','password_dashboard','password_agenda','password_peluqueros','password_servicios','password_atenciones','password_reportes','password_caja','password_gastos','password_maestra','pregunta_seguridad','respuesta_seguridad','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app','sena_monto','sena_alias','sena_horas_vencimiento'])
 ipcMain.handle('config:set',(_,{clave,valor})=>{ if(!CONFIG_CLAVES_PERMITIDAS.has(clave)) return false; db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
 
 // CAJA

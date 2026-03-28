@@ -13,6 +13,7 @@ import Agenda       from './pages/Agenda/Agenda'
 import Configuracion from './pages/Configuracion/Configuracion'
 import Licencia     from './pages/Licencia/Licencia'
 import Actualizador from './components/Actualizador'
+import PasswordGate from './components/PasswordGate'
 import './App.css'
 import { useTheme } from './hooks/useTheme'
 
@@ -28,6 +29,13 @@ function App() {
   const [bandejaAbierta, setBandejaAbierta] = useState(false)
   const noLeidas = notificaciones.filter(n => !n.leida).length
   const [pendientesWeb, setPendientesWeb] = useState(0)
+  const [desbloqueados, setDesbloqueados] = useState({
+    dashboard: false, agenda: false, peluqueros: false, servicios: false,
+    atenciones: false, reportes: false, caja: false, liquidacion: false, gastos: false,
+  })
+
+  const desbloquearSeccion = (key) => setDesbloqueados(prev => ({ ...prev, [key]: true }))
+  const bloquearSeccion = (key) => setDesbloqueados(prev => ({ ...prev, [key]: false }))
 
   useEffect(() => {
     window.electronAPI.verificarLicencia().then(res => {
@@ -260,15 +268,78 @@ function App() {
 
         <main className="main-content">
           <Routes>
-            <Route path="/"              element={<Dashboard />} />
-            <Route path="/agenda"        element={<Agenda />} />
-            <Route path="/peluqueros"    element={<Peluqueros />} />
-            <Route path="/servicios"     element={<Servicios />} />
-            <Route path="/atenciones"    element={<Atenciones />} />
-            <Route path="/caja"          element={<Caja />} />
-            <Route path="/reportes"      element={<Reportes />} />
-            <Route path="/liquidacion"   element={<Liquidacion />} />
-            <Route path="/gastos"        element={<Gastos />} />
+            <Route path="/" element={
+              <PasswordGate configKey="password_dashboard" titulo="Dashboard"
+                desbloqueado={desbloqueados.dashboard}
+                onDesbloquear={() => desbloquearSeccion('dashboard')}
+                onBloquear={() => bloquearSeccion('dashboard')}>
+                <Dashboard />
+              </PasswordGate>
+            } />
+            <Route path="/agenda" element={
+              <PasswordGate configKey="password_agenda" titulo="Agenda"
+                desbloqueado={desbloqueados.agenda}
+                onDesbloquear={() => desbloquearSeccion('agenda')}
+                onBloquear={() => bloquearSeccion('agenda')}>
+                <Agenda />
+              </PasswordGate>
+            } />
+            <Route path="/peluqueros" element={
+              <PasswordGate configKey="password_peluqueros" titulo="Peluqueros"
+                desbloqueado={desbloqueados.peluqueros}
+                onDesbloquear={() => desbloquearSeccion('peluqueros')}
+                onBloquear={() => bloquearSeccion('peluqueros')}>
+                <Peluqueros />
+              </PasswordGate>
+            } />
+            <Route path="/servicios" element={
+              <PasswordGate configKey="password_servicios" titulo="Servicios"
+                desbloqueado={desbloqueados.servicios}
+                onDesbloquear={() => desbloquearSeccion('servicios')}
+                onBloquear={() => bloquearSeccion('servicios')}>
+                <Servicios />
+              </PasswordGate>
+            } />
+            <Route path="/atenciones" element={
+              <PasswordGate configKey="password_atenciones" titulo="Atenciones"
+                desbloqueado={desbloqueados.atenciones}
+                onDesbloquear={() => desbloquearSeccion('atenciones')}
+                onBloquear={() => bloquearSeccion('atenciones')}>
+                <Atenciones />
+              </PasswordGate>
+            } />
+            <Route path="/caja" element={
+              <PasswordGate configKey="password_caja" titulo="Caja"
+                desbloqueado={desbloqueados.caja}
+                onDesbloquear={() => desbloquearSeccion('caja')}
+                onBloquear={() => bloquearSeccion('caja')}>
+                <Caja />
+              </PasswordGate>
+            } />
+            <Route path="/reportes" element={
+              <PasswordGate configKey="password_reportes" titulo="Reportes"
+                desbloqueado={desbloqueados.reportes}
+                onDesbloquear={() => desbloquearSeccion('reportes')}
+                onBloquear={() => bloquearSeccion('reportes')}>
+                <Reportes />
+              </PasswordGate>
+            } />
+            <Route path="/liquidacion" element={
+              <PasswordGate configKey="password_liquidacion" titulo="Liquidación"
+                desbloqueado={desbloqueados.liquidacion}
+                onDesbloquear={() => desbloquearSeccion('liquidacion')}
+                onBloquear={() => bloquearSeccion('liquidacion')}>
+                <Liquidacion />
+              </PasswordGate>
+            } />
+            <Route path="/gastos" element={
+              <PasswordGate configKey="password_gastos" titulo="Gastos"
+                desbloqueado={desbloqueados.gastos}
+                onDesbloquear={() => desbloquearSeccion('gastos')}
+                onBloquear={() => bloquearSeccion('gastos')}>
+                <Gastos />
+              </PasswordGate>
+            } />
             <Route path="/configuracion" element={<Configuracion
               onNombreChange={setNombreApp}
               onLogoChange={setLogo}
