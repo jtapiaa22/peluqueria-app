@@ -101,6 +101,16 @@ const MIGRATIONS = [
       if(!db.prepare("SELECT id FROM configuracion WHERE clave=?").get(c)) db.prepare("INSERT INTO configuracion(clave, valor) VALUES(?,?)").run(c, '')
     }
   }},
+  { version: 13, descripcion: 'Caja de vales', up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS periodos_vales(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fecha_apertura TEXT NOT NULL,
+      hora_apertura TEXT NOT NULL,
+      fecha_cierre TEXT,
+      hora_cierre TEXT,
+      estado TEXT DEFAULT 'abierta'
+    );`)
+  }},
 ]
 
 function runMigrations() {
@@ -431,6 +441,46 @@ ipcMain.handle('caja:getCajaAbierta',()=>db.prepare("SELECT * FROM cierre_caja W
 ipcMain.handle('caja:cerrar',async(_,d)=>{ db.prepare(`UPDATE cierre_caja SET hora_cierre=?,total_efectivo=?,total_transferencia=?,total_general=?,observaciones=?,estado='cerrada' WHERE id=?`).run(d.hora_cierre,d.total_efectivo,d.total_transferencia,d.total_general,d.observaciones||null,d.id); return true })
 ipcMain.handle('caja:getCierres',(_,f)=>f?db.prepare("SELECT * FROM cierre_caja WHERE fecha=? AND estado='cerrada' ORDER BY hora_apertura ASC").all(f):db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY fecha DESC,hora_apertura ASC").all())
 ipcMain.handle('caja:getDetalleCierre',(_,{hora_apertura,hora_cierre,fecha})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? AND a.hora>=? AND a.hora<=? ORDER BY a.hora ASC`).all(fecha,hora_apertura,hora_cierre))
+
+// PERIODOS VALES (CAJA VALES)
+ipcMain.handle('periodosVales:abrir', (_, d) => {
+  const r = db.prepare("INSERT INTO periodos_vales(fecha_apertura, hora_apertura, estado) VALUES(?,?, 'abierta')").run(d.fecha_apertura, d.hora_apertura)
+  return r.lastInsertRowid
+})
+ipcMain.handle('periodosVales:cerrar', (_, d) => {
+  db.prepare("UPDATE periodos_vales SET fecha_cierre=?, hora_cierre=?, estado='cerrada' WHERE id=?").run(d.fecha_cierre, d.hora_cierre, d.id)
+  return true
+})
+ipcMain.handle('periodosVales:getAbierto', () => {
+  return db.prepare("SELECT * FROM periodos_vales WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get() || null
+})
+ipcMain.handle('periodosVales:getTodos', () => {
+  return db.prepare("SELECT * FROM periodos_vales ORDER BY id DESC").all()
+})
+ipcMain.handle('periodosVales:getVales', (_, p) => {
+  if (p.estado === 'abierta') {
+    return db.prepare(`
+      SELECT p.nombre as peluquero_nombre, COUNT(*) as cantidad
+      FROM atenciones a
+      JOIN peluqueros p ON a.peluquero_id = p.id
+      WHERE a.metodo_pago = 'vale'
+        AND (a.fecha > ? OR (a.fecha = ? AND a.hora >= ?))
+      GROUP BY a.peluquero_id
+      ORDER BY p.nombre ASC
+    `).all(p.fecha_apertura, p.fecha_apertura, p.hora_apertura)
+  } else {
+    return db.prepare(`
+      SELECT p.nombre as peluquero_nombre, COUNT(*) as cantidad
+      FROM atenciones a
+      JOIN peluqueros p ON a.peluquero_id = p.id
+      WHERE a.metodo_pago = 'vale'
+        AND (a.fecha > ? OR (a.fecha = ? AND a.hora >= ?))
+        AND (a.fecha < ? OR (a.fecha = ? AND a.hora <= ?))
+      GROUP BY a.peluquero_id
+      ORDER BY p.nombre ASC
+    `).all(p.fecha_apertura, p.fecha_apertura, p.hora_apertura, p.fecha_cierre, p.fecha_cierre, p.hora_cierre)
+  }
+})
 
 
 // BACKUP

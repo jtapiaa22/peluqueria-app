@@ -45,6 +45,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCierres:           (fecha) => ipcRenderer.invoke('caja:getCierres', fecha),
   getDetalleCierre:     (data)  => ipcRenderer.invoke('caja:getDetalleCierre', data),
 
+  // Periodos Vales
+  abrirPeriodoVales:    (data)  => ipcRenderer.invoke('periodosVales:abrir', data),
+  cerrarPeriodoVales:   (data)  => ipcRenderer.invoke('periodosVales:cerrar', data),
+  getPeriodoValesAbierto: ()    => ipcRenderer.invoke('periodosVales:getAbierto'),
+  getPeriodosVales:     ()      => ipcRenderer.invoke('periodosVales:getTodos'),
+  getValesPorPeriodo:   (data)  => ipcRenderer.invoke('periodosVales:getVales', data),
+
   // Backup
   abrirCarpetaBackup:   ()      => ipcRenderer.invoke('backup:abrirCarpeta'),
   listarBackups:        ()      => ipcRenderer.invoke('backup:listar'),

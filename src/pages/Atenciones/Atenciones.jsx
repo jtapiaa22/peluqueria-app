@@ -29,6 +29,11 @@ const formatMes = (mes) => {
   const [anio, m] = mes.split('-')
   return `${MESES_NOMBRE[parseInt(m) - 1]} ${anio}`
 }
+const formatFechaFormateada = (f) => {
+  if (!f) return ''
+  const [y, m, d] = f.split('-').map(Number)
+  return `${d} ${MESES_NOMBRE[m-1]} ${y}`
+}
 
 export default function Atenciones() {
   const [atenciones, setAtenciones]     = useState([])
@@ -42,8 +47,12 @@ export default function Atenciones() {
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
   const [form, setForm]                 = useState(formVacio)
-  const [valesMes, setValesMes]         = useState([])
   const [mostrarVales, setMostrarVales] = useState(false)
+  const [periodoAbierto, setPeriodoAbierto] = useState(null)
+  const [periodos, setPeriodos]             = useState([])
+  const [valesPeriodoActivo, setValesPeriodoActivo] = useState([])
+  const [detallePeriodo, setDetallePeriodo] = useState(null)
+  const [valesDetalle, setValesDetalle]     = useState([])
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -56,16 +65,48 @@ export default function Atenciones() {
     const caja = await window.electronAPI.getCajaAbierta()
     setCajaAbierta(caja)
   }
-  const cargarVales = async () => {
-    const data = await window.electronAPI.getValesPorMes()
-    setValesMes(data)
+  const cargarPeriodosVales = async () => {
+    const abierto = await window.electronAPI.getPeriodoValesAbierto()
+    setPeriodoAbierto(abierto)
+    const todos = await window.electronAPI.getPeriodosVales()
+    setPeriodos(todos)
+    if (abierto) {
+      const valesAct = await window.electronAPI.getValesPorPeriodo(abierto)
+      setValesPeriodoActivo(valesAct)
+    } else {
+      setValesPeriodoActivo([])
+    }
+  }
+
+  const abrirPeriodo = async () => {
+    confirmar('¿Abrir nuevo periodo de vales desde este momento?', async () => {
+      setModalConfirm(null)
+      await window.electronAPI.abrirPeriodoVales({ fecha_apertura: hoy(), hora_apertura: horaActual() })
+      cargarPeriodosVales()
+      alertar('Periodo de vales abierto correctamente', 'success')
+    })
+  }
+
+  const cerrarPeriodo = async () => {
+    confirmar('¿Cerrar el periodo actual de vales?', async () => {
+      setModalConfirm(null)
+      await window.electronAPI.cerrarPeriodoVales({ id: periodoAbierto.id, fecha_cierre: hoy(), hora_cierre: horaActual() })
+      cargarPeriodosVales()
+      alertar('Periodo de vales cerrado correctamente', 'success')
+    })
+  }
+
+  const verDetallePeriodo = async (p) => {
+    const vales = await window.electronAPI.getValesPorPeriodo(p)
+    setDetallePeriodo(p)
+    setValesDetalle(vales)
   }
 
   useEffect(() => {
     window.electronAPI.getPeluqueros().then(setPeluqueros)
     window.electronAPI.getServicios().then(setServicios)
     verificarCaja()
-    cargarVales()
+    cargarPeriodosVales()
   }, [])
 
   useEffect(() => { cargar() }, [fechaFiltro])
@@ -156,7 +197,7 @@ export default function Atenciones() {
     setEditando(null)
     setMostrarForm(false)
     cargar()
-    cargarVales()
+    cargarPeriodosVales()
   }
 
   const eliminar = (id) => {
@@ -164,7 +205,7 @@ export default function Atenciones() {
       setModalConfirm(null)
       await window.electronAPI.deleteAtencion(id)
       cargar()
-      cargarVales()
+      cargarPeriodosVales()
     })
   }
 
@@ -175,12 +216,6 @@ export default function Atenciones() {
 
   const valesHoy = atenciones.filter(a => a.metodo_pago === 'vale').length
 
-  // Agrupar vales por mes para el panel
-  const valesAgrupados = valesMes.reduce((acc, v) => {
-    if (!acc[v.mes]) acc[v.mes] = []
-    acc[v.mes].push(v)
-    return acc
-  }, {})
 
   const BadgePago = ({ a }) => {
     if (a.metodo_pago === 'vale') {
@@ -289,7 +324,7 @@ export default function Atenciones() {
         <h1 className="page-title" style={{ margin: 0 }}>Atenciones</h1>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-secondary" onClick={() => setMostrarVales(v => !v)}>
-            🎫 Vales por mes
+            🎫 Control de Vales
           </button>
           {cajaAbierta && (
             <button className="btn btn-primary" onClick={abrirFormNuevo}>
@@ -437,7 +472,7 @@ export default function Atenciones() {
         )}
       </AnimatePresence>
 
-      {/* ── PANEL VALES POR MES ── */}
+      {/* ── PANEL CONTROL DE VALES ── */}
       <AnimatePresence>
         {mostrarVales && (
           <motion.div
@@ -446,53 +481,128 @@ export default function Atenciones() {
             exit={{ height: 0, opacity: 0 }}
             style={{ marginBottom: 20 }}
           >
-            <div className="card">
-              <h3 style={{ color: '#fbbf24', marginBottom: 16, fontSize: 15 }}>🎫 Vales por mes</h3>
-              {Object.keys(valesAgrupados).length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No hay vales registrados todavía.</p>
-              ) : (
-                Object.entries(valesAgrupados).map(([mes, filas]) => (
-                  <div key={mes} style={{ marginBottom: 20 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
-                      {formatMes(mes)}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      {filas.map(f => (
-                        <div key={f.peluquero_nombre} style={{
-                          background: 'rgba(251,191,36,0.08)',
-                          border: '1px solid rgba(251,191,36,0.25)',
-                          borderRadius: 10, padding: '12px 18px',
-                          minWidth: 110, textAlign: 'center'
-                        }}>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>{f.peluquero_nombre}</div>
-                          <div style={{ fontSize: 28, color: '#fbbf24', fontWeight: 700, lineHeight: 1 }}>{f.cantidad}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                            {f.cantidad === 1 ? 'vale' : 'vales'}
-                          </div>
-                        </div>
-                      ))}
+            <div className="card" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h3 style={{ color: '#fbbf24', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  🎫 Control de Vales
+                </h3>
+              </div>
 
-                      {/* ── TOTAL DEL MES ── */}
-                      {filas.length > 1 && (
-                        <div style={{
-                          background: 'rgba(167,139,250,0.08)',
-                          border: '1px solid rgba(167,139,250,0.3)',
-                          borderRadius: 10, padding: '12px 18px',
-                          minWidth: 110, textAlign: 'center',
-                          alignSelf: 'center'
-                        }}>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total</div>
-                          <div style={{ fontSize: 28, color: '#a78bfa', fontWeight: 700, lineHeight: 1 }}>
-                            {filas.reduce((acc, f) => acc + f.cantidad, 0)}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>vales</div>
-                        </div>
-                      )}
+              {/* Estado Periodo Actual */}
+              <div style={{
+                background: periodoAbierto ? 'rgba(74, 222, 128, 0.08)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${periodoAbierto ? 'rgba(74, 222, 128, 0.3)' : 'var(--border)'}`,
+                borderRadius: 12, padding: '20px', marginBottom: 24
+              }}>
+                {periodoAbierto ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
+                        🟢 PERIODO ABIERTO
+                      </div>
+                      <div style={{ fontSize: 15, color: 'var(--text-main)', marginBottom: 8 }}>
+                        {formatFechaFormateada(periodoAbierto.fecha_apertura)} a las {periodoAbierto.hora_apertura}hs
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {valesPeriodoActivo.length === 0 ? (
+                          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Sin vales todavía.</span>
+                        ) : (
+                          valesPeriodoActivo.map(v => (
+                            <div key={v.peluquero_nombre} style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                              <strong style={{ color: 'var(--text-main)' }}>{v.peluquero_nombre}</strong>: {v.cantidad} vales
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
+                    <button className="btn btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }} onClick={cerrarPeriodo}>
+                      Cerrar Periodo
+                    </button>
                   </div>
-                ))
+                ) : (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                    <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+                      No hay ningún periodo de vales abierto en este momento.
+                    </div>
+                    <button className="btn btn-primary" onClick={abrirPeriodo}>
+                      Abrir Nuevo Periodo
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Historial de Periodos */}
+              <h4 style={{ color: 'var(--text-main)', fontSize: 14, marginBottom: 12 }}>Historial de Periodos</h4>
+              {periodos.filter(p => p.estado === 'cerrada').length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No hay periodos cerrados en el historial.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {periodos.filter(p => p.estado === 'cerrada').map(p => (
+                    <div key={p.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border)'
+                    }}>
+                      <div>
+                         <div style={{ fontSize: 14, color: 'var(--text-main)', fontWeight: 600 }}>
+                           {formatFechaFormateada(p.fecha_apertura)} a {formatFechaFormateada(p.fecha_cierre)}
+                         </div>
+                      </div>
+                      <button className="btn btn-secondary" onClick={() => verDetallePeriodo(p)}>
+                        <Eye size={14} style={{ marginRight: 6 }} /> Ver detalle
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL DETALLE DE PERIODO */}
+      <AnimatePresence>
+        {detallePeriodo && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 420, position: 'relative' }}>
+              <button onClick={() => setDetallePeriodo(null)}
+                style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={18} />
+              </button>
+              <h3 style={{ color: '#fbbf24', marginBottom: 10 }}>Resumen del Periodo</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+                Desde el {formatFechaFormateada(detallePeriodo.fecha_apertura)} a las {detallePeriodo.hora_apertura}hs<br/>
+                hasta el {formatFechaFormateada(detallePeriodo.fecha_cierre)} a las {detallePeriodo.hora_cierre}hs
+              </p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
+                {valesDetalle.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', color: 'var(--text-muted)', fontSize: 13 }}>No se registraron vales en este periodo.</div>
+                ) : (
+                  valesDetalle.map(v => (
+                    <div key={v.peluquero_nombre} style={{
+                      background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)',
+                      borderRadius: 10, padding: '12px 18px', textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.peluquero_nombre}</div>
+                      <div style={{ fontSize: 28, color: '#fbbf24', fontWeight: 700, lineHeight: 1 }}>{v.cantidad}</div>
+                    </div>
+                  ))
+                )}
+                {valesDetalle.length > 1 && (
+                  <div style={{
+                    gridColumn: '1 / -1', background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.3)',
+                    borderRadius: 10, padding: '12px 18px', textAlign: 'center', marginTop: 10
+                  }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total General</div>
+                    <div style={{ fontSize: 28, color: '#a78bfa', fontWeight: 700, lineHeight: 1 }}>
+                      {valesDetalle.reduce((acc, v) => acc + v.cantidad, 0)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
