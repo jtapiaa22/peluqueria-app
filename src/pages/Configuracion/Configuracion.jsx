@@ -3,11 +3,11 @@ import { ModalAlert } from '../../components/Modal'
 import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
-  '06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30',
-  '10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30',
-  '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
-  '18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30',
-  '22:00','22:30','23:00',
+  '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
+  '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30',
+  '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30',
+  '22:00', '22:30', '23:00',
 ]
 const DIAS = [
   { num: 1, label: 'Lun' }, { num: 2, label: 'Mar' }, { num: 3, label: 'Mié' },
@@ -17,7 +17,7 @@ const DIAS = [
 
 const HORARIO_DEFAULT = {
   bloques: [
-    { activo: true,  inicio: '09:00', fin: '13:00' },
+    { activo: true, inicio: '09:00', fin: '13:00' },
     { activo: false, inicio: '17:00', fin: '20:00' },
   ],
   intervalo: 30,
@@ -27,51 +27,51 @@ const HORARIO_DEFAULT = {
 }
 
 export default function Configuracion({ onNombreChange, onLogoChange, tema, onToggleTema }) {
-  const [seccion, setSeccion]                   = useState('apariencia')
-  const [nombreInput, setNombreInput]           = useState('')
-  const [logoPreview, setLogoPreview]           = useState(null)
-  const [modalAlert, setModalAlert]             = useState(null)
-  const [backups, setBackups]                   = useState([])
-  const [webConfig, setWebConfig]               = useState({ id: '', nombre: '', email: '' })
-  const [webPaso, setWebPaso]                   = useState('cargando')
-  const [webForm, setWebForm]                   = useState({ nombre: '', email: '' })
-  const [webVincularId, setWebVincularId]       = useState('')
-  const [webModo, setWebModo]                   = useState('registrar')
-  const [webLoading, setWebLoading]             = useState(false)
-  const [linkCopiado, setLinkCopiado]           = useState(false)
-  const [syncLoading, setSyncLoading]           = useState(false)
-  const [syncResultado, setSyncResultado]       = useState(null)
-  const [editandoNombre, setEditandoNombre]     = useState(false)
-  const [nuevoNombreWeb, setNuevoNombreWeb]     = useState('')
-  const [guardandoNombre, setGuardandoNombre]   = useState(false)
-  const [horario, setHorario]                   = useState(HORARIO_DEFAULT)
-  const [horarioLoading, setHorarioLoading]     = useState(false)
-  const [horarioGuardado, setHorarioGuardado]   = useState(false)
-  const [backupNubeLoading, setBackupNubeLoading]   = useState(false)
+  const [seccion, setSeccion] = useState('apariencia')
+  const [nombreInput, setNombreInput] = useState('')
+  const [logoPreview, setLogoPreview] = useState(null)
+  const [modalAlert, setModalAlert] = useState(null)
+  const [backups, setBackups] = useState([])
+  const [webConfig, setWebConfig] = useState({ id: '', nombre: '', email: '' })
+  const [webPaso, setWebPaso] = useState('cargando')
+  const [webForm, setWebForm] = useState({ nombre: '', email: '' })
+  const [webVincularId, setWebVincularId] = useState('')
+  const [webModo, setWebModo] = useState('registrar')
+  const [webLoading, setWebLoading] = useState(false)
+  const [linkCopiado, setLinkCopiado] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncResultado, setSyncResultado] = useState(null)
+  const [editandoNombre, setEditandoNombre] = useState(false)
+  const [nuevoNombreWeb, setNuevoNombreWeb] = useState('')
+  const [guardandoNombre, setGuardandoNombre] = useState(false)
+  const [horario, setHorario] = useState(HORARIO_DEFAULT)
+  const [horarioLoading, setHorarioLoading] = useState(false)
+  const [horarioGuardado, setHorarioGuardado] = useState(false)
+  const [backupNubeLoading, setBackupNubeLoading] = useState(false)
   const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
-  const [ultimoBackupNube, setUltimoBackupNube]     = useState(null)
+  const [ultimoBackupNube, setUltimoBackupNube] = useState(null)
   const [confirmandoRestore, setConfirmandoRestore] = useState(false)
   const [mostrarRestoreModal, setMostrarRestoreModal] = useState(false)
-  const [restoreAutoLoading, setRestoreAutoLoading]   = useState(false)
+  const [restoreAutoLoading, setRestoreAutoLoading] = useState(false)
 
   // ── SEÑA ──
-  const [senaMonto, setSenaMonto]           = useState('')
-  const [senaAlias, setSenaAlias]           = useState('')
-  const [senaHoras, setSenaHoras]           = useState('24')
-  const [senaLoading, setSenaLoading]       = useState(false)
-  const [senaGuardada, setSenaGuardada]     = useState(false)
+  const [senaMonto, setSenaMonto] = useState('')
+  const [senaAlias, setSenaAlias] = useState('')
+  const [senaHoras, setSenaHoras] = useState('24')
+  const [senaLoading, setSenaLoading] = useState(false)
+  const [senaGuardada, setSenaGuardada] = useState(false)
 
   // ── SEGURIDAD ──
   const SECCIONES_PROTEGIBLES = [
-    { key: 'password_dashboard',    label: 'Dashboard',    icono: '📊' },
-    { key: 'password_agenda',       label: 'Agenda',       icono: '📅' },
-    { key: 'password_peluqueros',   label: 'Peluqueros',   icono: '👥' },
-    { key: 'password_servicios',    label: 'Servicios',    icono: '✂️' },
-    { key: 'password_atenciones',   label: 'Atenciones',   icono: '📋' },
-    { key: 'password_reportes',     label: 'Reportes',     icono: '📈' },
-    { key: 'password_caja',         label: 'Caja',         icono: '💰' },
-    { key: 'password_liquidacion',  label: 'Liquidación',  icono: '🔒' },
-    { key: 'password_gastos',       label: 'Gastos',       icono: '📉' },
+    { key: 'password_dashboard', label: 'Dashboard', icono: '📊' },
+    { key: 'password_agenda', label: 'Agenda', icono: '📅' },
+    { key: 'password_peluqueros', label: 'Peluqueros', icono: '👥' },
+    { key: 'password_servicios', label: 'Servicios', icono: '✂️' },
+    { key: 'password_atenciones', label: 'Atenciones', icono: '📋' },
+    { key: 'password_reportes', label: 'Reportes', icono: '📈' },
+    { key: 'password_caja', label: 'Caja', icono: '💰' },
+    { key: 'password_liquidacion', label: 'Liquidación', icono: '🔒' },
+    { key: 'password_gastos', label: 'Gastos', icono: '📉' },
   ]
   const PREGUNTAS_SEGURIDAD = [
     '¿Nombre de tu primera mascota?',
@@ -82,30 +82,30 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     '¿Cómo se llama tu mamá?',
   ]
   const [passwordsSecciones, setPasswordsSecciones] = useState({})
-  const [editandoPassword, setEditandoPassword]     = useState(null)
-  const [passFormSeg, setPassFormSeg]               = useState({ nueva: '', repetir: '' })
-  const [showPassSeg, setShowPassSeg]               = useState(false)
+  const [editandoPassword, setEditandoPassword] = useState(null)
+  const [passFormSeg, setPassFormSeg] = useState({ nueva: '', repetir: '' })
+  const [showPassSeg, setShowPassSeg] = useState(false)
 
   // Master password state
-  const [maestraCargando, setMaestraCargando]       = useState(true)
-  const [tieneMaestra, setTieneMaestra]             = useState(false)
+  const [maestraCargando, setMaestraCargando] = useState(true)
+  const [tieneMaestra, setTieneMaestra] = useState(false)
   const [seguridadDesbloqueada, setSeguridadDesbloqueada] = useState(false)
-  const [maestraInput, setMaestraInput]             = useState('')
-  const [maestraError, setMaestraError]             = useState('')
-  const [showMaestraInput, setShowMaestraInput]     = useState(false)
+  const [maestraInput, setMaestraInput] = useState('')
+  const [maestraError, setMaestraError] = useState('')
+  const [showMaestraInput, setShowMaestraInput] = useState(false)
 
   // Setup master password (first time)
   const [setupMaestra, setSetupMaestra] = useState({ pass: '', repetir: '', pregunta: '', respuesta: '' })
   const [showSetupPass, setShowSetupPass] = useState(false)
 
   // Recovery flow
-  const [modoRecuperacion, setModoRecuperacion]     = useState(false)
-  const [preguntaActual, setPreguntaActual]         = useState('')
-  const [respuestaInput, setRespuestaInput]         = useState('')
-  const [recoveryError, setRecoveryError]           = useState('')
-  const [recoveryExito, setRecoveryExito]           = useState(false)
+  const [modoRecuperacion, setModoRecuperacion] = useState(false)
+  const [preguntaActual, setPreguntaActual] = useState('')
+  const [respuestaInput, setRespuestaInput] = useState('')
+  const [recoveryError, setRecoveryError] = useState('')
+  const [recoveryExito, setRecoveryExito] = useState(false)
   const [nuevaMaestraRecovery, setNuevaMaestraRecovery] = useState({ pass: '', repetir: '' })
-  const [showRecoveryPass, setShowRecoveryPass]     = useState(false)
+  const [showRecoveryPass, setShowRecoveryPass] = useState(false)
 
   const cargarEstadoMaestra = async () => {
     setMaestraCargando(true)
@@ -300,7 +300,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const vincularPeluqueria = async () => {
     if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
-    const result = await window.electronAPI.vincularPeluqueria({ id: webVincularId.trim() })
+    const result = await window.electronAPI.vincularPeluqueria({ peluqueriaId: webVincularId.trim() })
     setWebLoading(false)
     if (result?.ok) {
       await cargarWebConfig()
@@ -324,7 +324,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     const result = await window.electronAPI.sincronizarPeluqueria()
     setSyncLoading(false)
     setSyncResultado(result?.ok
-      ? { ok: true,  msg: `✅ Sincronizado: ${result.peluqueros} peluqueros, ${result.servicios} servicios.` }
+      ? { ok: true, msg: `✅ Sincronizado: ${result.peluqueros} peluqueros, ${result.servicios} servicios.` }
       : { ok: false, msg: '❌ Error al sincronizar. Revisá la conexión.' }
     )
   }
@@ -387,15 +387,19 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   // ── Nav items ──────────────────────────────────────────────────────────────
   const seccionesProtegidas = Object.values(passwordsSecciones).filter(Boolean).length
   const navItems = [
-    { id: 'apariencia', label: 'Apariencia', icono: <Palette size={16}/> },
-    { id: 'seguridad',  label: 'Seguridad',  icono: <Shield size={16}/>,
-      badge: seccionesProtegidas > 0 ? String(seccionesProtegidas) : null, badgeColor: '#a78bfa' },
-    { id: 'backups',    label: 'Backups',    icono: <HardDrive size={16}/> },
-    { id: 'web',        label: 'Web y Backup', icono: <Globe size={16}/>,
-      badge: webPaso === 'configurado' ? '●' : null, badgeColor: '#4ade80' },
+    { id: 'apariencia', label: 'Apariencia', icono: <Palette size={16} /> },
+    {
+      id: 'seguridad', label: 'Seguridad', icono: <Shield size={16} />,
+      badge: seccionesProtegidas > 0 ? String(seccionesProtegidas) : null, badgeColor: '#a78bfa'
+    },
+    { id: 'backups', label: 'Backups', icono: <HardDrive size={16} /> },
+    {
+      id: 'web', label: 'Web y Backup', icono: <Globe size={16} />,
+      badge: webPaso === 'configurado' ? '●' : null, badgeColor: '#4ade80'
+    },
     ...(webPaso === 'configurado' ? [
-      { id: 'horario', label: 'Horario web', icono: <Clock size={16}/> },
-      { id: 'sena',    label: 'Seña',        icono: <DollarSign size={16}/> },
+      { id: 'horario', label: 'Horario web', icono: <Clock size={16} /> },
+      { id: 'sena', label: 'Seña', icono: <DollarSign size={16} /> },
     ] : []),
   ]
 
@@ -430,7 +434,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 13,
               color: 'var(--text-muted)', lineHeight: 1.6,
             }}>
-              <strong style={{ color: '#c4b5fd' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br/><br/>
+              <strong style={{ color: '#c4b5fd' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br /><br />
               <strong style={{ color: '#c4b5fd' }}>Empezar de cero</strong> va a mantener la base actual vacía y subir una nueva a la nube.
             </div>
 
@@ -451,7 +455,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 }}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px' }}>
                 {restoreAutoLoading
-                  ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Restaurando...</>
+                  ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Restaurando...</>
                   : '⬇️ Restaurar mis datos'}
               </button>
 
@@ -529,8 +533,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     </div>
                   </div>
                   <button onClick={onToggleTema}
-                    style={{ display:'flex', alignItems:'center', gap:8, background:'var(--accent-soft)', border:'1px solid var(--border-primary)', borderRadius:99, padding:'9px 18px', cursor:'pointer', color:tema==='dark'?'#c4b5fd':'#6d28d9', fontWeight:600, fontSize:13, flexShrink:0, marginLeft: 16 }}>
-                    {tema === 'dark' ? <><Moon size={15}/> Oscuro</> : <><Sun size={15}/> Claro</>}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent-soft)', border: '1px solid var(--border-primary)', borderRadius: 99, padding: '9px 18px', cursor: 'pointer', color: tema === 'dark' ? '#c4b5fd' : '#6d28d9', fontWeight: 600, fontSize: 13, flexShrink: 0, marginLeft: 16 }}>
+                    {tema === 'dark' ? <><Moon size={15} /> Oscuro</> : <><Sun size={15} /> Claro</>}
                   </button>
                 </div>
               </div>
@@ -553,10 +557,10 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>Aparece en el sidebar. Recomendado: imagen cuadrada PNG.</div>
                 {logoPreview && (
                   <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <img src={logoPreview} style={{ width:60, height:60, borderRadius:10, objectFit:'cover', border:'1px solid var(--border-soft)' }} />
+                    <img src={logoPreview} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border-soft)' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ color: '#4ade80', fontSize: 12 }}>✅ Logo cargado</span>
-                      <button className="btn btn-danger" onClick={quitarLogo} style={{ fontSize:12, padding:'5px 12px' }}>Quitar logo</button>
+                      <button className="btn btn-danger" onClick={quitarLogo} style={{ fontSize: 12, padding: '5px 12px' }}>Quitar logo</button>
                     </div>
                   </div>
                 )}
@@ -610,7 +614,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       />
                       <button type="button" onClick={() => setShowSetupPass(!showSetupPass)}
                         style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
-                        {showSetupPass ? <EyeOff size={15}/> : <Eye size={15}/>}
+                        {showSetupPass ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
                   </div>
@@ -679,7 +683,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
                         <button type="button" onClick={() => setShowMaestraInput(!showMaestraInput)}
                           style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
-                          {showMaestraInput ? <EyeOff size={15}/> : <Eye size={15}/>}
+                          {showMaestraInput ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
                     </div>
@@ -749,7 +753,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                               placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
                             <button type="button" onClick={() => setShowRecoveryPass(!showRecoveryPass)}
                               style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
-                              {showRecoveryPass ? <EyeOff size={15}/> : <Eye size={15}/>}
+                              {showRecoveryPass ? <EyeOff size={15} /> : <Eye size={15} />}
                             </button>
                           </div>
                         </div>
@@ -853,7 +857,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                                       placeholder="••••••••" autoFocus style={{ paddingRight: 40 }} />
                                     <button type="button" onClick={() => setShowPassSeg(!showPassSeg)}
                                       style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}>
-                                      {showPassSeg ? <EyeOff size={15}/> : <Eye size={15}/>}
+                                      {showPassSeg ? <EyeOff size={15} /> : <Eye size={15} />}
                                     </button>
                                   </div>
                                 </div>
@@ -937,7 +941,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     }}
                     style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {backupNubeLoading
-                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Subiendo...</>
+                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Subiendo...</>
                       : '☁️ Subir backup ahora'}
                   </button>
 
@@ -945,7 +949,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     onClick={() => setConfirmandoRestore(true)}
                     style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {restoreNubeLoading
-                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }}/> Restaurando...</>
+                      ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Restaurando...</>
                       : '⬇️ Restaurar desde la nube'}
                   </button>
                 </div>
@@ -1007,9 +1011,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   <div style={{ display: 'flex', background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', marginBottom: 24, maxWidth: 280 }}>
                     {[{ key: 'registrar', label: 'Registrar nueva' }, { key: 'vincular', label: 'Ya tengo ID' }].map(op => (
                       <button key={op.key} onClick={() => setWebModo(op.key)}
-                        style={{ flex:1, padding:'9px 12px', border:'none', cursor:'pointer', fontSize:13, fontWeight:600, transition:'all 0.15s',
-                          background: webModo===op.key ? 'var(--accent)' : 'transparent',
-                          color: webModo===op.key ? 'white' : 'var(--text-muted)' }}>
+                        style={{
+                          flex: 1, padding: '9px 12px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
+                          background: webModo === op.key ? 'var(--accent)' : 'transparent',
+                          color: webModo === op.key ? 'white' : 'var(--text-muted)'
+                        }}>
                         {op.label}
                       </button>
                     ))}
@@ -1018,7 +1024,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   {webModo === 'registrar' && (
                     <div style={{ maxWidth: 420 }}>
                       <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
-                        Registrá esta peluquería para obtener tu link de reservas.<br/>
+                        Registrá esta peluquería para obtener tu link de reservas.<br />
                         <strong style={{ color: '#a78bfa' }}>Si ya registraste con este email, se recuperará el ID existente automáticamente.</strong>
                       </p>
                       <div className="form-group">
@@ -1030,7 +1036,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         <input className="input" type="email" value={webForm.email} onChange={e => setWebForm({ ...webForm, email: e.target.value })} placeholder="tu@email.com" />
                       </div>
                       <button className="btn btn-primary" onClick={registrarPeluqueria} disabled={webLoading}>
-                        {webLoading ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }} /> Registrando...</> : '🌐 Registrar y obtener link'}
+                        {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Registrando...</> : '🌐 Registrar y obtener link'}
                       </button>
                     </div>
                   )}
@@ -1041,10 +1047,10 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       <div className="form-group">
                         <label>ID de la peluquería</label>
                         <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
-                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily:'monospace', fontSize:12 }} />
+                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
                       </div>
                       <button className="btn btn-primary" onClick={vincularPeluqueria} disabled={webLoading}>
-                        {webLoading ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }} /> Vinculando...</> : '🔗 Vincular'}
+                        {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Vinculando...</> : '🔗 Vincular'}
                       </button>
                     </div>
                   )}
@@ -1055,9 +1061,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
                   {/* Estado conectado */}
-                  <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.25)', borderRadius:10, padding:'10px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.25)', borderRadius: 10, padding: '10px 16px' }}>
                     <Wifi size={15} color="#4ade80" />
-                    <span style={{ color:'#4ade80', fontWeight:600, fontSize:13 }}>Conectado a la web</span>
+                    <span style={{ color: '#4ade80', fontWeight: 600, fontSize: 13 }}>Conectado a la web</span>
                   </div>
 
                   {/* Nombre editable */}
@@ -1070,7 +1076,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           onKeyDown={e => e.key === 'Enter' && guardarNombreWeb()} style={{ flex: 1 }} autoFocus />
                         <button className="btn btn-primary" onClick={guardarNombreWeb} disabled={guardandoNombre}
                           style={{ padding: '0 14px' }}>
-                          {guardandoNombre ? '...' : <Check size={14}/>}
+                          {guardandoNombre ? '...' : <Check size={14} />}
                         </button>
                         <button className="btn btn-secondary" onClick={() => { setEditandoNombre(false); setNuevoNombreWeb(webConfig.nombre) }}
                           style={{ padding: '0 12px' }}>✕</button>
@@ -1080,7 +1086,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 15 }}>{webConfig.nombre}</span>
                         <button onClick={() => setEditandoNombre(true)}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', padding: 4, borderRadius: 6 }}>
-                          <Pencil size={13}/>
+                          <Pencil size={13} />
                         </button>
                       </div>
                     )}
@@ -1091,18 +1097,18 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <div className="form-group" style={{ margin: 0 }}>
                       <label>ID de tu peluquería</label>
                       <input className="input" readOnly value={webConfig.id}
-                        style={{ fontFamily:'monospace', fontSize:11, color:'var(--text-muted)' }} />
-                      <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>Guardá este ID para vincular otras PCs.</span>
+                        style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Guardá este ID para vincular otras PCs.</span>
                     </div>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ display:'flex', alignItems:'center', gap:6 }}><Link size={13}/> Link para compartir</label>
-                      <div style={{ display:'flex', gap:8 }}>
-                        <input className="input" readOnly value={webLink} style={{ fontSize:12, color:'#a78bfa', flex:1 }} />
-                        <button className="btn btn-secondary" onClick={copiarLink} style={{ flexShrink:0, display:'flex', alignItems:'center', gap:6 }}>
-                          {linkCopiado ? <><Check size={14} color="#4ade80"/> Copiado</> : <><Copy size={14}/> Copiar</>}
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={13} /> Link para compartir</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input className="input" readOnly value={webLink} style={{ fontSize: 12, color: '#a78bfa', flex: 1 }} />
+                        <button className="btn btn-secondary" onClick={copiarLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {linkCopiado ? <><Check size={14} color="#4ade80" /> Copiado</> : <><Copy size={14} /> Copiar</>}
                         </button>
                       </div>
-                      <span style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, display:'block' }}>Compartí por WhatsApp, Instagram o donde quieras.</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Compartí por WhatsApp, Instagram o donde quieras.</span>
                     </div>
                   </div>
 
@@ -1111,12 +1117,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Sincronizar datos</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>Subí peluqueros, servicios y turnos. Hacelo cada vez que agregues algo nuevo.</div>
                     <button className="btn btn-secondary" onClick={sincronizar} disabled={syncLoading}
-                      style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <RefreshCw size={14} style={{ animation:syncLoading?'spin 1s linear infinite':'none' }} />
+                      style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <RefreshCw size={14} style={{ animation: syncLoading ? 'spin 1s linear infinite' : 'none' }} />
                       {syncLoading ? 'Sincronizando...' : 'Sincronizar con la web'}
                     </button>
                     {syncResultado && (
-                      <span style={{ fontSize:12, color: syncResultado.ok ? '#4ade80' : '#f87171', marginTop: 10, display: 'block' }}>
+                      <span style={{ fontSize: 12, color: syncResultado.ok ? '#4ade80' : '#f87171', marginTop: 10, display: 'block' }}>
                         {syncResultado.msg}
                       </span>
                     )}
@@ -1125,17 +1131,17 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   {/* Desvincular */}
                   <div>
                     <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Desvincular</div>
-                    <p style={{ color:'var(--text-muted)', fontSize:12, margin:'0 0 12px' }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 12px' }}>
                       Para conectar otra peluquería, desvinculá la actual. Los datos web no se borran.
                     </p>
                     <button className="btn btn-secondary"
                       onClick={() => {
-                        setWebConfig({ id:'', nombre:'', email:'' }); setWebPaso('sin_config'); setWebModo('vincular')
-                        window.electronAPI.setConfig({ clave:'peluqueria_id', valor:'' })
-                        window.electronAPI.setConfig({ clave:'peluqueria_nombre', valor:'' })
-                        window.electronAPI.setConfig({ clave:'peluqueria_email', valor:'' })
+                        setWebConfig({ id: '', nombre: '', email: '' }); setWebPaso('sin_config'); setWebModo('vincular')
+                        window.electronAPI.setConfig({ clave: 'peluqueria_id', valor: '' })
+                        window.electronAPI.setConfig({ clave: 'peluqueria_nombre', valor: '' })
+                        window.electronAPI.setConfig({ clave: 'peluqueria_email', valor: '' })
                       }}
-                      style={{ fontSize:13 }}>
+                      style={{ fontSize: 13 }}>
                       Desvincular esta peluquería
                     </button>
                   </div>
@@ -1155,8 +1161,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 12 }}>Modo de disponibilidad</div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   {[
-                    { val: 'normal',       label: '📅 Días de la semana', desc: 'Lun, Mar, Mié...' },
-                    { val: 'fecha_unica',  label: '📌 Día específico',    desc: 'Solo una fecha' },
+                    { val: 'normal', label: '📅 Días de la semana', desc: 'Lun, Mar, Mié...' },
+                    { val: 'fecha_unica', label: '📌 Día específico', desc: 'Solo una fecha' },
                   ].map(({ val, label, desc }) => (
                     <button key={val}
                       onClick={() => setHorario(h => ({ ...h, modo: val }))}
@@ -1166,7 +1172,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         cursor: 'pointer', transition: 'all 0.15s',
                         textAlign: 'left',
                         borderColor: (horario.modo || 'normal') === val ? '#7c3aed' : 'var(--border-soft)',
-                        background:  (horario.modo || 'normal') === val ? 'rgba(124,58,237,0.12)' : 'transparent',
+                        background: (horario.modo || 'normal') === val ? 'rgba(124,58,237,0.12)' : 'transparent',
                       }}>
                       <div style={{
                         fontWeight: 600, fontSize: 13, marginBottom: 2,
@@ -1189,8 +1195,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           padding: '7px 16px', borderRadius: 8, border: '1px solid',
                           fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                           borderColor: horario.dias.includes(num) ? '#7c3aed' : 'var(--border-soft)',
-                          background:  horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
-                          color:       horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
+                          background: horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
+                          color: horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
                         }}>
                         {label}
                       </button>
@@ -1243,9 +1249,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           {idx === 0 ? '🌅 Bloque mañana' : '🌆 Bloque tarde'}
                         </span>
                         <button onClick={() => setHorario(h => ({ ...h, bloques: h.bloques.map((b, i) => i === idx ? { ...b, activo: !b.activo } : b) }))}
-                          style={{ width:40, height:22, borderRadius:99, border:'none', cursor:'pointer', transition:'all 0.2s', position:'relative',
-                            background: bloque.activo ? '#7c3aed' : 'var(--border-soft)' }}>
-                          <span style={{ position:'absolute', top:3, width:16, height:16, borderRadius:'50%', background:'white', transition:'all 0.2s', left: bloque.activo ? 21 : 3 }} />
+                          style={{
+                            width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer', transition: 'all 0.2s', position: 'relative',
+                            background: bloque.activo ? '#7c3aed' : 'var(--border-soft)'
+                          }}>
+                          <span style={{ position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'all 0.2s', left: bloque.activo ? 21 : 3 }} />
                         </button>
                       </div>
                       {bloque.activo && (
@@ -1283,8 +1291,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         padding: '8px 22px', borderRadius: 8, border: '1px solid',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                         borderColor: horario.intervalo === val ? '#7c3aed' : 'var(--border-soft)',
-                        background:  horario.intervalo === val ? 'rgba(124,58,237,0.2)' : 'transparent',
-                        color:       horario.intervalo === val ? '#c4b5fd' : 'var(--text-muted)',
+                        background: horario.intervalo === val ? 'rgba(124,58,237,0.2)' : 'transparent',
+                        color: horario.intervalo === val ? '#c4b5fd' : 'var(--text-muted)',
                       }}>
                       {label}
                     </button>
@@ -1294,31 +1302,31 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
               {/* Preview + Guardar */}
               {horario.bloques.some(b => b.activo) && (
-                <div style={{ background:'var(--bg-main)', border:'1px solid var(--border-soft)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'var(--text-muted)', lineHeight:1.8 }}>
+                <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8 }}>
                   {(horario.modo || 'normal') === 'fecha_unica' ? (
                     <>
-                      📌 Solo el <strong style={{ color:'#c4b5fd' }}>
+                      📌 Solo el <strong style={{ color: '#c4b5fd' }}>
                         {horario.fecha_unica
-                          ? new Date(horario.fecha_unica + 'T12:00:00').toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' })
+                          ? new Date(horario.fecha_unica + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
                           : '(sin fecha)'}
-                      </strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+                      </strong>, cada <strong style={{ color: 'var(--text-main)' }}>{horario.intervalo} min</strong>:<br />
                     </>
                   ) : (
                     <>
-                      📅 <strong style={{ color:'#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color:'var(--text-main)' }}>{horario.intervalo} min</strong>:<br/>
+                      📅 <strong style={{ color: '#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color: 'var(--text-main)' }}>{horario.intervalo} min</strong>:<br />
                     </>
                   )}
                   {horario.bloques.filter(b => b.activo).map((b, i) => (
-                    <span key={i}>{i > 0 && ' · '}<strong style={{ color:'var(--text-main)' }}>{b.inicio}</strong> a <strong style={{ color:'var(--text-main)' }}>{b.fin}</strong></span>
+                    <span key={i}>{i > 0 && ' · '}<strong style={{ color: 'var(--text-main)' }}>{b.inicio}</strong> a <strong style={{ color: 'var(--text-main)' }}>{b.fin}</strong></span>
                   ))}
                 </div>
               )}
               <button className="btn btn-primary" onClick={guardarHorario} disabled={horarioLoading}
                 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {horarioLoading
-                  ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }}/> Guardando...</>
-                  : horarioGuardado ? <><Check size={14} color="#4ade80"/> ¡Guardado!</>
-                  : '💾 Guardar horario'}
+                  ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando...</>
+                  : horarioGuardado ? <><Check size={14} color="#4ade80" /> ¡Guardado!</>
+                    : '💾 Guardar horario'}
               </button>
             </div>
           )}
@@ -1393,8 +1401,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         padding: '8px 22px', borderRadius: 8, border: '1px solid',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
                         borderColor: senaHoras === val ? '#fb923c' : 'var(--border-soft)',
-                        background:  senaHoras === val ? 'rgba(251,146,60,0.15)' : 'transparent',
-                        color:       senaHoras === val ? '#fb923c' : 'var(--text-muted)',
+                        background: senaHoras === val ? 'rgba(251,146,60,0.15)' : 'transparent',
+                        color: senaHoras === val ? '#fb923c' : 'var(--text-muted)',
                       }}>
                       {label}
                     </button>
@@ -1411,7 +1419,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 }}>
                   <div style={{ color: '#fb923c', fontWeight: 700, marginBottom: 6, fontSize: 12 }}>💸 PREVIEW — LO QUE VE EL CLIENTE EN EL EMAIL</div>
                   <div>Tu turno está pre-confirmado.</div>
-                  <div>Transferí <strong style={{ color: 'var(--text-main)' }}>${Number(senaMonto).toLocaleString('es-AR')}</strong> al alias <strong style={{ color: 'var(--text-main)', fontFamily:'monospace' }}>{senaAlias}</strong> para confirmarlo definitivamente.</div>
+                  <div>Transferí <strong style={{ color: 'var(--text-main)' }}>${Number(senaMonto).toLocaleString('es-AR')}</strong> al alias <strong style={{ color: 'var(--text-main)', fontFamily: 'monospace' }}>{senaAlias}</strong> para confirmarlo definitivamente.</div>
                   <div>Tenés <strong style={{ color: '#fb923c' }}>{senaHoras} horas</strong> para pagar, o el turno se cancelará automáticamente.</div>
                 </div>
               )}
@@ -1420,9 +1428,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               <button className="btn btn-primary" onClick={guardarSena} disabled={senaLoading}
                 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {senaLoading
-                  ? <><RefreshCw size={14} style={{ animation:'spin 1s linear infinite' }}/> Guardando...</>
-                  : senaGuardada ? <><Check size={14} color="#4ade80"/> ¡Guardado!</>
-                  : '💾 Guardar configuración de seña'}
+                  ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Guardando...</>
+                  : senaGuardada ? <><Check size={14} color="#4ade80" /> ¡Guardado!</>
+                    : '💾 Guardar configuración de seña'}
               </button>
             </div>
           )}
