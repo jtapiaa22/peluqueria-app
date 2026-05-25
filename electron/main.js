@@ -111,6 +111,21 @@ const MIGRATIONS = [
       estado TEXT DEFAULT 'abierta'
     );`)
   }},
+  {version: 14, descripcion: 'Propinas en Atenciones', up: (db) =>{
+    const cols = db.prepare('PRAGMA table_info(atenciones)').all().map(c => c.name)
+    if (!cols.includes('propina')){
+      db.prepare('ALTER TABLE atenciones ADD COLUMN propina REAL DEFAULT 0').run()
+    }
+  }},
+  {version: 15, descripcion: 'Dividir propinas en efectivo y transferencia', up: (db) =>{
+    const cols = db.prepare('PRAGMA table_info(atenciones)').all().map(c => c.name)
+    if (!cols.includes('propina_efectivo')){
+      db.prepare('ALTER TABLE atenciones ADD COLUMN propina_efectivo REAL DEFAULT 0').run()
+      db.prepare('ALTER TABLE atenciones ADD COLUMN propina_transferencia REAL DEFAULT 0').run()
+      // Migrar propina existente a propina_efectivo
+      db.prepare('UPDATE atenciones SET propina_efectivo = propina WHERE propina IS NOT NULL AND propina > 0').run()
+    }
+  }},
 ]
 
 function runMigrations() {
@@ -412,11 +427,28 @@ ipcMain.handle('servicios:update', async(_,d)=>{ db.prepare('UPDATE servicios SE
 ipcMain.handle('servicios:delete', async(_,id)=>{ db.prepare('UPDATE servicios SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
 
 // ATENCIONES
-ipcMain.handle('atenciones:create',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; const r=db.prepare(`INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia) VALUES(?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt); return r.lastInsertRowid })
+ipcMain.handle('atenciones:create',async(_,d)=> {
+  const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):
+  Number(d.precio_cobrado); 
+  const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; 
+  const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; 
+  const sid=d.servicio_id?Number(d.servicio_id):null; 
+  const r=db.prepare(
+    `INSERT INTO atenciones(peluquero_id,servicio_id,precio_cobrado,metodo_pago,nombre_transferencia,fecha,hora,monto_efectivo,monto_transferencia, propina, propina_efectivo, propina_transferencia) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.propina, d.propina_efectivo, d.propina_transferencia); 
+  return r.lastInsertRowid })
+
 ipcMain.handle('atenciones:getByFecha',(_,f)=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=? ORDER BY a.id DESC`).all(f))
+
 ipcMain.handle('atenciones:getByRango',(_,{desde,hasta})=>db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? ORDER BY a.fecha DESC,a.hora DESC`).all(desde,hasta))
+
 ipcMain.handle('atenciones:delete',async(_,id)=>{ db.prepare('DELETE FROM atenciones WHERE id=?').run(id); return true })
-ipcMain.handle('atenciones:update',async(_,d)=>{ const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; const sid=d.servicio_id?Number(d.servicio_id):null; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.id); return true })
+
+ipcMain.handle('atenciones:update',async(_,d)=>{ 
+  const pf=d.metodo_pago==='mixto'?Number(d.monto_efectivo)+Number(d.monto_transferencia):Number(d.precio_cobrado); 
+  const me=d.metodo_pago==='efectivo'?pf:d.metodo_pago==='mixto'?Number(d.monto_efectivo):0; 
+  const mt=d.metodo_pago==='transferencia'?pf:d.metodo_pago==='mixto'?Number(d.monto_transferencia):0; 
+  const sid=d.servicio_id?Number(d.servicio_id):null; db.prepare(`UPDATE atenciones SET peluquero_id=?,servicio_id=?,precio_cobrado=?,metodo_pago=?,nombre_transferencia=?,fecha=?,hora=?,monto_efectivo=?,monto_transferencia=?,propina=?, propina_efectivo=?, propina_transferencia=? WHERE id=?`).run(Number(d.peluquero_id),sid,pf,d.metodo_pago,d.nombre_transferencia||null,d.fecha,d.hora,me,mt,d.propina, d.propina_efectivo, d.propina_transferencia, d.id); return true })
+  
 ipcMain.handle('atenciones:getValesPorMes', () =>
   db.prepare(`
     SELECT strftime('%Y-%m', a.fecha) as mes,

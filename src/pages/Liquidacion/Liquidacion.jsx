@@ -22,21 +22,21 @@ function formatFecha(f) {
 }
 
 export default function Liquidacion() {
-  const [peluqueros, setPeluqueros]     = useState([])
-  const [atenciones, setAtenciones]     = useState([])
-  const [desde, setDesde]               = useState(primerDiaMes())
-  const [hasta, setHasta]               = useState(hoy())
-  const [modalAlert, setModalAlert]     = useState(null)
+  const [peluqueros, setPeluqueros] = useState([])
+  const [atenciones, setAtenciones] = useState([])
+  const [desde, setDesde] = useState(primerDiaMes())
+  const [hasta, setHasta] = useState(hoy())
+  const [modalAlert, setModalAlert] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
 
-  const [panelPago, setPanelPago]       = useState(null)
-  const [formPago, setFormPago]         = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
+  const [panelPago, setPanelPago] = useState(null)
+  const [formPago, setFormPago] = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
   const [pagosExistentes, setPagosExistentes] = useState([])
-  const [tramosComision, setTramosComision]   = useState({})
+  const [tramosComision, setTramosComision] = useState({})
 
   const { generarReporte } = usePDF()
-  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
-  const confirmar = (mensaje, onConfirm)     => setModalConfirm({ mensaje, onConfirm })
+  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
 
   const cargarDatos = async () => {
     const [p, a, todosTramos] = await Promise.all([
@@ -93,6 +93,7 @@ export default function Liquidacion() {
     }
     const pendiente = liq.montoComision - liq.totalPagado
     const montoFinal = formPago.montoManual !== '' ? Number(formPago.montoManual) : Math.max(0, pendiente)
+    const totalACobrar = montoFinal + liq.totalPropinas
 
     if (montoFinal <= 0) {
       alertar('El monto a pagar debe ser mayor a $0.', 'warning')
@@ -104,13 +105,13 @@ export default function Liquidacion() {
       async () => {
         setModalConfirm(null)
         await window.electronAPI.createPago({
-          peluquero_id:     peluquero.id,
+          peluquero_id: peluquero.id,
           peluquero_nombre: peluquero.nombre,
           desde,
           hasta,
-          monto:            montoFinal,
-          fecha_pago:       formPago.fecha_pago,
-          notas:            formPago.notas
+          monto: montoFinal,
+          fecha_pago: formPago.fecha_pago,
+          notas: formPago.notas
         })
         alertar(`✅ Pago registrado a ${peluquero.nombre}`, 'success')
         await cargarPagosExistentes(peluquero.id)
@@ -130,14 +131,17 @@ export default function Liquidacion() {
     const atencionesP = atenciones.filter(a => a.peluquero_id == peluqueroId)
     // Separar vales: no generan ingreso ni comisión
     const atencionesReales = atencionesP.filter(a => a.metodo_pago !== 'vale')
-    const cantVales        = atencionesP.filter(a => a.metodo_pago === 'vale').length
+    const cantVales = atencionesP.filter(a => a.metodo_pago === 'vale').length
 
     const totalGenerado = atencionesReales.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-    const peluquero     = peluqueros.find(p => p.id == peluqueroId)
+    const totalPropinasEfectivo = atencionesP.reduce((acc, a) => acc + Number(a.propina_efectivo || 0), 0)
+    const totalPropinasTransferencia = atencionesP.reduce((acc, a) => acc + Number(a.propina_transferencia || 0), 0)
+    const totalPropinas = totalPropinasEfectivo + totalPropinasTransferencia
+    const peluquero = peluqueros.find(p => p.id == peluqueroId)
 
-    const tramosP   = (tramosComision[peluqueroId] || []).slice().sort((a, b) => Number(a.monto_desde) - Number(b.monto_desde))
+    const tramosP = (tramosComision[peluqueroId] || []).slice().sort((a, b) => Number(a.monto_desde) - Number(b.monto_desde))
     const usaTramos = tramosP.length > 0
-    const comision  = peluquero ? Number(peluquero.comision) : 0
+    const comision = peluquero ? Number(peluquero.comision) : 0
 
     let montoComision = 0
     const desglose = []
@@ -155,11 +159,14 @@ export default function Liquidacion() {
           : (precio * comision) / 100
         montoComision += pago
         desglose.push({
-          servicio:  a.servicio_nombre || 'Sin nombre',
+          servicio: a.servicio_nombre || 'Sin nombre',
           precio,
           pago,
+          propina_efectivo: Number(a.propina_efectivo || 0),
+          propina_transferencia: Number(a.propina_transferencia || 0),
+          propina: Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0),
           usóTramo: !!tramoMatch,
-          esVale:   false
+          esVale: false
         })
       }
     } else {
@@ -174,12 +181,15 @@ export default function Liquidacion() {
       totalGenerado,
       comision,
       montoComision,
-      cantidad: atencionesReales.length, // solo cortes reales
+      cantidad: atencionesReales.length,
       cantVales,
       totalPagado,
       usaTramos,
       tramosP,
-      desglose
+      desglose,
+      totalPropinas,
+      totalPropinasEfectivo,
+      totalPropinasTransferencia
     }
   }
 
@@ -189,7 +199,7 @@ export default function Liquidacion() {
   }))
 
   const totalGeneralPeriodo = peluquerosConDatos.reduce((acc, p) => acc + p.totalGenerado, 0)
-  const totalComisiones     = peluquerosConDatos.reduce((acc, p) => acc + p.montoComision, 0)
+  const totalComisiones = peluquerosConDatos.reduce((acc, p) => acc + p.montoComision, 0)
 
   const exportarPDF = async () => {
     await generarReporte({
@@ -206,7 +216,7 @@ export default function Liquidacion() {
       ]),
       totales: [
         { label: 'Total generado en el período', valor: `$${totalGeneralPeriodo.toLocaleString('es-AR')}`, color: [74, 222, 128] },
-        { label: 'Total a pagar en comisiones',  valor: `$${totalComisiones.toLocaleString('es-AR')}`,    color: [248, 113, 113] },
+        { label: 'Total a pagar en comisiones', valor: `$${totalComisiones.toLocaleString('es-AR')}`, color: [248, 113, 113] },
       ],
       nombreArchivo: `liquidacion_${desde}_${hasta}.pdf`
     })
@@ -215,7 +225,7 @@ export default function Liquidacion() {
   // ── Vista principal ──
   return (
     <div className="page-animation">
-      {modalAlert  && <ModalAlert   mensaje={modalAlert.mensaje}   tipo={modalAlert.tipo}   onClose={() => setModalAlert(null)} />}
+      {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
       {modalConfirm && <ModalConfirm mensaje={modalConfirm.mensaje} onConfirm={modalConfirm.onConfirm} onCancel={() => setModalConfirm(null)} />}
 
       {/* Header */}
@@ -257,8 +267,8 @@ export default function Liquidacion() {
         ) : (
           peluquerosConDatos.map(p => {
             const panelAbierto = panelPago === p.id
-            const pendiente    = p.montoComision - p.totalPagado
-            const pagadoEste   = pagosExistentes.filter(pg => pg.peluquero_id == p.id)
+            const pendiente = p.montoComision - p.totalPagado
+            const pagadoEste = pagosExistentes.filter(pg => pg.peluquero_id == p.id)
             const totalPagadoPeriodo = pagadoEste.reduce((acc, pg) => acc + Number(pg.monto), 0)
 
             return (
@@ -287,7 +297,7 @@ export default function Liquidacion() {
                   </div>
 
                   {/* Stats — solo cortes reales, vales aparte */}
-                  <div style={{ display: 'grid', gridTemplateColumns: p.cantVales > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: p.cantVales > 0 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Cortes</div>
                       <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>{p.cantidad}</div>
@@ -308,9 +318,23 @@ export default function Liquidacion() {
                       </div>
                       <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
                     </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Queda para el local</div>
                       <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
+                    </div>
+                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total propinas</div>
+                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalPropinas.toLocaleString('es-AR')}</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 4, fontSize: 11 }}>
+                        <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>
+                        <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>
+                      </div>
+                    </div>
+                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total a pagar (con propinas)</div>
+                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${(p.montoComision + p.totalPropinas).toLocaleString('es-AR')}</div>
                     </div>
                   </div>
 
@@ -326,6 +350,7 @@ export default function Liquidacion() {
                             <th>Servicio</th>
                             <th>Cobrado</th>
                             <th>Pago al peluquero</th>
+                            <th>Propina</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -337,6 +362,13 @@ export default function Liquidacion() {
                                 ${d.pago.toLocaleString('es-AR')}
                                 {!d.usóTramo && <span style={{ color: '#facc15', fontSize: 10, marginLeft: 4 }}>(% fallback)</span>}
                               </td>
+                              <td>
+                                <div style={{ color: '#f87171', fontWeight: 700 }}>${d.propina.toLocaleString('es-AR')}</div>
+                                <div style={{ display: 'flex', gap: 6, fontSize: 10, marginTop: 2 }}>
+                                  {d.propina_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${d.propina_efectivo.toLocaleString('es-AR')}</span>}
+                                  {d.propina_transferencia > 0 && <span style={{ color: '#c084fc' }}>T: ${d.propina_transferencia.toLocaleString('es-AR')}</span>}
+                                </div>
+                              </td>
                             </tr>
                           ))}
                           {/* Vales informativos al final del desglose */}
@@ -347,11 +379,32 @@ export default function Liquidacion() {
                               </td>
                               <td style={{ color: 'var(--text-muted)' }}>—</td>
                               <td style={{ color: 'var(--text-muted)' }}>—</td>
+                              <td style={{ color: 'var(--text-muted)' }}>—</td>
                             </tr>
                           )}
-                          <tr style={{ borderTop: '1px solid var(--border-soft)' }}>
-                            <td colSpan={2} style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 13 }}>Total a pagar</td>
-                            <td style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
+                        </tbody>
+                      </table>
+
+                      {/* Tabla resumen de totales */}
+                      <table style={{ width: '100%', marginTop: 12, borderCollapse: 'separate', borderSpacing: 0, border: '1px solid var(--border-soft)', borderRadius: 10, overflow: 'hidden', fontSize: 13 }}>
+                        <tbody>
+                          <tr style={{ background: 'rgba(248, 113, 113, 0.05)' }}>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>Total (cortes)</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
+                          </tr>
+                          <tr style={{ background: 'rgba(74, 222, 128, 0.05)', borderTop: '1px solid var(--border-soft)' }}>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>Propinas</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#4ade80', fontWeight: 700, fontSize: 14 }}>
+                              ${p.totalPropinas.toLocaleString('es-AR')}
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 2, fontSize: 11 }}>
+                                {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                                {p.totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
+                              </div>
+                            </td>
+                          </tr>
+                          <tr style={{ background: 'rgba(248, 113, 113, 0.10)', borderTop: '1px solid var(--border-soft)' }}>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-main)', fontWeight: 700 }}>Total con Propinas</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 16 }}>${(p.montoComision + p.totalPropinas).toLocaleString('es-AR')}</td>
                           </tr>
                         </tbody>
                       </table>

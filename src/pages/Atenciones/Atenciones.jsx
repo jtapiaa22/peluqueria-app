@@ -21,10 +21,12 @@ const formVacio = {
   metodo_pago: 'efectivo',
   nombre_transferencia: '',
   monto_efectivo: '',
-  monto_transferencia: ''
+  monto_transferencia: '',
+  propina_efectivo: '',
+  propina_transferencia: ''
 }
 
-const MESES_NOMBRE = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 const formatMes = (mes) => {
   const [anio, m] = mes.split('-')
   return `${MESES_NOMBRE[parseInt(m) - 1]} ${anio}`
@@ -32,30 +34,30 @@ const formatMes = (mes) => {
 const formatFechaFormateada = (f) => {
   if (!f) return ''
   const [y, m, d] = f.split('-').map(Number)
-  return `${d} ${MESES_NOMBRE[m-1]} ${y}`
+  return `${d} ${MESES_NOMBRE[m - 1]} ${y}`
 }
 
 export default function Atenciones() {
-  const [atenciones, setAtenciones]     = useState([])
-  const [peluqueros, setPeluqueros]     = useState([])
-  const [servicios, setServicios]       = useState([])
-  const [mostrarForm, setMostrarForm]   = useState(false)
-  const [detalle, setDetalle]           = useState(null)
-  const [fechaFiltro, setFechaFiltro]   = useState(hoy())
-  const [cajaAbierta, setCajaAbierta]   = useState(null)
-  const [editando, setEditando]         = useState(null)
+  const [atenciones, setAtenciones] = useState([])
+  const [peluqueros, setPeluqueros] = useState([])
+  const [servicios, setServicios] = useState([])
+  const [mostrarForm, setMostrarForm] = useState(false)
+  const [detalle, setDetalle] = useState(null)
+  const [fechaFiltro, setFechaFiltro] = useState(hoy())
+  const [cajaAbierta, setCajaAbierta] = useState(null)
+  const [editando, setEditando] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
-  const [modalAlert, setModalAlert]     = useState(null)
-  const [form, setForm]                 = useState(formVacio)
+  const [modalAlert, setModalAlert] = useState(null)
+  const [form, setForm] = useState(formVacio)
   const [mostrarVales, setMostrarVales] = useState(false)
   const [periodoAbierto, setPeriodoAbierto] = useState(null)
-  const [periodos, setPeriodos]             = useState([])
+  const [periodos, setPeriodos] = useState([])
   const [valesPeriodoActivo, setValesPeriodoActivo] = useState([])
   const [detallePeriodo, setDetallePeriodo] = useState(null)
-  const [valesDetalle, setValesDetalle]     = useState([])
+  const [valesDetalle, setValesDetalle] = useState([])
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByFecha(fechaFiltro)
@@ -135,13 +137,15 @@ export default function Atenciones() {
   const abrirFormEditar = (a) => {
     setEditando(a.id)
     setForm({
-      peluquero_id:         String(a.peluquero_id),
-      servicio_id:          a.servicio_id ? String(a.servicio_id) : '',
-      precio_cobrado:       a.precio_cobrado,
-      metodo_pago:          a.metodo_pago,
+      peluquero_id: String(a.peluquero_id),
+      servicio_id: a.servicio_id ? String(a.servicio_id) : '',
+      precio_cobrado: a.precio_cobrado,
+      metodo_pago: a.metodo_pago,
       nombre_transferencia: a.nombre_transferencia || '',
-      monto_efectivo:       a.monto_efectivo       || '',
-      monto_transferencia:  a.monto_transferencia  || ''
+      monto_efectivo: a.monto_efectivo || '',
+      monto_transferencia: a.monto_transferencia || '',
+      propina_efectivo: a.propina_efectivo || '',
+      propina_transferencia: a.propina_transferencia || ''
     })
     setMostrarForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -182,14 +186,14 @@ export default function Atenciones() {
         ...form,
         id: editando,
         fecha: atenciones.find(a => a.id === editando)?.fecha || hoy(),
-        hora:  atenciones.find(a => a.id === editando)?.hora  || horaActual()
+        hora: atenciones.find(a => a.id === editando)?.hora || horaActual()
       })
       alertar('Atención actualizada correctamente.', 'success')
     } else {
       await window.electronAPI.createAtencion({
         ...form,
         fecha: hoy(),
-        hora:  horaActual()
+        hora: horaActual()
       })
     }
 
@@ -296,6 +300,18 @@ export default function Atenciones() {
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Precio cobrado</span>
                     <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.precio_cobrado).toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+                {detalle.propina_efectivo > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Propina (Efectivo)</span>
+                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.propina_efectivo).toLocaleString('es-AR')}</span>
+                  </div>
+                )}
+                {detalle.propina_transferencia > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Propina (Transferencia)</span>
+                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.propina_transferencia).toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 {detalle.nombre_transferencia && (
@@ -407,6 +423,29 @@ export default function Atenciones() {
                 {form.metodo_pago === 'vale' && (
                   <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
                     💳 Vale: no suma en caja. Solo se registra el peluquero.
+                  </div>
+                )}
+
+                {form.metodo_pago !== 'vale' && (
+                  <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div className="form-group">
+                      <label>Propina Efectivo (Opcional)</label>
+                      <input
+                        className="input" type="number" step="100"
+                        value={form.propina_efectivo}
+                        onChange={e => setForm({ ...form, propina_efectivo: e.target.value })}
+                        placeholder="Ej: 500"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Propina Transferencia (Opcional)</label>
+                      <input
+                        className="input" type="number" step="100"
+                        value={form.propina_transferencia}
+                        onChange={e => setForm({ ...form, propina_transferencia: e.target.value })}
+                        placeholder="Ej: 500"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -543,9 +582,9 @@ export default function Atenciones() {
                       background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--border)'
                     }}>
                       <div>
-                         <div style={{ fontSize: 14, color: 'var(--text-main)', fontWeight: 600 }}>
-                           {formatFechaFormateada(p.fecha_apertura)} a {formatFechaFormateada(p.fecha_cierre)}
-                         </div>
+                        <div style={{ fontSize: 14, color: 'var(--text-main)', fontWeight: 600 }}>
+                          {formatFechaFormateada(p.fecha_apertura)} a {formatFechaFormateada(p.fecha_cierre)}
+                        </div>
                       </div>
                       <button className="btn btn-secondary" onClick={() => verDetallePeriodo(p)}>
                         <Eye size={14} style={{ marginRight: 6 }} /> Ver detalle
@@ -572,10 +611,10 @@ export default function Atenciones() {
               </button>
               <h3 style={{ color: '#fbbf24', marginBottom: 10 }}>Resumen del Periodo</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
-                Desde el {formatFechaFormateada(detallePeriodo.fecha_apertura)} a las {detallePeriodo.hora_apertura}hs<br/>
+                Desde el {formatFechaFormateada(detallePeriodo.fecha_apertura)} a las {detallePeriodo.hora_apertura}hs<br />
                 hasta el {formatFechaFormateada(detallePeriodo.fecha_cierre)} a las {detallePeriodo.hora_cierre}hs
               </p>
-              
+
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
                 {valesDetalle.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1', color: 'var(--text-muted)', fontSize: 13 }}>No se registraron vales en este periodo.</div>
@@ -643,7 +682,16 @@ export default function Atenciones() {
                 <td>{a.peluquero_nombre}</td>
                 <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : a.servicio_nombre}</td>
                 <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}</td>
-                <td><BadgePago a={a} /></td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <BadgePago a={a} />
+                    {(Number(a.propina_efectivo || 0) > 0 || Number(a.propina_transferencia || 0) > 0) && (
+                      <span style={{ background: 'rgba(72, 4, 128, 0.56)', color: '#000000ff', padding: '2px 8px', borderRadius: 99, fontSize: 15, fontWeight: 600 }}>
+                        💰
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn btn-secondary" onClick={() => setDetalle(a)} title="Ver detalle">

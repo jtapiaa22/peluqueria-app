@@ -441,7 +441,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Cabecera */
-.table thead {
+.table > thead {
   background: linear-gradient(
     90deg,
     rgba(124, 58, 237, 0.12),
@@ -449,7 +449,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   );
 }
 
-[data-theme="light"] .table thead {
+[data-theme="light"] .table > thead {
   background: linear-gradient(
     90deg,
     rgba(124, 58, 237, 0.09),
@@ -468,11 +468,11 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Zebra rows */
-.table tbody tr:nth-child(odd) td {
+.table > tbody > tr:nth-child(odd) > td {
   background: rgba(255, 255, 255, 0.01);
 }
 
-[data-theme="light"] .table tbody tr:nth-child(odd) td {
+[data-theme="light"] .table > tbody > tr:nth-child(odd) > td {
   background: #f9fafb;
 }
 
@@ -486,7 +486,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Hover fila completo */
-.table tbody tr:hover td {
+.table > tbody > tr:hover > td {
   background: var(--table-row-hover);
 }
 
@@ -498,7 +498,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Bordes inferiores suaves */
-.table tbody tr:last-child td {
+.table > tbody > tr:last-child > td {
   border-bottom: none;
 }
 
