@@ -18,7 +18,7 @@ function estaActivo(desde, hasta) {
 export default function Peluqueros() {
   const [peluqueros, setPeluqueros]     = useState([])
   const [bloqueos, setBloqueos]         = useState({})
-  const [form, setForm]                 = useState({ nombre: '', comision: '' })
+  const [form, setForm]                 = useState({ nombre: '', comision: '', porcentaje_propina: '100' })
   const [editando, setEditando]         = useState(null)
   const [mostrarForm, setMostrarForm]   = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
@@ -66,7 +66,7 @@ export default function Peluqueros() {
     } else {
       await window.electronAPI.createPeluquero(form)
     }
-    setForm({ nombre: '', comision: '' })
+    setForm({ nombre: '', comision: '', porcentaje_propina: '100' })
     setEditando(null)
     setMostrarForm(false)
     cargar()
@@ -75,7 +75,7 @@ export default function Peluqueros() {
   }
 
   const editar = (p) => {
-    setForm({ nombre: p.nombre, comision: p.comision })
+    setForm({ nombre: p.nombre, comision: p.comision, porcentaje_propina: p.porcentaje_propina != null ? String(p.porcentaje_propina) : '100' })
     setEditando(p.id)
     setMostrarForm(true)
     setBloqueoAbierto(null)
@@ -182,7 +182,7 @@ export default function Peluqueros() {
           )}
           <button className="btn btn-primary" onClick={() => {
             setMostrarForm(!mostrarForm); setEditando(null)
-            setForm({ nombre: '', comision: '' }); setBloqueoAbierto(null)
+            setForm({ nombre: '', comision: '', porcentaje_propina: '100' }); setBloqueoAbierto(null)
           }}>
             <Plus size={16} style={{ marginRight: 6 }} />Agregar
           </button>
@@ -208,6 +208,11 @@ export default function Peluqueros() {
               <label>Comisión (%)</label>
               <input className="input" type="number" value={form.comision}
                 onChange={e => setForm({ ...form, comision: e.target.value })} placeholder="Ej: 50" />
+            </div>
+            <div className="form-group">
+              <label>% Propinas para el peluquero</label>
+              <input className="input" type="number" min="0" max="100" value={form.porcentaje_propina}
+                onChange={e => setForm({ ...form, porcentaje_propina: e.target.value })} placeholder="Ej: 100" />
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
               <button className="btn btn-primary" onClick={guardar}>Guardar</button>
@@ -272,6 +277,9 @@ export default function Peluqueros() {
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       Comisión: {p.comision}%
                       {tramosP.length > 0 && <span style={{ color: '#4ade80', marginLeft: 6 }}>· usa tramos</span>}
+                      {(p.porcentaje_propina != null && Number(p.porcentaje_propina) !== 100) && (
+                        <span style={{ color: '#fb923c', marginLeft: 6 }}>· propina {p.porcentaje_propina}%</span>
+                      )}
                     </span>
                   </div>
                 </div>

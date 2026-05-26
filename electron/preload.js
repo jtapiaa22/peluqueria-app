@@ -105,6 +105,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App
   getVersion:           ()      => ipcRenderer.invoke('app:getVersion'),
+  checkChangelog:       ()      => ipcRenderer.invoke('app:checkChangelog'),
   guardarPDF:           (data)  => ipcRenderer.invoke('pdf:guardar', data),
 
   // Turnos webs

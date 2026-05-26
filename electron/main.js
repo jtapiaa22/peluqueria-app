@@ -126,6 +126,14 @@ const MIGRATIONS = [
       db.prepare('UPDATE atenciones SET propina_efectivo = propina WHERE propina IS NOT NULL AND propina > 0').run()
     }
   }},
+  { version: 16, descripcion: 'Porcentaje propina configurable por peluquero', up: (db) => {
+    const cols = db.prepare('PRAGMA table_info(peluqueros)').all().map(c => c.name)
+    if (!cols.includes('porcentaje_propina')) db.prepare('ALTER TABLE peluqueros ADD COLUMN porcentaje_propina REAL DEFAULT 100').run()
+  }},
+  { version: 17, descripcion: 'Propinas pagadas en registro de pagos a peluqueros', up: (db) => {
+    const cols = db.prepare('PRAGMA table_info(pagos_peluqueros)').all().map(c => c.name)
+    if (!cols.includes('propinas_pagadas')) db.prepare('ALTER TABLE pagos_peluqueros ADD COLUMN propinas_pagadas REAL DEFAULT 0').run()
+  }},
 ]
 
 function runMigrations() {
@@ -398,8 +406,8 @@ async function syncTurnoManual(turno, eliminar = false) {
 
 // PELUQUEROS
 ipcMain.handle('peluqueros:getAll', ()=>db.prepare('SELECT * FROM peluqueros WHERE activo=1').all())
-ipcMain.handle('peluqueros:create', async(_,d)=>{ const r=db.prepare('INSERT INTO peluqueros(nombre,comision) VALUES(?,?)').run(d.nombre,d.comision); syncSupabase(); return r.lastInsertRowid })
-ipcMain.handle('peluqueros:update', async(_,d)=>{ db.prepare('UPDATE peluqueros SET nombre=?,comision=? WHERE id=?').run(d.nombre,d.comision,d.id); syncSupabase(); return true })
+ipcMain.handle('peluqueros:create', async(_,d)=>{ const r=db.prepare('INSERT INTO peluqueros(nombre,comision,porcentaje_propina) VALUES(?,?,?)').run(d.nombre,d.comision,d.porcentaje_propina!=null?Number(d.porcentaje_propina):100); syncSupabase(); return r.lastInsertRowid })
+ipcMain.handle('peluqueros:update', async(_,d)=>{ db.prepare('UPDATE peluqueros SET nombre=?,comision=?,porcentaje_propina=? WHERE id=?').run(d.nombre,d.comision,d.porcentaje_propina!=null?Number(d.porcentaje_propina):100,d.id); syncSupabase(); return true })
 ipcMain.handle('peluqueros:delete', async(_,id)=>{ db.prepare('UPDATE peluqueros SET activo=0 WHERE id=?').run(id); syncSupabase(); return true })
 
 // TRAMOS COMISIÓN
@@ -524,16 +532,17 @@ ipcMain.handle('gastos:getAll',()=>db.prepare('SELECT * FROM gastos ORDER BY fec
 ipcMain.handle('gastos:getByRango',(_,{desde,hasta})=>db.prepare('SELECT * FROM gastos WHERE fecha BETWEEN ? AND ? ORDER BY fecha DESC,id DESC').all(desde,hasta))
 ipcMain.handle('gastos:getResumenMensual',()=>{
   const g=db.prepare(`SELECT strftime('%Y-%m',fecha) as mes,SUM(monto) as total_gastos,COUNT(*) as cantidad_gastos FROM gastos GROUP BY mes`).all()
-  const p=db.prepare(`SELECT strftime('%Y-%m',fecha_pago) as mes,SUM(monto) as total_pagos,COUNT(*) as cantidad_pagos FROM pagos_peluqueros GROUP BY mes`).all()
-  const meses=new Set([...g.map(r=>r.mes),...p.map(r=>r.mes)])
-  return Array.from(meses).sort().reverse().map(mes=>{ const gr=g.find(r=>r.mes===mes)||{total_gastos:0,cantidad_gastos:0}; const pr=p.find(r=>r.mes===mes)||{total_pagos:0,cantidad_pagos:0}; return {mes,total_gastos:Number(gr.total_gastos)||0,cantidad_gastos:Number(gr.cantidad_gastos)||0,total_pagos:Number(pr.total_pagos)||0,cantidad_pagos:Number(pr.cantidad_pagos)||0} })
+  const p=db.prepare(`SELECT strftime('%Y-%m',fecha_pago) as mes,SUM(monto + COALESCE(propinas_pagadas,0)) as total_pagos,COUNT(*) as cantidad_pagos FROM pagos_peluqueros GROUP BY mes`).all()
+  const i=db.prepare(`SELECT strftime('%Y-%m',fecha) as mes,SUM(precio_cobrado + COALESCE(propina_efectivo,0) + COALESCE(propina_transferencia,0)) as total_ingresos FROM atenciones WHERE metodo_pago != 'vale' GROUP BY mes`).all()
+  const meses=new Set([...g.map(r=>r.mes),...p.map(r=>r.mes),...i.map(r=>r.mes)])
+  return Array.from(meses).sort().reverse().map(mes=>{ const gr=g.find(r=>r.mes===mes)||{total_gastos:0,cantidad_gastos:0}; const pr=p.find(r=>r.mes===mes)||{total_pagos:0,cantidad_pagos:0}; const ir=i.find(r=>r.mes===mes)||{total_ingresos:0}; return {mes,total_gastos:Number(gr.total_gastos)||0,cantidad_gastos:Number(gr.cantidad_gastos)||0,total_pagos:Number(pr.total_pagos)||0,cantidad_pagos:Number(pr.cantidad_pagos)||0,total_ingresos:Number(ir.total_ingresos)||0} })
 })
 ipcMain.handle('gastos:create',async(_,d)=>{ const r=db.prepare('INSERT INTO gastos(descripcion,monto,fecha,categoria) VALUES(?,?,?,?)').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null); return r.lastInsertRowid })
 ipcMain.handle('gastos:update',async(_,d)=>{ db.prepare('UPDATE gastos SET descripcion=?,monto=?,fecha=?,categoria=? WHERE id=?').run(d.descripcion,Number(d.monto),d.fecha,d.categoria||null,d.id); return true })
 ipcMain.handle('gastos:delete',async(_,id)=>{ db.prepare('DELETE FROM gastos WHERE id=?').run(id); return true })
 
 // PAGOS PELUQUEROS
-ipcMain.handle('pagos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas) VALUES(?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null); return r.lastInsertRowid })
+ipcMain.handle('pagos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas,propinas_pagadas) VALUES(?,?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null,Number(d.propinas_pagadas||0)); return r.lastInsertRowid })
 ipcMain.handle('pagos:getByMes',(_,mes)=>{ const [a,m]=mes.split('-'); const desde=`${a}-${m}-01`; const u=new Date(parseInt(a),parseInt(m),0).getDate(); const hasta=`${a}-${m}-${String(u).padStart(2,'0')}`; return db.prepare('SELECT * FROM pagos_peluqueros WHERE fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC,id DESC').all(desde,hasta) })
 ipcMain.handle('pagos:getByPeluqueroYRango',(_,{peluquero_id,desde,hasta})=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? AND fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC').all(peluquero_id,desde,hasta))
 ipcMain.handle('pagos:delete',async(_,id)=>{ db.prepare('DELETE FROM pagos_peluqueros WHERE id=?').run(id); return true })
@@ -1095,6 +1104,18 @@ ipcMain.handle('config:setNombreApp',(_,n)=>{ db.prepare("INSERT OR REPLACE INTO
 ipcMain.handle('config:getLogo',()=>{ const lp=path.join(getLogoBasePath(),'logo.png'); if(fs.existsSync(lp)) return `data:image/png;base64,${fs.readFileSync(lp).toString('base64')}`; return null })
 ipcMain.handle('config:setLogo',(_,ruta)=>{ try{ const lp=path.join(getLogoBasePath(),'logo.png'); if(ruta===null){if(fs.existsSync(lp))fs.unlinkSync(lp);return {ok:true}}; fs.copyFileSync(ruta,lp); return {ok:true} }catch{return {ok:false}} })
 ipcMain.handle('app:getVersion',()=>app.getVersion())
+
+const CHANGELOG = require('./changelog')
+
+ipcMain.handle('app:checkChangelog', () => {
+  const versionActual = app.getVersion()
+  const archivoVisto = path.join(app.getPath('userData'), 'last-seen-version.json')
+  let versionVista = null
+  try { versionVista = JSON.parse(fs.readFileSync(archivoVisto, 'utf8')).version } catch {}
+  if (versionVista === versionActual) return null
+  fs.writeFileSync(archivoVisto, JSON.stringify({ version: versionActual }), 'utf8')
+  return { version: versionActual, items: CHANGELOG[versionActual] || [] }
+})
 
 // PDF
 ipcMain.handle('pdf:guardar',async(_,{buffer,nombreSugerido})=>{ const {filePath,canceled}=await dialog.showSaveDialog(mainWindow,{title:'Guardar PDF',defaultPath:nombreSugerido,filters:[{name:'PDF',extensions:['pdf']}]}); if(canceled||!filePath) return {ok:false}; fs.writeFileSync(filePath,Buffer.from(buffer)); return {ok:true,filePath} })

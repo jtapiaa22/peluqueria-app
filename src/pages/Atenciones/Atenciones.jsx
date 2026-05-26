@@ -22,8 +22,8 @@ const formVacio = {
   nombre_transferencia: '',
   monto_efectivo: '',
   monto_transferencia: '',
-  propina_efectivo: '',
-  propina_transferencia: ''
+  propina: '',
+  propina_tipo: 'efectivo'
 }
 
 const MESES_NOMBRE = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -136,6 +136,8 @@ export default function Atenciones() {
 
   const abrirFormEditar = (a) => {
     setEditando(a.id)
+    const propEf = Number(a.propina_efectivo || 0)
+    const propTr = Number(a.propina_transferencia || 0)
     setForm({
       peluquero_id: String(a.peluquero_id),
       servicio_id: a.servicio_id ? String(a.servicio_id) : '',
@@ -144,8 +146,8 @@ export default function Atenciones() {
       nombre_transferencia: a.nombre_transferencia || '',
       monto_efectivo: a.monto_efectivo || '',
       monto_transferencia: a.monto_transferencia || '',
-      propina_efectivo: a.propina_efectivo || '',
-      propina_transferencia: a.propina_transferencia || ''
+      propina: propEf > 0 ? String(propEf) : propTr > 0 ? String(propTr) : '',
+      propina_tipo: propTr > 0 && propEf === 0 ? 'transferencia' : 'efectivo'
     })
     setMostrarForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -181,9 +183,17 @@ export default function Atenciones() {
       }
     }
 
+    const propMonto = Number(form.propina || 0)
+    const datosAtencion = {
+      ...form,
+      propina: propMonto,
+      propina_efectivo: form.propina_tipo === 'efectivo' ? propMonto : 0,
+      propina_transferencia: form.propina_tipo === 'transferencia' ? propMonto : 0,
+    }
+
     if (editando) {
       await window.electronAPI.updateAtencion({
-        ...form,
+        ...datosAtencion,
         id: editando,
         fecha: atenciones.find(a => a.id === editando)?.fecha || hoy(),
         hora: atenciones.find(a => a.id === editando)?.hora || horaActual()
@@ -191,7 +201,7 @@ export default function Atenciones() {
       alertar('Atención actualizada correctamente.', 'success')
     } else {
       await window.electronAPI.createAtencion({
-        ...form,
+        ...datosAtencion,
         fecha: hoy(),
         hora: horaActual()
       })
@@ -427,24 +437,45 @@ export default function Atenciones() {
                 )}
 
                 {form.metodo_pago !== 'vale' && (
-                  <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <div className="form-group">
-                      <label>Propina Efectivo (Opcional)</label>
+                  <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'flex-end' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label>Propina <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span></label>
                       <input
                         className="input" type="number" step="100"
-                        value={form.propina_efectivo}
-                        onChange={e => setForm({ ...form, propina_efectivo: e.target.value })}
+                        value={form.propina}
+                        onChange={e => setForm({ ...form, propina: e.target.value })}
                         placeholder="Ej: 500"
                       />
                     </div>
-                    <div className="form-group">
-                      <label>Propina Transferencia (Opcional)</label>
-                      <input
-                        className="input" type="number" step="100"
-                        value={form.propina_transferencia}
-                        onChange={e => setForm({ ...form, propina_transferencia: e.target.value })}
-                        placeholder="Ej: 500"
-                      />
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: 11, marginBottom: 6, display: 'block' }}>Tipo de propina</label>
+                      <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-soft)' }}>
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, propina_tipo: 'efectivo' })}
+                          style={{
+                            flex: 1, padding: '10px 20px', fontSize: 13, border: 'none', cursor: 'pointer',
+                            background: form.propina_tipo === 'efectivo' ? 'rgba(74, 222, 128, 0.18)' : 'var(--bg-main)',
+                            color: form.propina_tipo === 'efectivo' ? '#4ade80' : 'var(--text-muted)',
+                            fontWeight: form.propina_tipo === 'efectivo' ? 700 : 400,
+                          }}
+                        >
+                          Efectivo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, propina_tipo: 'transferencia' })}
+                          style={{
+                            flex: 1, padding: '10px 20px', fontSize: 13, border: 'none', cursor: 'pointer',
+                            borderLeft: '1px solid var(--border-soft)',
+                            background: form.propina_tipo === 'transferencia' ? 'rgba(192, 132, 252, 0.18)' : 'var(--bg-main)',
+                            color: form.propina_tipo === 'transferencia' ? '#c084fc' : 'var(--text-muted)',
+                            fontWeight: form.propina_tipo === 'transferencia' ? 700 : 400,
+                          }}
+                        >
+                          Transferencia
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

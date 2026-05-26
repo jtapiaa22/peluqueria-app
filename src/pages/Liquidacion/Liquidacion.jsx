@@ -93,15 +93,18 @@ export default function Liquidacion() {
     }
     const pendiente = liq.montoComision - liq.totalPagado
     const montoFinal = formPago.montoManual !== '' ? Number(formPago.montoManual) : Math.max(0, pendiente)
-    const totalACobrar = montoFinal + liq.totalPropinas
 
     if (montoFinal <= 0) {
       alertar('El monto a pagar debe ser mayor a $0.', 'warning')
       return
     }
 
+    const totalConPropinas = montoFinal + liq.propinasAPagar
+    const msgPago = liq.propinasAPagar > 0
+      ? `¿Confirmar pago a ${peluquero.nombre}?\nComisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasAPagar.toLocaleString('es-AR')} = $${totalConPropinas.toLocaleString('es-AR')} total a entregar.`
+      : `¿Confirmar pago de $${montoFinal.toLocaleString('es-AR')} a ${peluquero.nombre}?`
     confirmar(
-      `¿Confirmar pago de $${montoFinal.toLocaleString('es-AR')} a ${peluquero.nombre}?`,
+      msgPago,
       async () => {
         setModalConfirm(null)
         await window.electronAPI.createPago({
@@ -110,10 +113,14 @@ export default function Liquidacion() {
           desde,
           hasta,
           monto: montoFinal,
+          propinas_pagadas: liq.propinasAPagar,
           fecha_pago: formPago.fecha_pago,
           notas: formPago.notas
         })
-        alertar(`✅ Pago registrado a ${peluquero.nombre}`, 'success')
+        const msgOk = liq.propinasAPagar > 0
+          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasAPagar.toLocaleString('es-AR')} = $${(montoFinal + liq.propinasAPagar).toLocaleString('es-AR')} total`
+          : `✅ Pago registrado a ${peluquero.nombre}`
+        alertar(msgOk, 'success')
         await cargarPagosExistentes(peluquero.id)
       }
     )
@@ -142,6 +149,8 @@ export default function Liquidacion() {
     const tramosP = (tramosComision[peluqueroId] || []).slice().sort((a, b) => Number(a.monto_desde) - Number(b.monto_desde))
     const usaTramos = tramosP.length > 0
     const comision = peluquero ? Number(peluquero.comision) : 0
+    const porcentajePropina = peluquero && peluquero.porcentaje_propina != null ? Number(peluquero.porcentaje_propina) : 100
+    const propinasAPagar = Math.round(totalPropinas * (porcentajePropina / 100))
 
     let montoComision = 0
     const desglose = []
@@ -189,7 +198,9 @@ export default function Liquidacion() {
       desglose,
       totalPropinas,
       totalPropinasEfectivo,
-      totalPropinasTransferencia
+      totalPropinasTransferencia,
+      porcentajePropina,
+      propinasAPagar
     }
   }
 
@@ -200,6 +211,9 @@ export default function Liquidacion() {
 
   const totalGeneralPeriodo = peluquerosConDatos.reduce((acc, p) => acc + p.totalGenerado, 0)
   const totalComisiones = peluquerosConDatos.reduce((acc, p) => acc + p.montoComision, 0)
+  const totalPropinas = peluquerosConDatos.reduce((acc, p) => acc + p.totalPropinas, 0)
+
+
 
   const exportarPDF = async () => {
     await generarReporte({
@@ -246,10 +260,15 @@ export default function Liquidacion() {
       </div>
 
       {/* Resumen general */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
           <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', margin: 0 }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total + Propinas</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#36f307' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
@@ -269,7 +288,7 @@ export default function Liquidacion() {
             const panelAbierto = panelPago === p.id
             const pendiente = p.montoComision - p.totalPagado
             const pagadoEste = pagosExistentes.filter(pg => pg.peluquero_id == p.id)
-            const totalPagadoPeriodo = pagadoEste.reduce((acc, pg) => acc + Number(pg.monto), 0)
+            const totalPagadoPeriodo = pagadoEste.reduce((acc, pg) => acc + Number(pg.monto) + Number(pg.propinas_pagadas || 0), 0)
 
             return (
               <div key={p.id} className="card" style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
@@ -325,16 +344,21 @@ export default function Liquidacion() {
                       <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total propinas</div>
-                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalPropinas.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>
+                        Propinas {p.porcentajePropina < 100 && <span style={{ color: '#fb923c' }}>({p.porcentajePropina}%)</span>}
+                      </div>
+                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.propinasAPagar.toLocaleString('es-AR')}</div>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 4, fontSize: 11 }}>
-                        <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>
-                        <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>
+                        {p.totalPropinas !== p.propinasAPagar && (
+                          <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>
+                        )}
+                        {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                        {p.totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                       </div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total a pagar (con propinas)</div>
-                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${(p.montoComision + p.totalPropinas).toLocaleString('es-AR')}</div>
+                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</div>
                     </div>
                   </div>
 
@@ -393,10 +417,13 @@ export default function Liquidacion() {
                             <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
                           </tr>
                           <tr style={{ background: 'rgba(74, 222, 128, 0.05)', borderTop: '1px solid var(--border-soft)' }}>
-                            <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>Propinas</td>
+                            <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>
+                              Propinas {p.porcentajePropina < 100 && <span style={{ color: '#fb923c', fontWeight: 400 }}>({p.porcentajePropina}%)</span>}
+                            </td>
                             <td style={{ padding: '10px 14px', textAlign: 'right', color: '#4ade80', fontWeight: 700, fontSize: 14 }}>
-                              ${p.totalPropinas.toLocaleString('es-AR')}
+                              ${p.propinasAPagar.toLocaleString('es-AR')}
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 2, fontSize: 11 }}>
+                                {p.totalPropinas !== p.propinasAPagar && <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>}
                                 {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
                                 {p.totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                               </div>
@@ -404,7 +431,7 @@ export default function Liquidacion() {
                           </tr>
                           <tr style={{ background: 'rgba(248, 113, 113, 0.10)', borderTop: '1px solid var(--border-soft)' }}>
                             <td style={{ padding: '10px 14px', color: 'var(--text-main)', fontWeight: 700 }}>Total con Propinas</td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 16 }}>${(p.montoComision + p.totalPropinas).toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 16 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -445,7 +472,7 @@ export default function Liquidacion() {
                       <div style={{ padding: '20px 24px', background: 'rgba(74, 222, 128, 0.03)' }}>
 
                         {/* Formulario de pago */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 20 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Período cubierto</label>
                             <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text-soft)' }}>
@@ -453,15 +480,22 @@ export default function Liquidacion() {
                             </div>
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
-                            <label>Monto calculado</label>
-                            <div style={{ background: 'var(--bg-main)', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: 10, padding: '10px 14px', fontSize: 15, fontWeight: 700, color: '#f87171' }}>
-                              ${Math.max(0, pendiente).toLocaleString('es-AR')}
+                            <label>Total calculado</label>
+                            <div style={{ background: 'var(--bg-main)', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: 10, padding: '8px 14px' }}>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: '#f87171' }}>
+                                ${(Math.max(0, pendiente) + p.propinasAPagar).toLocaleString('es-AR')}
+                              </div>
+                              {p.propinasAPagar > 0 && (
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                  comisión ${Math.max(0, pendiente).toLocaleString('es-AR')} + propinas ${p.propinasAPagar.toLocaleString('es-AR')}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>
-                              Monto a pagar
-                              <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 4 }}>(manual)</span>
+                              Monto manual
+                              <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 4 }}>(override comisión)</span>
                             </label>
                             <input
                               className="input"
@@ -471,6 +505,11 @@ export default function Liquidacion() {
                               placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
                               style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
                             />
+                            {formPago.montoManual !== '' && p.propinasAPagar > 0 && (
+                              <div style={{ fontSize: 11, color: '#facc15', marginTop: 4 }}>
+                                total a entregar: ${(Number(formPago.montoManual) + p.propinasAPagar).toLocaleString('es-AR')}
+                              </div>
+                            )}
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Fecha de pago</label>
@@ -490,6 +529,7 @@ export default function Liquidacion() {
                             Confirmar pago
                           </button>
                         </div>
+
 
                         <div className="form-group" style={{ marginBottom: 20 }}>
                           <label>Notas <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span></label>
@@ -522,7 +562,14 @@ export default function Liquidacion() {
                                   <tr key={pg.id}>
                                     <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
                                     <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
-                                    <td style={{ color: '#4ade80', fontWeight: 700 }}>${Number(pg.monto).toLocaleString('es-AR')}</td>
+                                    <td style={{ color: '#4ade80', fontWeight: 700 }}>
+                                      ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
+                                      {Number(pg.propinas_pagadas) > 0 && (
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                          com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
+                                        </div>
+                                      )}
+                                    </td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
                                     <td>
                                       <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>

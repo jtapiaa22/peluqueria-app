@@ -153,14 +153,14 @@ export default function Reportes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total efectivo</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#f58f1a' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total transferencias</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#c084fc' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general (cortes)</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#a78bfa' }}>${totalGeneral.toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atencionesReales.length} cortes</div>
         </div>
@@ -171,6 +171,10 @@ export default function Reportes() {
             <div style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
             <div style={{ color: '#c084fc', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
           </div>
+        </div>
+        <div className="card" style={{ textAlign: 'center', margin: 0 }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>Total + propinas</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#36f307' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
         </div>
       </div>
 

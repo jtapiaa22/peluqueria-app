@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, TrendingDown, Users, DollarSign, TrendingUp } from 'lucide-react'
+import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, TrendingDown, Users, DollarSign } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -37,8 +37,7 @@ export default function Gastos() {
   const [mesAbierto, setMesAbierto]         = useState(null)
   const [detallesMes, setDetallesMes]       = useState({})   // gastos operativos por mes
   const [pagosMes, setPagosMes]             = useState({})   // pagos peluqueros por mes
-  const [ingresosMes, setIngresosMes]       = useState({})   // ingresos por mes
-  const [peluqueros, setPeluqueros]         = useState([])
+
   const [mostrarForm, setMostrarForm]       = useState(false)
   const [editando, setEditando]             = useState(null)
   const [form, setForm]                     = useState({ descripcion: '', monto: '', fecha: hoy(), categoria: '' })
@@ -49,31 +48,23 @@ export default function Gastos() {
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
 
   const cargarResumen = async () => {
-    const [resumen, pels] = await Promise.all([
-      window.electronAPI.getResumenMensualGastos(),
-      window.electronAPI.getPeluqueros()
-    ])
+    const resumen = await window.electronAPI.getResumenMensualGastos()
     setResumenMensual(resumen)
-    setPeluqueros(pels)
   }
 
   useEffect(() => { cargarResumen() }, [])
 
-  const cargarDetalleMes = async (mes) => {
-    if (detallesMes[mes] && pagosMes[mes]) return
+  const cargarDetalleMes = async (mes, forceRefresh = false) => {
+    if (!forceRefresh && detallesMes[mes] && pagosMes[mes]) return
 
     const [desde, hasta] = getRangoMes(mes)
-    const [gastos, pagos, atenciones] = await Promise.all([
+    const [gastos, pagos] = await Promise.all([
       window.electronAPI.getGastosByRango({ desde, hasta }),
       window.electronAPI.getPagosByMes(mes),
-      window.electronAPI.getAtencionesByRango({ desde, hasta })
     ])
 
-    const totalIngresos = atenciones.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-
-    setDetallesMes(prev  => ({ ...prev, [mes]: gastos }))
-    setPagosMes(prev     => ({ ...prev, [mes]: pagos }))
-    setIngresosMes(prev  => ({ ...prev, [mes]: totalIngresos }))
+    setDetallesMes(prev => ({ ...prev, [mes]: gastos }))
+    setPagosMes(prev    => ({ ...prev, [mes]: pagos }))
   }
 
   const toggleMes = async (mes) => {
@@ -100,7 +91,6 @@ export default function Gastos() {
     setMostrarForm(false)
     setDetallesMes({})
     setPagosMes({})
-    setIngresosMes({})
     cargarResumen()
   }
 
@@ -117,8 +107,7 @@ export default function Gastos() {
       await window.electronAPI.deleteGasto(id)
       setDetallesMes({})
       setPagosMes({})
-      setIngresosMes({})
-      cargarResumen()
+        cargarResumen()
     })
   }
 
@@ -126,11 +115,8 @@ export default function Gastos() {
     confirmar(`¿Eliminar el pago de $${Number(pago.monto).toLocaleString('es-AR')} a ${pago.peluquero_nombre}?`, async () => {
       setModalConfirm(null)
       await window.electronAPI.deletePago(pago.id)
-      // Refrescar el mes abierto
       const mes = mesAbierto
-      setPagosMes(prev => ({ ...prev, [mes]: undefined }))
-      setIngresosMes(prev => ({ ...prev, [mes]: undefined }))
-      await cargarDetalleMes(mes)
+      await cargarDetalleMes(mes, true)
       cargarResumen()
     })
   }
@@ -267,7 +253,7 @@ export default function Gastos() {
             const abierto    = mesAbierto === item.mes
             const detalle    = detallesMes[item.mes] || []
             const pagos      = pagosMes[item.mes]    || []
-            const ingresos   = ingresosMes[item.mes] || 0
+            const ingresos   = item.total_ingresos   || 0
             const totalG     = item.total_gastos
             const totalP     = item.total_pagos
             const totalEgr   = totalG + totalP
@@ -311,6 +297,13 @@ export default function Gastos() {
                       <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>TOTAL EGRESOS</div>
                       <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${totalEgr.toLocaleString('es-AR')}</div>
                     </div>
+                    {ingresos > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>TOTAL INGRESOS</div>
+                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${ingresos.toLocaleString('es-AR')}</div>
+                    </div>
+                    )}
+                    
                     {abierto ? <ChevronUp size={18} color="#a78bfa" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                   </div>
                 </div>
@@ -390,7 +383,12 @@ export default function Gastos() {
                                     </td>
                                     <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
                                     <td style={{ color: '#fb923c', fontWeight: 700 }}>
-                                      ${Number(pg.monto).toLocaleString('es-AR')}
+                                      ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
+                                      {Number(pg.propinas_pagadas) > 0 && (
+                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                          com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
+                                        </div>
+                                      )}
                                     </td>
                                     <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
                                     <td>
