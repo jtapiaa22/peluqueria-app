@@ -1,4 +1,12 @@
 module.exports = {
+  '2.6.0': [
+    { titulo: 'Formato de montos más legible', desc: 'Los campos de precio en Atenciones, Gastos, Liquidación y Servicios ahora muestran puntos como separador de miles mientras escribís (por ejemplo: 10.000 en lugar de 10000).' },
+    { titulo: 'Filtros siempre visibles en Reportes y Liquidación', desc: 'El filtro de fechas queda fijo en la parte superior al hacer scroll, sin necesidad de volver a subir para cambiar el período.' },
+    { titulo: 'Navegación fija en Configuración', desc: 'El menú lateral de secciones ya no desaparece al hacer scroll. Solo el contenido de la sección seleccionada se desplaza.' },
+    { titulo: '"Pago por servicio" más claro en Peluqueros', desc: 'La sección de tramos de comisión ahora se llama "Pago por servicio" con iconos y textos más fáciles de entender para cualquier usuario.' },
+    { titulo: 'Gastos se actualiza al instante', desc: 'Al agregar o editar un gasto, la lista del mes abierto se refresca inmediatamente sin necesidad de cerrar y volver a abrir la sección.' },
+    { titulo: 'Corrección de emojis duplicados', desc: 'Se eliminaron los íconos dobles (✅) que aparecían en los mensajes de confirmación de Peluqueros y Configuración.' },
+  ],
   '2.5.0': [
     { titulo: 'Aviso de cambios realizados', desc: 'Ahora, al abrir la aplicación después de una actualización, se muestra un aviso con los cambios realizados en la nueva versión.' },
     { titulo: 'Atenciones, Liquidacion y Gastos Mejoradas', desc: 'Mejoras visuales, Vistas y resumenes mas limpios, con un nuevo diseño de tarjetas y gráficos.' },

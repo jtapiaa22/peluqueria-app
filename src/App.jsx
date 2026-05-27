@@ -207,7 +207,7 @@ function App() {
           </nav>
 
           {/* Bandeja de notificaciones */}
-          <div style={{ padding: '0 12px 10px', position: 'relative' }}>
+          <div style={{ padding: '0 12px 6px', position: 'relative' }}>
             <button
               onClick={() => {
                 setBandejaAbierta(v => !v)
@@ -215,7 +215,7 @@ function App() {
               }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border-soft)',
+                padding: '7px 12px', borderRadius: 10, border: '1px solid var(--border-soft)',
                 background: noLeidas > 0 ? 'rgba(167,139,250,0.08)' : 'transparent',
                 cursor: 'pointer', transition: 'all 0.15s',
               }}>

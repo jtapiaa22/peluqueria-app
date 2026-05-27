@@ -157,7 +157,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     setSeguridadDesbloqueada(true)
     setSetupMaestra({ pass: '', repetir: '', pregunta: '', respuesta: '' })
     setShowSetupPass(false)
-    setModalAlert({ mensaje: '✅ Contraseña maestra creada. Ya podés proteger las secciones.', tipo: 'success' })
+    setModalAlert({ mensaje: 'Contraseña maestra creada. Ya podés proteger las secciones.', tipo: 'success' })
   }
 
   const iniciarRecuperacion = async () => {
@@ -200,7 +200,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     setRecoveryExito(false)
     setNuevaMaestraRecovery({ pass: '', repetir: '' })
     setShowRecoveryPass(false)
-    setModalAlert({ mensaje: '✅ Contraseña maestra actualizada.', tipo: 'success' })
+    setModalAlert({ mensaje: 'Contraseña maestra actualizada.', tipo: 'success' })
   }
 
   const guardarPasswordSeccion = async (key) => {
@@ -211,7 +211,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
       setModalAlert({ mensaje: 'Las contraseñas no coinciden.', tipo: 'error' }); return
     }
     await window.electronAPI.setConfig({ clave: key, valor: passFormSeg.nueva })
-    setModalAlert({ mensaje: '✅ Contraseña configurada correctamente.', tipo: 'success' })
+    setModalAlert({ mensaje: 'Contraseña configurada correctamente.', tipo: 'success' })
     setEditandoPassword(null)
     setPassFormSeg({ nueva: '', repetir: '' })
     setShowPassSeg(false)
@@ -220,7 +220,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
   const quitarPasswordSeccion = async (key) => {
     await window.electronAPI.setConfig({ clave: key, valor: '' })
-    setModalAlert({ mensaje: '✅ Contraseña eliminada. La sección ya no está protegida.', tipo: 'success' })
+    setModalAlert({ mensaje: 'Contraseña eliminada. La sección ya no está protegida.', tipo: 'success' })
     await cargarPasswordsSecciones()
   }
 
@@ -288,7 +288,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     setWebLoading(false)
     if (result?.ok) {
       await cargarWebConfig()
-      setModalAlert({ mensaje: result.yaExistia ? '✅ ID recuperado. Esta peluquería ya estaba registrada.' : '✅ ¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
+      setModalAlert({ mensaje: result.yaExistia ? 'ID recuperado. Esta peluquería ya estaba registrada.' : '¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
@@ -304,7 +304,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     setWebLoading(false)
     if (result?.ok) {
       await cargarWebConfig()
-      setModalAlert({ mensaje: '✅ Peluquería vinculada correctamente.', tipo: 'success' })
+      setModalAlert({ mensaje: 'Peluquería vinculada correctamente.', tipo: 'success' })
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
@@ -404,7 +404,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   ]
 
   return (
-    <div className="page-animation">
+    <div className="page-animation" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
 
       {/* Modal: backup encontrado en la nube */}
@@ -447,7 +447,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   setRestoreAutoLoading(false)
                   setMostrarRestoreModal(false)
                   if (result.ok) {
-                    setModalAlert({ mensaje: `✅ Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                    setModalAlert({ mensaje: `Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
                     await cargarWebConfig()
                   } else {
                     setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
@@ -474,9 +474,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
         </div>
       )}
 
-      <h1 className="page-title">Configuración</h1>
+      <h1 className="page-title" style={{ flexShrink: 0 }}>Configuración</h1>
 
-      <div style={{ display: 'flex', gap: 0, minHeight: 500 }}>
+      <div style={{ display: 'flex', gap: 0, flex: 1, minHeight: 0 }}>
 
         {/* ── SIDEBAR ── */}
         <div style={{
@@ -486,6 +486,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           borderRadius: '12px 0 0 12px',
           padding: '8px 0',
           display: 'flex', flexDirection: 'column', gap: 2,
+          overflowY: 'auto',
         }}>
           {navItems.map(item => (
             <button key={item.id} onClick={() => setSeccion(item.id)}
@@ -515,6 +516,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           borderRadius: '0 12px 12px 0',
           padding: '28px 32px',
           minWidth: 0,
+          overflowY: 'auto',
         }}>
 
           {/* ── APARIENCIA ── */}
@@ -934,7 +936,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       setBackupNubeLoading(false)
                       if (result.ok) {
                         setUltimoBackupNube(new Date().toISOString())
-                        setModalAlert({ mensaje: `✅ Backup subido: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                        setModalAlert({ mensaje: `Backup subido: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
                       } else {
                         setModalAlert({ mensaje: 'Error al hacer backup: ' + result.error, tipo: 'error' })
                       }
@@ -974,7 +976,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           const result = await window.electronAPI.restaurarDesdeNube()
                           setRestoreNubeLoading(false)
                           if (result.ok) {
-                            setModalAlert({ mensaje: `✅ Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
+                            setModalAlert({ mensaje: `Datos restaurados: ${result.peluqueros || 0} peluqueros, ${result.servicios || 0} servicios, ${result.atenciones} atenciones, ${result.gastos} gastos, ${result.cierres} cierres.`, tipo: 'success' })
                           } else {
                             setModalAlert({ mensaje: 'Error al restaurar: ' + result.error, tipo: 'error' })
                           }

@@ -20,6 +20,12 @@ function formatFecha(f) {
   const [a, m, d] = f.split('-')
   return `${d}/${m}/${a}`
 }
+const fmtMiles = (val) => {
+  if (val === '' || val == null) return ''
+  const n = Number(String(val).replace(/\./g, ''))
+  return isNaN(n) ? '' : n.toLocaleString('es-AR')
+}
+const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
 export default function Liquidacion() {
   const [peluqueros, setPeluqueros] = useState([])
@@ -236,28 +242,29 @@ export default function Liquidacion() {
 
   // ── Vista principal ──
   return (
-    <div className="page-animation">
+    <div className="page-animation" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
       {modalConfirm && <ModalConfirm mensaje={modalConfirm.mensaje} onConfirm={modalConfirm.onConfirm} onCancel={() => setModalConfirm(null)} />}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Liquidación</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={exportarPDF}>Exportar PDF</button>
+      {/* SECCIÓN FIJA: header + filtro */}
+      <div style={{ flexShrink: 0, paddingBottom: 14, marginBottom: 16, borderBottom: '1px solid var(--border-soft)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h1 className="page-title" style={{ margin: 0 }}>Liquidación</h1>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary" onClick={exportarPDF}>Exportar PDF</button>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Período:</label>
+          <input className="input" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ width: 'auto' }} />
+          <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>hasta</label>
+          <input className="input" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ width: 'auto' }} />
+          <button className="btn btn-primary" onClick={cargarDatos}>Buscar</button>
         </div>
       </div>
 
-      {/* Filtro de período */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Período:</label>
-        <input className="input" type="date" value={desde} onChange={e => setDesde(e.target.value)} style={{ width: 'auto' }} />
-        <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>hasta</label>
-        <input className="input" type="date" value={hasta} onChange={e => setHasta(e.target.value)} style={{ width: 'auto' }} />
-        <button className="btn btn-primary" onClick={cargarDatos}>Buscar</button>
-      </div>
-
-      {/* Resumen general */}
+      {/* ÁREA SCROLLEABLE: cards resumen + lista de peluqueros */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
@@ -274,8 +281,6 @@ export default function Liquidacion() {
           <div style={{ fontSize: 26, fontWeight: 700, color: '#f87171' }}>${totalComisiones.toLocaleString('es-AR')}</div>
         </div>
       </div>
-
-      {/* Liquidación por peluquero */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {peluquerosConDatos.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
@@ -517,9 +522,10 @@ export default function Liquidacion() {
                             </label>
                             <input
                               className="input"
-                              type="number"
-                              value={formPago.montoManual}
-                              onChange={e => setFormPago({ ...formPago, montoManual: e.target.value })}
+                              type="text"
+                              inputMode="numeric"
+                              value={fmtMiles(formPago.montoManual)}
+                              onChange={e => setFormPago({ ...formPago, montoManual: parseMiles(e.target.value) })}
                               placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
                               style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
                             />
@@ -619,6 +625,7 @@ export default function Liquidacion() {
           })
         )}
       </div>
+      </div>{/* fin área scrolleable */}
     </div>
   )
 }

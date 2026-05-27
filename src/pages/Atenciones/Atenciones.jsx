@@ -36,6 +36,12 @@ const formatFechaFormateada = (f) => {
   const [y, m, d] = f.split('-').map(Number)
   return `${d} ${MESES_NOMBRE[m - 1]} ${y}`
 }
+const fmtMiles = (val) => {
+  if (val === '' || val == null) return ''
+  const n = Number(String(val).replace(/\./g, ''))
+  return isNaN(n) ? '' : n.toLocaleString('es-AR')
+}
+const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
 export default function Atenciones() {
   const [atenciones, setAtenciones] = useState([])
@@ -410,21 +416,39 @@ export default function Atenciones() {
                 </div>
                 <div className="form-group">
                   <label>Método de pago</label>
-                  <select className="input" value={form.metodo_pago} onChange={onMetodoPagoChange}>
-                    <option value="efectivo">Efectivo</option>
-                    <option value="transferencia">Transferencia</option>
-                    <option value="mixto">Mixto (efectivo + transferencia)</option>
-                    <option value="vale">Vale</option>
-                  </select>
+                  <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-soft)' }}>
+                    {[
+                      { value: 'efectivo',      label: 'Efectivo',      color: '#4ade80',  bg: 'rgba(74,222,128,0.18)'   },
+                      { value: 'transferencia', label: 'Transferencia', color: '#c084fc',  bg: 'rgba(192,132,252,0.18)'  },
+                      { value: 'mixto',         label: 'Mixto',         color: '#fbbf24',  bg: 'rgba(251,191,36,0.18)'   },
+                      { value: 'vale',          label: 'Vale 🎫',       color: '#fb923c',  bg: 'rgba(251,146,60,0.18)'   },
+                    ].map((op, i) => (
+                      <button
+                        key={op.value}
+                        type="button"
+                        onClick={() => onMetodoPagoChange({ target: { value: op.value } })}
+                        style={{
+                          flex: 1, padding: '10px 0', fontSize: 12, border: 'none', cursor: 'pointer',
+                          borderLeft: i > 0 ? '1px solid var(--border-soft)' : 'none',
+                          background: form.metodo_pago === op.value ? op.bg : 'var(--bg-main)',
+                          color: form.metodo_pago === op.value ? op.color : 'var(--text-muted)',
+                          fontWeight: form.metodo_pago === op.value ? 700 : 400,
+                          transition: 'background 0.15s, color 0.15s',
+                        }}
+                      >
+                        {op.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {form.metodo_pago !== 'mixto' && form.metodo_pago !== 'vale' && (
                   <div className="form-group">
                     <label>Precio cobrado</label>
                     <input
-                      className="input" type="number"
-                      value={form.precio_cobrado}
-                      onChange={e => setForm({ ...form, precio_cobrado: e.target.value })}
+                      className="input" type="text" inputMode="numeric"
+                      value={fmtMiles(form.precio_cobrado)}
+                      onChange={e => setForm({ ...form, precio_cobrado: parseMiles(e.target.value) })}
                       placeholder="Se completa automático"
                     />
                   </div>
@@ -441,9 +465,9 @@ export default function Atenciones() {
                     <div className="form-group" style={{ margin: 0 }}>
                       <label>Propina <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span></label>
                       <input
-                        className="input" type="number" step="100"
-                        value={form.propina}
-                        onChange={e => setForm({ ...form, propina: e.target.value })}
+                        className="input" type="text" inputMode="numeric"
+                        value={fmtMiles(form.propina)}
+                        onChange={e => setForm({ ...form, propina: parseMiles(e.target.value) })}
                         placeholder="Ej: 500"
                       />
                     </div>
@@ -498,15 +522,15 @@ export default function Atenciones() {
                       initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                       <div className="form-group">
                         <label>Monto en efectivo</label>
-                        <input className="input" type="number" value={form.monto_efectivo}
-                          onChange={e => setForm({ ...form, monto_efectivo: e.target.value })}
-                          placeholder="Ej: 3000" />
+                        <input className="input" type="text" inputMode="numeric" value={fmtMiles(form.monto_efectivo)}
+                          onChange={e => setForm({ ...form, monto_efectivo: parseMiles(e.target.value) })}
+                          placeholder="Ej: 3.000" />
                       </div>
                       <div className="form-group">
                         <label>Monto en transferencia</label>
-                        <input className="input" type="number" value={form.monto_transferencia}
-                          onChange={e => setForm({ ...form, monto_transferencia: e.target.value })}
-                          placeholder="Ej: 2000" />
+                        <input className="input" type="text" inputMode="numeric" value={fmtMiles(form.monto_transferencia)}
+                          onChange={e => setForm({ ...form, monto_transferencia: parseMiles(e.target.value) })}
+                          placeholder="Ej: 2.000" />
                       </div>
                       <div className="form-group">
                         <label>Nombre / Alias de quien transfiere</label>

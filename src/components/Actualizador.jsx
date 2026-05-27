@@ -68,7 +68,7 @@ export default function Actualizador() {
         />
       )}
 
-      <div style={{ width: '100%', marginTop: 20 }}>
+      <div style={{ width: '100%', marginTop: 6 }}>
 
         {/* Barra de progreso */}
         {descargando && (
@@ -106,12 +106,12 @@ export default function Actualizador() {
           disabled={activo}
           style={{
             width: '100%',
-            padding: '12px 16px',
+            padding: '7px 12px',
             borderRadius: 20,
             border: '1px solid var(--border-primary)',
             background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
             color: activo ? 'var(--text-muted)' : '#c4b5fd',
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',

@@ -129,10 +129,10 @@ export default function Reportes() {
   const togglePeluquero = (nombre) => setPeluquerosAbiertos(prev => ({ ...prev, [nombre]: !prev[nombre] }))
 
   return (
-    <div className="page-animation">
+    <div className="page-animation" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      {/* HEADER fijo */}
+      <div style={{ flexShrink: 0, paddingBottom: 14, marginBottom: 16, borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 className="page-title" style={{ margin: 0 }}>Reportes</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Desde:</label>
@@ -142,6 +142,9 @@ export default function Reportes() {
           <button className="btn btn-primary" onClick={cargar}>Buscar</button>
         </div>
       </div>
+
+      {/* ÁREA SCROLLEABLE */}
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
       {sinDatos && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: 'var(--text-muted)', fontSize: 14, textAlign: 'center' }}>
@@ -578,6 +581,7 @@ export default function Reportes() {
         </div>
       )}
 
+      </div>{/* fin área scrolleable */}
     </div>
   )
 }

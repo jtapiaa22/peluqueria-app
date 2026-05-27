@@ -23,6 +23,12 @@ function formatFecha(f) {
   const [a, m, d] = f.split('-')
   return `${d}/${m}/${a}`
 }
+const fmtMiles = (val) => {
+  if (val === '' || val == null) return ''
+  const n = Number(String(val).replace(/\./g, ''))
+  return isNaN(n) ? '' : n.toLocaleString('es-AR')
+}
+const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
 function getRangoMes(mes) {
   const [anio, m] = mes.split('-').map(Number)
@@ -91,7 +97,8 @@ export default function Gastos() {
     setMostrarForm(false)
     setDetallesMes({})
     setPagosMes({})
-    cargarResumen()
+    await cargarResumen()
+    if (mesAbierto) await cargarDetalleMes(mesAbierto, true)
   }
 
   const editar = (gasto) => {
@@ -233,10 +240,11 @@ export default function Gastos() {
                 <label>Monto</label>
                 <input
                   className="input"
-                  type="number"
-                  value={form.monto}
-                  onChange={e => setForm({ ...form, monto: e.target.value })}
-                  placeholder="Ej: 15000"
+                  type="text"
+                  inputMode="numeric"
+                  value={fmtMiles(form.monto)}
+                  onChange={e => setForm({ ...form, monto: parseMiles(e.target.value) })}
+                  placeholder="Ej: 15.000"
                 />
               </div>
               <div className="form-group">

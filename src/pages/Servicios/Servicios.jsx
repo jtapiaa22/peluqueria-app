@@ -3,6 +3,13 @@ import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
+const fmtMiles = (val) => {
+  if (val === '' || val == null) return ''
+  const n = Number(String(val).replace(/\./g, ''))
+  return isNaN(n) ? '' : n.toLocaleString('es-AR')
+}
+const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
+
 export default function Servicios() {
   const [servicios, setServicios]       = useState([])
   const [form, setForm]                 = useState({ nombre: '', precio: '' })
@@ -110,7 +117,7 @@ export default function Servicios() {
             </div>
             <div className="form-group">
               <label>Precio ($)</label>
-              <input className="input" type="number" value={form.precio} onChange={e => setForm({ ...form, precio: e.target.value })} placeholder="Ej: 2000" />
+              <input className="input" type="text" inputMode="numeric" value={fmtMiles(form.precio)} onChange={e => setForm({ ...form, precio: parseMiles(e.target.value) })} placeholder="Ej: 2.000" />
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
               <button className="btn btn-primary" onClick={guardar}>Guardar</button>

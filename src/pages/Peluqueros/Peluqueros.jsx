@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, Percent } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, DollarSign } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -140,7 +140,7 @@ export default function Peluqueros() {
   const guardarTramos = async (peluqueroId) => {
     for (const t of tramosEdit) {
       if (!t.monto_desde || !t.monto_pago || isNaN(Number(t.monto_desde)) || isNaN(Number(t.monto_pago))) {
-        alertar('Completá todos los campos de los tramos con valores numéricos.', 'warning')
+        alertar('Completá todos los campos con valores numéricos.', 'warning')
         return
       }
     }
@@ -148,7 +148,7 @@ export default function Peluqueros() {
     await window.electronAPI.saveTramosComision({ peluquero_id: peluqueroId, tramos: tramosEdit })
     await cargar()
     setGuardandoTramos(false)
-    alertar('✅ Tramos guardados correctamente.', 'success')
+    alertar('Tabla de pagos guardada correctamente.', 'success')
   }
 
   return (
@@ -270,13 +270,12 @@ export default function Peluqueros() {
                           fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
                           background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)'
                         }}>
-                          📊 {tramosP.length} tramo{tramosP.length !== 1 ? 's' : ''}
+                          💲 {tramosP.length} rango{tramosP.length !== 1 ? 's' : ''} de pago
                         </span>
                       )}
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       Comisión: {p.comision}%
-                      {tramosP.length > 0 && <span style={{ color: '#4ade80', marginLeft: 6 }}>· usa tramos</span>}
                       {(p.porcentaje_propina != null && Number(p.porcentaje_propina) !== 100) && (
                         <span style={{ color: '#fb923c', marginLeft: 6 }}>· propina {p.porcentaje_propina}%</span>
                       )}
@@ -289,15 +288,15 @@ export default function Peluqueros() {
                   <button
                     className="btn btn-secondary"
                     onClick={() => { setBloqueoAbierto(null); abrirTramosPanel(p.id) }}
-                    title="Tramos de comisión"
+                    title="Configurar pago por servicio"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
                       color: tramosPanel ? '#4ade80' : undefined,
                       borderColor: tramosPanel ? 'rgba(74,222,128,0.4)' : undefined
                     }}
                   >
-                    <Percent size={14} />
-                    Tramos
+                    <DollarSign size={14} />
+                    Pago por servicio
                     {tramosPanel ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                   </button>
                   <button
@@ -311,6 +310,7 @@ export default function Peluqueros() {
                     }}
                   >
                     <CalendarOff size={14} />
+                    Ausencias
                     {bloqueosP.length > 0 && (
                       <span style={{
                         background: bloqueoActivo ? '#fbbf24' : '#52525b',
@@ -336,12 +336,12 @@ export default function Peluqueros() {
                   >
                     <div style={{ borderTop: '1px solid var(--border)', background: 'rgba(74,222,128,0.02)', padding: '16px 18px' }}>
                       <p style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        📊 Tramos de pago por servicio
+                        💲 Pago por servicio
                       </p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
-                        Definí cuánto se le paga al peluquero <strong style={{ color: 'var(--text-soft)' }}>por cada servicio</strong> según su precio. 
-                        Ej: si el corte vale $12.000, se le pagan $7.500. Cada servicio se suma individualmente.
-                        Si un servicio no tiene tramo configurado, se aplica el % de comisión como fallback.
+                        Indicá cuánto cobra el peluquero según el precio del servicio.
+                        Por ejemplo: si el corte sale $12.000, le pagás $7.500.
+                        Si no configurás nada, se usa el % de comisión general.
                       </p>
 
                       {/* Tabla de tramos */}
@@ -382,14 +382,14 @@ export default function Peluqueros() {
                         ))}
                         {tramosEdit.length === 0 && (
                           <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
-                            Sin tramos configurados. Se usa el % de comisión.
+                            Sin tabla de pagos configurada. Se aplica el % de comisión general.
                           </p>
                         )}
                       </div>
 
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button className="btn btn-secondary" onClick={agregarFilaTramo} style={{ fontSize: 12 }}>
-                          <Plus size={13} style={{ marginRight: 4 }} />Agregar tramo
+                          <Plus size={13} style={{ marginRight: 4 }} />Agregar rango
                         </button>
                         <button
                           className="btn btn-primary"
@@ -397,7 +397,7 @@ export default function Peluqueros() {
                           disabled={guardandoTramos}
                           style={{ fontSize: 12 }}
                         >
-                          {guardandoTramos ? 'Guardando...' : '✓ Guardar tramos'}
+                          {guardandoTramos ? 'Guardando...' : '✓ Guardar'}
                         </button>
                       </div>
                     </div>

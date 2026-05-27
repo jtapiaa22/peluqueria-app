@@ -23,7 +23,7 @@ export default function PasswordGate({ configKey, titulo, desbloqueado, onDesblo
   // Tiene contraseña y está desbloqueado → mostrar contenido + botón bloquear
   if (desbloqueado) {
     return (
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', height: '100%' }}>
         {/* Botón flotante para volver a bloquear */}
         <button
           onClick={onBloquear}
