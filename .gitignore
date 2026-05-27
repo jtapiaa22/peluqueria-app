@@ -54,3 +54,6 @@ Thumbs.db
 
 database.sqlite
 backups/
+
+# Skills (se reinstalan con claude, no subir al repo)
+.agents/
