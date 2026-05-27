@@ -101,46 +101,60 @@ function App() {
     {changelog && (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+        background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24
       }}>
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
-          borderRadius: 16, padding: '32px 36px', maxWidth: 480, width: '90%',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.5)'
+          borderRadius: 16, maxWidth: 500, width: '100%',
+          maxHeight: 'calc(100vh - 48px)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-            <div style={{ fontSize: 28 }}>🎉</div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-main)' }}>
-                ¡Actualización disponible!
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
-                Versión {changelog.version} — Novedades
+          {/* Header fijo */}
+          <div style={{ padding: '28px 28px 16px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ fontSize: 28 }}>🎉</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-main)' }}>
+                  ¡Actualización disponible!
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Versión {changelog.version} — Novedades
+                </div>
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
-            {changelog.items.map((item, i) => (
-              <div key={i} style={{
-                background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px',
-                borderLeft: '3px solid #a78bfa'
-              }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-main)', marginBottom: 4 }}>
-                  {item.titulo}
+
+          {/* Lista scrolleable */}
+          <div style={{ overflowY: 'auto', padding: '0 28px', flex: 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 4 }}>
+              {changelog.items.map((item, i) => (
+                <div key={i} style={{
+                  background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px',
+                  borderLeft: '3px solid #a78bfa'
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-main)', marginBottom: 4 }}>
+                    {item.titulo}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    {item.desc}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  {item.desc}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          <button
-            className="btn btn-primary"
-            style={{ width: '100%' }}
-            onClick={() => setChangelog(null)}
-          >
-            Entendido
-          </button>
+
+          {/* Botón fijo al pie */}
+          <div style={{ padding: '16px 28px 24px', flexShrink: 0, borderTop: '1px solid var(--border-soft)' }}>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => setChangelog(null)}
+            >
+              Entendido
+            </button>
+          </div>
         </div>
       </div>
     )}

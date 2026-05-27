@@ -361,14 +361,8 @@ export default function Caja() {
             </div>
           )}
 
-          {/* Cards totales (incluye propinas como info adicional) */}
+          {/* Cards totales */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
-            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid rgba(250,204,21,0.3)' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>💰 Propinas</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#facc15' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>Propina Efectivo: ${totalPropinasEfectivo.toLocaleString('es-AR')}
-                <br />Propina Transferencia: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
-            </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Efectivo</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
@@ -391,6 +385,14 @@ export default function Caja() {
                 {valesHoy.length > 0 && (
                   <span style={{ marginLeft: 6, color: '#fbbf24' }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} 🎫</span>
                 )}
+              </div>
+            </div>
+            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid rgba(250,204,21,0.25)' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Propinas</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#facc15' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
+                {totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                {totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
               </div>
             </div>
           </div>
@@ -424,8 +426,8 @@ export default function Caja() {
                         <td>
                           <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                           <div style={{ display: 'flex', gap: 6, marginTop: 2, fontSize: 11 }}>
-                            {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>} |
-                            {data.propinas_transferencia > 0 && <span style={{ color: '#c084fc' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
+                            {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
+                            {data.propinas_transferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                           </div>
                         </td>
                       </tr>
@@ -439,8 +441,24 @@ export default function Caja() {
           {cajaAbierta && (
             <div className="card">
               <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>Cerrar caja</h3>
+
+              {/* Resumen del turno */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+                {[
+                  { label: 'Efectivo',      valor: totalEfectivo,      color: '#4ade80' },
+                  { label: 'Transferencia', valor: totalTransferencia,  color: '#c084fc' },
+                  { label: 'Total',         valor: totalGeneral,        color: '#a78bfa' },
+                  { label: 'Propinas',      valor: totalPropinasDia,    color: '#facc15' },
+                ].map(({ label, valor, color }) => (
+                  <div key={label} style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>{label}</div>
+                    <div style={{ color, fontWeight: 700, fontSize: 18 }}>${valor.toLocaleString('es-AR')}</div>
+                  </div>
+                ))}
+              </div>
+
               <div className="form-group">
-                <label>Observaciones (opcional)</label>
+                <label>Observaciones <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>(opcional)</span></label>
                 <input className="input" value={observaciones} onChange={e => setObservaciones(e.target.value)} placeholder="Ej: turno mañana, turno tarde, etc." />
               </div>
               <button className="btn btn-primary" onClick={cerrarCaja}>Cerrar caja</button>

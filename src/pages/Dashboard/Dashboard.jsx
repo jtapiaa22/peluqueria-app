@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, Scissors, Box, TrendingUp } from 'lucide-react'
+import { DollarSign, Scissors, Box, TrendingUp, Calendar } from 'lucide-react'
 
 function fechaLegible(fecha) {
-  const [anio, mes, dia] = fecha.split('-')
+  const [, mes, dia] = fecha.split('-')
   return `${dia}/${mes}`
 }
 
@@ -30,7 +30,8 @@ export default function Dashboard() {
     </div>
   )
 
-  const maxIngreso = Math.max(...data.ingresosPorDia.map(d => d.total), 1)
+  const propinasHoy = data.atencionesHoy.reduce((a, x) => a + Number(x.propina_efectivo || 0) + Number(x.propina_transferencia || 0), 0)
+  const maxTotalDia = Math.max(...data.ingresosPorDia.map(d => d.total + d.propinas), 1)
 
   return (
     <div className="page-animation">
@@ -42,7 +43,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── CARDS SUPERIORES ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
 
         {/* Total del día */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -57,6 +58,11 @@ export default function Dashboard() {
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
               Ef: ${data.efectivoHoy.toLocaleString('es-AR')} · Tr: ${data.transferenciaHoy.toLocaleString('es-AR')}
             </div>
+            {propinasHoy > 0 && (
+              <div style={{ color: '#fbbf24', fontSize: 11, marginTop: 2 }}>
+                Propinas: ${propinasHoy.toLocaleString('es-AR')}
+              </div>
+            )}
           </div>
         </div>
 
@@ -110,36 +116,79 @@ export default function Dashboard() {
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>por día</div>
           </div>
         </div>
+
+        {/* Total del mes */}
+        <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ background: 'rgba(56, 189, 248, 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <Calendar size={22} color="#38bdf8" />
+          </div>
+          <div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total {mesActual()}</div>
+            <div style={{ color: '#38bdf8', fontWeight: 700, fontSize: 22 }}>
+              ${data.totalMes.toLocaleString('es-AR')}
+            </div>
+            {data.propinasMes > 0 && (
+              <div style={{ color: '#fbbf24', fontSize: 11, marginTop: 2 }}>
+                Propinas: ${data.propinasMes.toLocaleString('es-AR')}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── GRÁFICO + TOP PELUQUEROS ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
 
-        {/* Gráfico últimos 7 días */}
+        {/* Gráfico últimos 7 días — barras apiladas */}
         <div className="card" style={{ margin: 0 }}>
-          <h3 style={{ color: '#a78bfa', marginBottom: 20, fontSize: 14 }}>Ingresos — últimos 7 días</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ color: '#a78bfa', margin: 0, fontSize: 14 }}>Ingresos — últimos 7 días</h3>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#6b21a8' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ingresos</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#fbbf24' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Propinas</span>
+              </div>
+            </div>
+          </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 140 }}>
             {data.ingresosPorDia.map((d, i) => {
-              const altura = maxIngreso > 0 ? Math.max((d.total / maxIngreso) * 120, d.total > 0 ? 4 : 0) : 0
-              const esHoy  = d.fecha === data.fechaHoy
+              const totalBarra = d.total + d.propinas
+              const alturaPx   = maxTotalDia > 0 ? Math.max((totalBarra / maxTotalDia) * 120, totalBarra > 0 ? 4 : 0) : 0
+              const alturaIng  = totalBarra > 0 ? (d.total / totalBarra) * alturaPx : 0
+              const alturaProp = totalBarra > 0 ? (d.propinas / totalBarra) * alturaPx : 0
+              const esHoy      = d.fecha === data.fechaHoy
               return (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  {d.total > 0 && (
+                  {totalBarra > 0 && (
                     <div style={{ color: esHoy ? '#4ade80' : 'var(--text-muted)', fontSize: 10, whiteSpace: 'nowrap' }}>
-                      ${d.total.toLocaleString('es-AR')}
+                      ${totalBarra.toLocaleString('es-AR')}
                     </div>
                   )}
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%' }}>
-                    <div style={{
-                      width: '100%',
-                      height: altura,
-                      background: esHoy
-                        ? 'linear-gradient(to top, #4ade80, #86efac)'
-                        : 'linear-gradient(to top, #3b0764, #6b21a8)',
-                      borderRadius: '4px 4px 0 0',
-                      transition: 'height 0.3s ease',
-                      minHeight: d.total > 0 ? 4 : 0
-                    }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%' }}>
+                    {d.propinas > 0 && (
+                      <div style={{
+                        width: '100%',
+                        height: alturaProp,
+                        background: '#fbbf24',
+                        borderRadius: '4px 4px 0 0',
+                        minHeight: 3
+                      }} />
+                    )}
+                    {d.total > 0 && (
+                      <div style={{
+                        width: '100%',
+                        height: alturaIng,
+                        background: esHoy
+                          ? 'linear-gradient(to top, #4ade80, #86efac)'
+                          : 'linear-gradient(to top, #3b0764, #6b21a8)',
+                        borderRadius: d.propinas > 0 ? '0' : '4px 4px 0 0',
+                        minHeight: 4
+                      }} />
+                    )}
                   </div>
                   <div style={{ color: esHoy ? '#4ade80' : 'var(--text-muted)', fontSize: 11, fontWeight: esHoy ? 700 : 400 }}>
                     {fechaLegible(d.fecha)}

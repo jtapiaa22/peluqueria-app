@@ -113,9 +113,9 @@ export default function Reportes() {
     acc[a.fecha] = (acc[a.fecha] || 0) + (Number(a.propina_efectivo) || 0) + (Number(a.propina_transferencia) || 0)
     return acc
   }, {})
-  const diasOrdenados = Object.keys(ingresosPorFecha).sort()
-  const maxIngresoDia = Math.max(...Object.values(ingresosPorFecha), 1)
-  const maxPropinaDia = Math.max(...Object.values(propinasPorFecha), 1)
+  const todasFechas  = new Set([...Object.keys(ingresosPorFecha), ...Object.keys(propinasPorFecha)])
+  const diasOrdenados = Array.from(todasFechas).sort()
+  const maxTotalDia  = Math.max(...diasOrdenados.map(f => (ingresosPorFecha[f] || 0) + (propinasPorFecha[f] || 0)), 1)
 
   // Métodos de pago
   const cantEfectivo = atenciones.filter(a => a.metodo_pago === 'efectivo').length
@@ -150,7 +150,7 @@ export default function Reportes() {
       )}
 
       {/* ── TARJETAS RESUMEN ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total efectivo</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: '#f58f1a' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
@@ -174,13 +174,13 @@ export default function Reportes() {
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>Total + propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#36f307' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
         </div>
       </div>
 
       {/* ── ESTADÍSTICAS DESTACADAS ── */}
       {!sinDatos && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ background: 'rgba(167, 139, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
@@ -515,57 +515,58 @@ export default function Reportes() {
         </div>
       )}
 
-      {/* ── INGRESOS POR DÍA ── */}
+      {/* ── INGRESOS + PROPINAS POR DÍA (apiladas) ── */}
       {!sinDatos && diasOrdenados.length > 1 && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginBottom: 20, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <TrendingUp size={16} /> Ingresos por día
-          </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, minWidth: diasOrdenados.length * 44, height: 100 }}>
-              {diasOrdenados.map(fecha => {
-                const total = ingresosPorFecha[fecha] || 0
-                const h = Math.max((total / maxIngresoDia) * 80, 4)
-                return (
-                  <div key={fecha} style={{ flex: 1, minWidth: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>${(total / 1000).toFixed(0)}k</div>
-                    <div title={`${fecha}: $${total.toLocaleString('es-AR')}`} style={{
-                      width: '100%', height: h,
-                      background: total === maxIngresoDia ? '#a78bfa' : 'rgba(167, 139, 250, 0.4)',
-                      borderRadius: '4px 4px 0 0',
-                      cursor: 'default'
-                    }} />
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', transform: 'rotate(-45deg)', transformOrigin: 'top left', marginTop: 6, whiteSpace: 'nowrap' }}>
-                      {fecha.slice(5)}
-                    </div>
-                  </div>
-                )
-              })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h3 style={{ margin: 0, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TrendingUp size={16} /> Ingresos y propinas por día
+            </h3>
+            <div style={{ display: 'flex', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#6b21a8' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Ingresos</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#facc15' }} />
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* ── NUEVO GRÁFICO: PROPINAS POR DÍA ── */}
-      {!sinDatos && diasOrdenados.length > 1 && (
-        <div className="card">
-          <h3 style={{ marginBottom: 20, color: '#facc15', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <DollarSign size={16} /> Propinas por día
-          </h3>
           <div style={{ overflowX: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, minWidth: diasOrdenados.length * 44, height: 100 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, minWidth: diasOrdenados.length * 44, height: 110 }}>
               {diasOrdenados.map(fecha => {
-                const propina = propinasPorFecha[fecha] || 0
-                const h = Math.max((propina / maxPropinaDia) * 80, 4)
+                const ingreso  = ingresosPorFecha[fecha]  || 0
+                const propina  = propinasPorFecha[fecha]  || 0
+                const totalBar = ingreso + propina
+                const alturaPx   = maxTotalDia > 0 ? Math.max((totalBar / maxTotalDia) * 80, totalBar > 0 ? 4 : 0) : 0
+                const alturaIng  = totalBar > 0 ? (ingreso  / totalBar) * alturaPx : 0
+                const alturaProp = totalBar > 0 ? (propina  / totalBar) * alturaPx : 0
                 return (
                   <div key={fecha} style={{ flex: 1, minWidth: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>${(propina / 1000).toFixed(0)}k</div>
-                    <div title={`${fecha}: $${propina.toLocaleString('es-AR')} de propina`} style={{
-                      width: '100%', height: h,
-                      background: propina === maxPropinaDia ? '#facc15' : 'rgba(250,204,21,0.4)',
-                      borderRadius: '4px 4px 0 0',
-                      cursor: 'default'
-                    }} />
+                    {totalBar > 0 && (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>${(totalBar / 1000).toFixed(0)}k</div>
+                    )}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%' }}>
+                      {propina > 0 && (
+                        <div title={`Propinas: $${propina.toLocaleString('es-AR')}`} style={{
+                          width: '100%', height: alturaProp,
+                          background: '#facc15',
+                          borderRadius: '4px 4px 0 0',
+                          minHeight: 3,
+                          cursor: 'default'
+                        }} />
+                      )}
+                      {ingreso > 0 && (
+                        <div title={`Ingresos: $${ingreso.toLocaleString('es-AR')}`} style={{
+                          width: '100%', height: alturaIng,
+                          background: ingreso === Math.max(...Object.values(ingresosPorFecha)) ? '#a78bfa' : 'rgba(167, 139, 250, 0.5)',
+                          borderRadius: propina > 0 ? '0' : '4px 4px 0 0',
+                          minHeight: 4,
+                          cursor: 'default'
+                        }} />
+                      )}
+                    </div>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', transform: 'rotate(-45deg)', transformOrigin: 'top left', marginTop: 6, whiteSpace: 'nowrap' }}>
                       {fecha.slice(5)}
                     </div>

@@ -1109,7 +1109,7 @@ const CHANGELOG = require('./changelog')
 
 ipcMain.handle('app:checkChangelog', () => {
   const versionActual = app.getVersion()
-  const archivoVisto = path.join(app.getPath('userData'), 'last-seen-version.json')
+  const archivoVisto = path.join(app.getPath('userData'), isDev ? 'dev' : '', 'last-seen-version.json')
   let versionVista = null
   try { versionVista = JSON.parse(fs.readFileSync(archivoVisto, 'utf8')).version } catch {}
   if (versionVista === versionActual) return null
@@ -1125,12 +1125,15 @@ ipcMain.handle('dashboard:getResumen',()=>{
   const hoy=new Date(); const fechaHoy=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`
   const ultimos7=[]; for(let i=6;i>=0;i--){const d=new Date(hoy);d.setDate(d.getDate()-i);ultimos7.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`)}
   const atencionesHoy=db.prepare(`SELECT a.*,p.nombre as peluquero_nombre,s.nombre as servicio_nombre FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha=?`).all(fechaHoy)
-  const ingresosPorDia=ultimos7.map(f=>({fecha:f,total:db.prepare('SELECT COALESCE(SUM(precio_cobrado),0) as total FROM atenciones WHERE fecha=?').get(f).total}))
+  const ingresosPorDia=ultimos7.map(f=>{const r=db.prepare('SELECT COALESCE(SUM(precio_cobrado),0) as total,COALESCE(SUM(COALESCE(propina_efectivo,0)+COALESCE(propina_transferencia,0)),0) as propinas FROM atenciones WHERE fecha=?').get(f);return{fecha:f,total:r.total,propinas:r.propinas}})
   const pm=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`
   const topPeluqueros=db.prepare(`SELECT p.nombre,COUNT(*) as atenciones,SUM(a.precio_cobrado) as total FROM atenciones a JOIN peluqueros p ON a.peluquero_id=p.id WHERE a.fecha BETWEEN ? AND ? GROUP BY a.peluquero_id ORDER BY total DESC LIMIT 5`).all(pm,fechaHoy)
   const ultimoCierre=db.prepare("SELECT * FROM cierre_caja WHERE estado='cerrada' ORDER BY id DESC LIMIT 1").get()||null
   const cajaAbierta=db.prepare("SELECT * FROM cierre_caja WHERE estado='abierta' ORDER BY id DESC LIMIT 1").get()||null
-  return {fechaHoy,atencionesHoy,totalHoy:atencionesHoy.reduce((a,x)=>a+Number(x.precio_cobrado),0),efectivoHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_efectivo||0),0),transferenciaHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_transferencia||0),0),ingresosPorDia,topPeluqueros,ultimoCierre,cajaAbierta}
+  const resMes=db.prepare("SELECT COALESCE(SUM(precio_cobrado),0) as total,COALESCE(SUM(COALESCE(propina_efectivo,0)+COALESCE(propina_transferencia,0)),0) as propinas FROM atenciones WHERE fecha BETWEEN ? AND ? AND metodo_pago!='vale'").get(pm,fechaHoy)
+  const totalMes=Number(resMes.total)||0
+  const propinasMes=Number(resMes.propinas)||0
+  return {fechaHoy,atencionesHoy,totalHoy:atencionesHoy.reduce((a,x)=>a+Number(x.precio_cobrado),0),efectivoHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_efectivo||0),0),transferenciaHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_transferencia||0),0),ingresosPorDia,topPeluqueros,ultimoCierre,cajaAbierta,totalMes,propinasMes}
 })
 
 ipcMain.handle('peluqueria:sincronizar', async () => {

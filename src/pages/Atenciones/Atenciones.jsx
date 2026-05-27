@@ -223,12 +223,12 @@ export default function Atenciones() {
     })
   }
 
-  // Los vales no suman al total del día (no se cobran en caja)
-  const totalDia = atenciones
-    .filter(a => a.metodo_pago !== 'vale')
-    .reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
-
-  const valesHoy = atenciones.filter(a => a.metodo_pago === 'vale').length
+  const atencionesReales = atenciones.filter(a => a.metodo_pago !== 'vale')
+  const valesHoy         = atenciones.filter(a => a.metodo_pago === 'vale').length
+  const totalDia         = atencionesReales.reduce((acc, a) => acc + Number(a.precio_cobrado), 0)
+  const totalEfectivoDia = atencionesReales.reduce((acc, a) => acc + Number(a.monto_efectivo || 0), 0)
+  const totalTransfDia   = atencionesReales.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
+  const totalPropinasDia = atenciones.reduce((acc, a) => acc + Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0), 0)
 
 
   const BadgePago = ({ a }) => {
@@ -677,71 +677,105 @@ export default function Atenciones() {
         )}
       </AnimatePresence>
 
-      {/* ── FILTRO + TOTAL ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* ── FILTRO + RESUMEN ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Ver día</label>
           <input className="input" type="date" value={fechaFiltro} onChange={e => setFechaFiltro(e.target.value)} style={{ width: 'auto' }} />
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          {valesHoy > 0 && (
-            <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: '#fbbf24' }}>
-              🎫 {valesHoy} vale{valesHoy > 1 ? 's' : ''} hoy
+        {valesHoy > 0 && (
+          <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 10, padding: '6px 14px', fontSize: 13, color: '#fbbf24' }}>
+            🎫 {valesHoy} vale{valesHoy > 1 ? 's' : ''} hoy
+          </div>
+        )}
+      </div>
+
+      {/* Strip totales del día */}
+      {atenciones.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total</span>
+            <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
+          </div>
+          {totalEfectivoDia > 0 && (
+            <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Efectivo</span>
+              <span style={{ color: '#4ade80', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
             </div>
           )}
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 18px', fontSize: 15 }}>
-            Total del día: <strong style={{ color: '#a78bfa' }}>${totalDia.toLocaleString('es-AR')}</strong>
+          {totalTransfDia > 0 && (
+            <div style={{ background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Transferencia</span>
+              <span style={{ color: '#c084fc', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          {totalPropinasDia > 0 && (
+            <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
+              <span style={{ color: '#facc15', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
+            </div>
+          )}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Atenciones</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>{atencionesReales.length}</span>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── TABLA ── */}
       <div className="card">
         <table className="table">
           <thead>
             <tr>
+              <th>Hora</th>
               <th>Peluquero</th>
               <th>Servicio</th>
               <th>Precio</th>
+              <th>Propina</th>
               <th>Pago</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {atenciones.map(a => (
-              <tr key={a.id}>
-                <td>{a.peluquero_nombre}</td>
-                <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : a.servicio_nombre}</td>
-                <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: 12 }}>—</span> : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}</td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <BadgePago a={a} />
-                    {(Number(a.propina_efectivo || 0) > 0 || Number(a.propina_transferencia || 0) > 0) && (
-                      <span style={{ background: 'rgba(72, 4, 128, 0.56)', color: '#000000ff', padding: '2px 8px', borderRadius: 99, fontSize: 15, fontWeight: 600 }}>
-                        💰
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-secondary" onClick={() => setDetalle(a)} title="Ver detalle">
-                      <Eye size={14} />
-                    </button>
-                    {cajaAbierta && (
-                      <button className="btn btn-secondary" onClick={() => abrirFormEditar(a)} title="Editar">
-                        <Pencil size={14} />
+            {atenciones.map(a => {
+              const propTotal = Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0)
+              return (
+                <tr key={a.id}>
+                  <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{a.hora}hs</td>
+                  <td style={{ fontWeight: 600 }}>{a.peluquero_nombre}</td>
+                  <td>{a.metodo_pago === 'vale' ? <span style={{ color: '#fbbf24', fontStyle: 'italic', fontSize: 12 }}>🎫 Vale</span> : a.servicio_nombre}</td>
+                  <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : '#4ade80', fontWeight: 600 }}>
+                    {a.metodo_pago === 'vale' ? '—' : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}
+                  </td>
+                  <td>
+                    {propTotal > 0
+                      ? <span style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', padding: '2px 9px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>
+                          ${propTotal.toLocaleString('es-AR')}
+                        </span>
+                      : <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    }
+                  </td>
+                  <td><BadgePago a={a} /></td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-secondary" onClick={() => setDetalle(a)} title="Ver detalle">
+                        <Eye size={14} />
                       </button>
-                    )}
-                    <button className="btn btn-danger" onClick={() => eliminar(a.id)} title="Eliminar">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      {cajaAbierta && (
+                        <button className="btn btn-secondary" onClick={() => abrirFormEditar(a)} title="Editar">
+                          <Pencil size={14} />
+                        </button>
+                      )}
+                      <button className="btn btn-danger" onClick={() => eliminar(a.id)} title="Eliminar">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
             {atenciones.length === 0 && (
-              <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>No hay atenciones registradas para este día</td></tr>
+              <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>No hay atenciones registradas para este día</td></tr>
             )}
           </tbody>
         </table>

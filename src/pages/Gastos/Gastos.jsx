@@ -107,7 +107,7 @@ export default function Gastos() {
       await window.electronAPI.deleteGasto(id)
       setDetallesMes({})
       setPagosMes({})
-        cargarResumen()
+      cargarResumen()
     })
   }
 
@@ -122,9 +122,11 @@ export default function Gastos() {
   }
 
   // ── Estadísticas globales (todos los meses) ──
-  const totalGastosGlobal = resumenMensual.reduce((acc, m) => acc + m.total_gastos, 0)
-  const totalPagosGlobal  = resumenMensual.reduce((acc, m) => acc + m.total_pagos, 0)
-  const totalEgresosGlobal = totalGastosGlobal + totalPagosGlobal
+  const totalGastosGlobal   = resumenMensual.reduce((acc, m) => acc + m.total_gastos, 0)
+  const totalPagosGlobal    = resumenMensual.reduce((acc, m) => acc + m.total_pagos, 0)
+  const totalEgresosGlobal  = totalGastosGlobal + totalPagosGlobal
+  const totalIngresosGlobal = resumenMensual.reduce((acc, m) => acc + (m.total_ingresos || 0), 0)
+  const gananciaNeta        = totalIngresosGlobal - totalEgresosGlobal
 
   return (
     <div className="page-animation">
@@ -149,7 +151,17 @@ export default function Gastos() {
 
       {/* Resumen global */}
       {resumenMensual.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ background: 'rgba(74, 222, 128, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color="#4ade80" />
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total ingresos</div>
+              <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
+            </div>
+          </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ background: 'rgba(248, 113, 113, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <TrendingDown size={20} color="#f87171" />
@@ -172,12 +184,24 @@ export default function Gastos() {
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ background: 'rgba(167, 139, 250, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <DollarSign size={20} color="#a78bfa" />
+              <TrendingDown size={20} color="#a78bfa" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total egresos</div>
               <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
+            </div>
+          </div>
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14, border: `1px solid ${gananciaNeta >= 0 ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
+            <div style={{ background: gananciaNeta >= 0 ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color={gananciaNeta >= 0 ? '#4ade80' : '#f87171'} />
+            </div>
+            <div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Ganancia neta</div>
+              <div style={{ color: gananciaNeta >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 20 }}>
+                {gananciaNeta >= 0 ? '' : '-'}${Math.abs(gananciaNeta).toLocaleString('es-AR')}
+              </div>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>ingresos − egresos</div>
             </div>
           </div>
         </div>
@@ -280,30 +304,41 @@ export default function Gastos() {
                       )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                     {totalG > 0 && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>GASTOS OP.</div>
-                        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 15 }}>${totalG.toLocaleString('es-AR')}</div>
+                        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 14 }}>${totalG.toLocaleString('es-AR')}</div>
                       </div>
                     )}
                     {totalP > 0 && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>PAGOS PEL.</div>
-                        <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 15 }}>${totalP.toLocaleString('es-AR')}</div>
+                        <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 14 }}>${totalP.toLocaleString('es-AR')}</div>
                       </div>
                     )}
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>TOTAL EGRESOS</div>
-                      <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${totalEgr.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>EGRESOS</div>
+                      <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 16 }}>${totalEgr.toLocaleString('es-AR')}</div>
                     </div>
                     {ingresos > 0 && (
                       <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>TOTAL INGRESOS</div>
-                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${ingresos.toLocaleString('es-AR')}</div>
-                    </div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>INGRESOS</div>
+                        <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 16 }}>${ingresos.toLocaleString('es-AR')}</div>
+                      </div>
                     )}
-                    
+                    {ingresos > 0 && (
+                      <div style={{
+                        background: ganancia >= 0 ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
+                        border: `1px solid ${ganancia >= 0 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`,
+                        borderRadius: 8, padding: '6px 12px', textAlign: 'right'
+                      }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>GANANCIA</div>
+                        <div style={{ color: ganancia >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 16 }}>
+                          {ganancia >= 0 ? '' : '-'}${Math.abs(ganancia).toLocaleString('es-AR')}
+                        </div>
+                      </div>
+                    )}
                     {abierto ? <ChevronUp size={18} color="#a78bfa" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                   </div>
                 </div>

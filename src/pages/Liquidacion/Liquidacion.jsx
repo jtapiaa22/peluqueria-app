@@ -52,9 +52,11 @@ export default function Liquidacion() {
       agrupadosT[t.peluquero_id].push(t)
     }
     setTramosComision(agrupadosT)
-    if (panelPago) {
-      cargarPagosExistentes(panelPago)
-    }
+    // Cargar pagos de TODOS los peluqueros para mostrar estado de pago sin abrir panel
+    const pagosXTodos = await Promise.all(
+      p.map(pel => window.electronAPI.getPagosByPeluqueroYRango({ peluquero_id: pel.id, desde, hasta }))
+    )
+    setPagosExistentes(pagosXTodos.flat())
   }
 
   useEffect(() => {
@@ -62,12 +64,8 @@ export default function Liquidacion() {
   }, [desde, hasta])
 
   const cargarPagosExistentes = async (peluqueroId) => {
-    const pagos = await window.electronAPI.getPagosByPeluqueroYRango({
-      peluquero_id: peluqueroId,
-      desde,
-      hasta
-    })
-    setPagosExistentes(pagos)
+    const pagos = await window.electronAPI.getPagosByPeluqueroYRango({ peluquero_id: peluqueroId, desde, hasta })
+    setPagosExistentes(prev => [...prev.filter(p => p.peluquero_id != peluqueroId), ...pagos])
   }
 
   const abrirPanelPago = async (peluqueroId) => {
@@ -268,7 +266,7 @@ export default function Liquidacion() {
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total + Propinas</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#36f307' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
@@ -285,10 +283,15 @@ export default function Liquidacion() {
           </div>
         ) : (
           peluquerosConDatos.map(p => {
-            const panelAbierto = panelPago === p.id
-            const pendiente = p.montoComision - p.totalPagado
-            const pagadoEste = pagosExistentes.filter(pg => pg.peluquero_id == p.id)
+            const panelAbierto  = panelPago === p.id
+            const pendiente     = p.montoComision - p.totalPagado
+            const pagadoEste    = pagosExistentes.filter(pg => pg.peluquero_id == p.id)
             const totalPagadoPeriodo = pagadoEste.reduce((acc, pg) => acc + Number(pg.monto) + Number(pg.propinas_pagadas || 0), 0)
+            const totalDeuda    = p.montoComision + p.propinasAPagar
+            const estadoPago    = totalDeuda === 0 ? null
+              : totalPagadoPeriodo >= totalDeuda ? 'pagado'
+              : totalPagadoPeriodo > 0 ? 'parcial'
+              : 'pendiente'
 
             return (
               <div key={p.id} className="card" style={{ margin: 0, padding: 0, overflow: 'hidden' }}>
@@ -296,11 +299,26 @@ export default function Liquidacion() {
                 {/* Cabecera peluquero */}
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
                       {p.cantVales > 0 && (
                         <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
                           🎫 {p.cantVales} vale{p.cantVales > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {estadoPago === 'pagado' && (
+                        <span style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                          ✓ Pagado
+                        </span>
+                      )}
+                      {estadoPago === 'parcial' && (
+                        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                          Parcial · resta ${(totalDeuda - totalPagadoPeriodo).toLocaleString('es-AR')}
+                        </span>
+                      )}
+                      {estadoPago === 'pendiente' && (
+                        <span style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                          Pendiente
                         </span>
                       )}
                     </div>
