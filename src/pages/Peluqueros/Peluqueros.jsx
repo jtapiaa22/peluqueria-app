@@ -10,6 +10,13 @@ function formatFecha(f) {
   return `${d} ${meses[m-1]} ${y}`
 }
 
+const fmtMiles = (val) => {
+  if (val === '' || val == null) return ''
+  const n = Number(String(val).replace(/\./g, ''))
+  return isNaN(n) ? '' : n.toLocaleString('es-AR')
+}
+const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
+
 function estaActivo(desde, hasta) {
   const hoy = new Date().toISOString().substring(0, 10)
   return desde <= hoy && hoy <= hasta
@@ -358,18 +365,20 @@ export default function Peluqueros() {
                           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'center' }}>
                             <input
                               className="input"
-                              type="number"
-                              value={t.monto_desde}
-                              onChange={e => actualizarFilaTramo(i, 'monto_desde', e.target.value)}
-                              placeholder="Ej: 12000"
+                              type="text"
+                              inputMode="numeric"
+                              value={fmtMiles(t.monto_desde)}
+                              onChange={e => actualizarFilaTramo(i, 'monto_desde', parseMiles(e.target.value))}
+                              placeholder="Ej: 12.000"
                               style={{ fontSize: 13 }}
                             />
                             <input
                               className="input"
-                              type="number"
-                              value={t.monto_pago}
-                              onChange={e => actualizarFilaTramo(i, 'monto_pago', e.target.value)}
-                              placeholder="Ej: 7500"
+                              type="text"
+                              inputMode="numeric"
+                              value={fmtMiles(t.monto_pago)}
+                              onChange={e => actualizarFilaTramo(i, 'monto_pago', parseMiles(e.target.value))}
+                              placeholder="Ej: 7.500"
                               style={{ fontSize: 13 }}
                             />
                             <button

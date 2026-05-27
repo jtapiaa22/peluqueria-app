@@ -321,7 +321,7 @@ function App() {
               </div>
               <div className="footer-author">
                 Desarrollado por<br />
-                <strong style={{ color: 'var(--text-soft)', fontSize: '0.90rem' }}>JTADevStudio</strong>
+                <strong style={{ color: 'var(--text-soft)', fontSize: '0.90rem' }}>TADevStudio</strong>
               </div>
             </footer>
           </div>
