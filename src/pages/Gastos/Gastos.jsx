@@ -105,7 +105,7 @@ export default function Gastos() {
     setForm({ descripcion: gasto.descripcion, monto: gasto.monto, fecha: gasto.fecha, categoria: gasto.categoria || '' })
     setEditando(gasto.id)
     setMostrarForm(true)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    document.querySelector('.main-content')?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const eliminar = (id) => {
@@ -114,7 +114,8 @@ export default function Gastos() {
       await window.electronAPI.deleteGasto(id)
       setDetallesMes({})
       setPagosMes({})
-      cargarResumen()
+      await cargarResumen()
+      if (mesAbierto) await cargarDetalleMes(mesAbierto, true)
     })
   }
 

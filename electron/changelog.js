@@ -1,4 +1,11 @@
 module.exports = {
+  '2.8.0': [
+    { titulo: 'Nuevo diseño de la sección de Reportes', desc: 'La sección de Reportes ahora tiene un diseño más moderno y limpio, con gráficos mejorados y una navegación más intuitiva.' },
+    { titulo: 'Gráficos interactivos', desc: 'Los gráficos en Reportes ahora son interactivos, permitiéndote hacer clic para ver detalles específicos de cada día o categoría.' },
+    { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación, especialmente al cargar grandes cantidades de datos en Reportes y Liquidación.' },
+    { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
+  ],
+
   '2.7.0': [
     { titulo: 'Formato de montos más legible', desc: 'Los campos de precio en Atenciones, Gastos, Liquidación y Servicios ahora muestran puntos como separador de miles mientras escribís (por ejemplo: 10.000 en lugar de 10000).' },
     { titulo: 'Filtros siempre visibles en Reportes y Liquidación', desc: 'El filtro de fechas queda fijo en la parte superior al hacer scroll, sin necesidad de volver a subir para cambiar el período.' },
