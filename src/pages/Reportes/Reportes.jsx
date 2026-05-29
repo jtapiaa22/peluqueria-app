@@ -186,8 +186,8 @@ export default function Reportes() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(167, 139, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Calendar size={20} color="#a78bfa" />
+            <div style={{ background: 'rgba(96, 165, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Calendar size={20} color="#60a5fa" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>DÍA MÁS ACTIVO</div>
@@ -201,8 +201,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(167, 139, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Clock size={20} color="#a78bfa" />
+            <div style={{ background: 'rgba(251, 146, 60, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Clock size={20} color="#fb923c" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>HORA PICO</div>
@@ -216,8 +216,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(167, 139, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Award size={20} color="#a78bfa" />
+            <div style={{ background: 'rgba(74, 222, 128, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Award size={20} color="#4ade80" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>PELUQUERO TOP (ingresos)</div>
@@ -248,8 +248,8 @@ export default function Reportes() {
 
           {/* ranking de servicio TOP */}
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(167, 139, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Scissors size={20} color="#a78bfa" />
+            <div style={{ background: 'rgba(45, 212, 191, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Scissors size={20} color="#2dd4bf" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>SERVICIO TOP</div>
@@ -458,9 +458,9 @@ export default function Reportes() {
                     <div style={{ flex: 1, background: 'var(--border-soft)', borderRadius: 4, height: 20, overflow: 'hidden' }}>
                       <div style={{
                         width: `${pct}%`, height: '100%',
-                        background: pct === 100 ? '#a78bfa' : 'rgba(167, 139, 250, 0.4)',
+                        background: `rgba(167, 139, 250, ${pct > 0 ? 0.25 + (pct / 100) * 0.75 : 0})`,
                         borderRadius: 4,
-                        transition: 'width 0.4s ease'
+                        transition: 'width 0.5s cubic-bezier(0.23, 1, 0.32, 1)'
                       }} />
                     </div>
                     <div style={{ width: 28, fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>{cant}</div>
@@ -506,7 +506,7 @@ export default function Reportes() {
                   <div key={hora} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                     <div style={{
                       width: '100%', height: h,
-                      background: porHora[hora] === Math.max(...Object.values(porHora)) ? '#a78bfa' : 'rgba(167, 139, 250, 0.4)',
+                      background: `rgba(167, 139, 250, ${cant > 0 ? 0.2 + (cant / max) * 0.8 : 0})`,
                       borderRadius: '3px 3px 0 0'
                     }} />
                     <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{hora}h</div>
@@ -538,19 +538,25 @@ export default function Reportes() {
           </div>
           <div style={{ overflowX: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, minWidth: diasOrdenados.length * 44, height: 110 }}>
-              {diasOrdenados.map(fecha => {
+              {diasOrdenados.map((fecha, i) => {
                 const ingreso  = ingresosPorFecha[fecha]  || 0
                 const propina  = propinasPorFecha[fecha]  || 0
                 const totalBar = ingreso + propina
                 const alturaPx   = maxTotalDia > 0 ? Math.max((totalBar / maxTotalDia) * 80, totalBar > 0 ? 4 : 0) : 0
                 const alturaIng  = totalBar > 0 ? (ingreso  / totalBar) * alturaPx : 0
                 const alturaProp = totalBar > 0 ? (propina  / totalBar) * alturaPx : 0
+                const opacidad   = maxTotalDia > 0 ? 0.3 + (totalBar / maxTotalDia) * 0.7 : 0.3
                 return (
                   <div key={fecha} style={{ flex: 1, minWidth: 36, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     {totalBar > 0 && (
                       <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>${(totalBar / 1000).toFixed(0)}k</div>
                     )}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%' }}>
+                    <motion.div
+                      style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%', transformOrigin: 'bottom' }}
+                      initial={{ scaleY: 0, opacity: 0 }}
+                      animate={{ scaleY: 1, opacity: 1 }}
+                      transition={{ type: 'spring', duration: 0.5, bounce: 0.1, delay: i * 0.02 }}
+                    >
                       {propina > 0 && (
                         <div title={`Propinas: $${propina.toLocaleString('es-AR')}`} style={{
                           width: '100%', height: alturaProp,
@@ -563,13 +569,13 @@ export default function Reportes() {
                       {ingreso > 0 && (
                         <div title={`Ingresos: $${ingreso.toLocaleString('es-AR')}`} style={{
                           width: '100%', height: alturaIng,
-                          background: ingreso === Math.max(...Object.values(ingresosPorFecha)) ? '#a78bfa' : 'rgba(167, 139, 250, 0.5)',
+                          background: `rgba(167, 139, 250, ${opacidad})`,
                           borderRadius: propina > 0 ? '0' : '4px 4px 0 0',
                           minHeight: 4,
                           cursor: 'default'
                         }} />
                       )}
-                    </div>
+                    </motion.div>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', transform: 'rotate(-45deg)', transformOrigin: 'top left', marginTop: 6, whiteSpace: 'nowrap' }}>
                       {fecha.slice(5)}
                     </div>

@@ -51,6 +51,8 @@
   --radius:    12px;
   --radius-sm: 8px;
   --transition: 0.2s ease;
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --sidebar-width-lg: 250px;
   --sidebar-width-md: 220px;
   --sidebar-width-sm: 200px;
@@ -72,7 +74,7 @@
 
   --text-main:  #18181b;
   --text-soft:  #52525b;
-  --text-muted: #000000;
+  --text-muted: #71717a;
 
   --accent:       #7c3aed;
   --accent-hover: #6d28d9;
@@ -229,6 +231,7 @@ body {
   background: var(--accent-soft);
   color: #c4b5fd;
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 /* ============================= */
@@ -315,12 +318,16 @@ body {
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
-  transition: all var(--transition);
+  transition: background var(--transition), transform 160ms var(--ease-out), opacity var(--transition);
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -362,7 +369,7 @@ body {
   font-size: 15px;
   color: var(--text-main);
   outline: none;
-  transition: all var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
   width: 100%;
 }
 
@@ -555,12 +562,43 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* ANIMATIONS */
 /* ============================= */
 .page-animation {
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.22s var(--ease-out);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateX(10px); }
+  from { opacity: 0; transform: translateX(8px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Stagger en filas de tabla al cargar */
+@keyframes rowFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.table tbody tr {
+  animation: rowFadeIn 0.2s var(--ease-out) both;
+}
+.table tbody tr:nth-child(1)  { animation-delay:   0ms; }
+.table tbody tr:nth-child(2)  { animation-delay:  30ms; }
+.table tbody tr:nth-child(3)  { animation-delay:  60ms; }
+.table tbody tr:nth-child(4)  { animation-delay:  90ms; }
+.table tbody tr:nth-child(5)  { animation-delay: 110ms; }
+.table tbody tr:nth-child(6)  { animation-delay: 130ms; }
+.table tbody tr:nth-child(7)  { animation-delay: 145ms; }
+.table tbody tr:nth-child(8)  { animation-delay: 160ms; }
+.table tbody tr:nth-child(n+9){ animation-delay: 175ms; }
+
+/* Label de sección en sidebar */
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 10px 14px 4px;
+  opacity: 0.6;
+  user-select: none;
 }
 
 .form-container {

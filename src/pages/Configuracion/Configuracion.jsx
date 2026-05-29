@@ -58,6 +58,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [senaMonto, setSenaMonto] = useState('')
   const [senaAlias, setSenaAlias] = useState('')
   const [senaHoras, setSenaHoras] = useState('24')
+  const [senaCorreo, setSenaCorreo] = useState('')
   const [senaLoading, setSenaLoading] = useState(false)
   const [senaGuardada, setSenaGuardada] = useState(false)
 
@@ -245,6 +246,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (cfg?.sena_monto) setSenaMonto(cfg.sena_monto)
     if (cfg?.sena_alias) setSenaAlias(cfg.sena_alias)
     if (cfg?.sena_horas_vencimiento) setSenaHoras(cfg.sena_horas_vencimiento)
+    if (cfg?.sena_correo) setSenaCorreo(cfg.sena_correo)
   }
 
   const guardarNombre = async () => {
@@ -374,6 +376,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
       sena_monto: monto || 0,
       sena_alias: senaAlias.trim(),
       sena_horas_vencimiento: Number(senaHoras) || 24,
+      sena_correo: senaCorreo.trim(),
     })
     setSenaLoading(false)
     if (result?.ok) {
@@ -1386,6 +1389,22 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 />
               </div>
 
+              {/* Correo para comprobantes */}
+              <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Correo para recibir comprobantes</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12 }}>
+                  El cliente verá este correo en la web y sabrá a dónde enviar el comprobante de pago.
+                </div>
+                <input
+                  className="input"
+                  type="email"
+                  value={senaCorreo}
+                  onChange={e => setSenaCorreo(e.target.value)}
+                  placeholder="Ej: tupeluqueria@gmail.com"
+                  style={{ maxWidth: 380, fontSize: 13 }}
+                />
+              </div>
+
               {/* Horas de vencimiento */}
               <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
                 <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4 }}>Tiempo límite para pagar</div>
@@ -1419,7 +1438,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13,
                   color: 'var(--text-muted)', lineHeight: 1.8
                 }}>
-                  <div style={{ color: '#fb923c', fontWeight: 700, marginBottom: 6, fontSize: 12 }}>💸 PREVIEW — LO QUE VE EL CLIENTE EN EL EMAIL</div>
+                  <div style={{ color: '#fb923c', fontWeight: 700, marginBottom: 6, fontSize: 12 }}>💸 PREVIEW — LO QUE VE EL CLIENTE POR WHATSAPP</div>
                   <div>Tu turno está pre-confirmado.</div>
                   <div>Transferí <strong style={{ color: 'var(--text-main)' }}>${Number(senaMonto).toLocaleString('es-AR')}</strong> al alias <strong style={{ color: 'var(--text-main)', fontFamily: 'monospace' }}>{senaAlias}</strong> para confirmarlo definitivamente.</div>
                   <div>Tenés <strong style={{ color: '#fb923c' }}>{senaHoras} horas</strong> para pagar, o el turno se cancelará automáticamente.</div>

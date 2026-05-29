@@ -741,7 +741,7 @@ export default function Atenciones() {
           )}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Atenciones</span>
-            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>{atencionesReales.length}</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>{atenciones.length}</span>
           </div>
         </div>
       )}

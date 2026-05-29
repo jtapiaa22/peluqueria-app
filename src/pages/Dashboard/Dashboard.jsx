@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { DollarSign, Scissors, Box, TrendingUp, Calendar } from 'lucide-react'
 
 function fechaLegible(fecha) {
@@ -168,7 +169,12 @@ export default function Dashboard() {
                       ${totalBarra.toLocaleString('es-AR')}
                     </div>
                   )}
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%' }}>
+                  <motion.div
+                    style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%', transformOrigin: 'bottom' }}
+                    initial={{ scaleY: 0, opacity: 0 }}
+                    animate={{ scaleY: 1, opacity: 1 }}
+                    transition={{ type: 'spring', duration: 0.5, bounce: 0.1, delay: i * 0.05 }}
+                  >
                     {d.propinas > 0 && (
                       <div style={{
                         width: '100%',
@@ -184,12 +190,12 @@ export default function Dashboard() {
                         height: alturaIng,
                         background: esHoy
                           ? 'linear-gradient(to top, #4ade80, #86efac)'
-                          : 'linear-gradient(to top, #3b0764, #6b21a8)',
+                          : 'linear-gradient(to top, #6d28d9, #a78bfa)',
                         borderRadius: d.propinas > 0 ? '0' : '4px 4px 0 0',
                         minHeight: 4
                       }} />
                     )}
-                  </div>
+                  </motion.div>
                   <div style={{ color: esHoy ? '#4ade80' : 'var(--text-muted)', fontSize: 11, fontWeight: esHoy ? 700 : 400 }}>
                     {fechaLegible(d.fecha)}
                   </div>
@@ -231,7 +237,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div style={{ background: 'var(--border-soft)', borderRadius: 99, height: 5 }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: colores[i], borderRadius: 99, transition: 'width 0.4s ease' }} />
+                      <motion.div
+                        style={{ height: '100%', background: colores[i], borderRadius: 99 }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ type: 'spring', duration: 0.6, bounce: 0.1, delay: i * 0.08 }}
+                      />
                     </div>
                   </div>
                 )

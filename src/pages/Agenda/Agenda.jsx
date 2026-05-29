@@ -322,7 +322,7 @@ export default function Agenda() {
         alertar(`Seña solicitada ✓. Se le envió al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
       } else {
         const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
-        alertar(`Turno ${msgs[payload.accion]}. Email enviado al cliente.`, 'success')
+        alertar(`Turno ${msgs[payload.accion]}. WhatsApp enviado al cliente.`, 'success')
       }
       cargarTurnosWeb(); cargarMes(); cargarDia()
     } else {
@@ -339,7 +339,7 @@ export default function Agenda() {
         const result = await window.electronAPI.confirmarSena(sena.id)
         setConfirmandoSena(null)
         if (result?.ok) {
-          alertar(`✅ Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. Email enviado.`, 'success')
+          alertar(`✅ Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. WhatsApp enviado.`, 'success')
           cargarTurnosWeb(); cargarMes(); cargarDia()
         } else {
           alertar('Error al confirmar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
@@ -407,7 +407,7 @@ export default function Agenda() {
                 style={{ flex:1, background:'rgba(248,113,113,0.15)', borderColor:'rgba(248,113,113,0.4)', color:'#f87171' }}
                 onClick={async () => {
                   const result = await window.electronAPI.responderTurnoWeb({
-                    id: turnoCancelar.id, accion: 'cancelado',
+                    id: turnoCancelar.turno_web_id || turnoCancelar.id, accion: 'cancelado',
                     motivo: motivoCancelacion.trim() || 'Cancelado por la peluquería',
                     fecha_propuesta: null, hora_propuesta: null,
                   })

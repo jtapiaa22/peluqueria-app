@@ -174,26 +174,32 @@ function App() {
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <LayoutDashboard size={18} /> Dashboard
             </NavLink>
+
+            <div className="sidebar-section-label">Operaciones</div>
             <NavLink to="/agenda" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <CalendarDays size={18} /> Agenda
               {pendientesWeb > 0 && (
                 <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#fb923c', flexShrink: 0, boxShadow: '0 0 6px #fb923c' }} />
               )}
             </NavLink>
+            <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <ClipboardList size={18} /> Atenciones
+            </NavLink>
+            <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <DollarSign size={18} /> Caja
+            </NavLink>
+
+            <div className="sidebar-section-label">Equipo</div>
             <NavLink to="/peluqueros" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Users size={18} /> Peluqueros
             </NavLink>
             <NavLink to="/servicios" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Scissors size={18} /> Servicios
             </NavLink>
-            <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <ClipboardList size={18} /> Atenciones
-            </NavLink>
+
+            <div className="sidebar-section-label">Finanzas</div>
             <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <BarChart2 size={18} /> Reportes
-            </NavLink>
-            <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <DollarSign size={18} /> Caja
             </NavLink>
             <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Lock size={18} /> Liquidación
@@ -201,6 +207,8 @@ function App() {
             <NavLink to="/gastos" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <TrendingDown size={18} /> Gastos
             </NavLink>
+
+            <div className="sidebar-section-label">Sistema</div>
             <NavLink to="/configuracion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Settings size={18} /> Configuración
             </NavLink>
