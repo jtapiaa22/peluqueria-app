@@ -1,4 +1,11 @@
 module.exports = {
+  '3.0.1': [
+    { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizo el diseño de todas las secciones, dividiendola a cada una por su categoria para proporcionar una mejor experiencia de usuario.' },
+    { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación.' },
+    { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
+    { titulo: 'SE ACERCAN NOVEDADES SOBRE TURNOS ONLINE', desc: 'Estamos trabajando en una nueva funcionalidad de turnos online que permitirá a los clientes reservar sus citas directamente desde la aplicación. ¡Pronto más detalles!' },
+  ],
+
   '3.0.0': [
     { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizo el diseño de todas las secciones, dividiendola a cada una por su categoria para proporcionar una mejor experiencia de usuario.' },
     { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación.' },
