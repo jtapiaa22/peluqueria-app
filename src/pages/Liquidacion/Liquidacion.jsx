@@ -38,6 +38,7 @@ export default function Liquidacion() {
   const [panelPago, setPanelPago] = useState(null)
   const [formPago, setFormPago] = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
   const [pagosExistentes, setPagosExistentes] = useState([])
+  const [historialPagos, setHistorialPagos] = useState([])
   const [tramosComision, setTramosComision] = useState({})
 
   const { generarReporte } = usePDF()
@@ -74,15 +75,19 @@ export default function Liquidacion() {
     setPagosExistentes(prev => [...prev.filter(p => p.peluquero_id != peluqueroId), ...pagos])
   }
 
+  const cargarHistorial = async (peluqueroId) => {
+    const pagos = await window.electronAPI.getAllPagosByPeluquero(peluqueroId)
+    setHistorialPagos(pagos)
+  }
+
   const abrirPanelPago = async (peluqueroId) => {
     if (panelPago === peluqueroId) {
       setPanelPago(null)
-      setPagosExistentes([])
       return
     }
     setPanelPago(peluqueroId)
     setFormPago({ fecha_pago: hoy(), notas: '', montoManual: '' })
-    await cargarPagosExistentes(peluqueroId)
+    await Promise.all([cargarPagosExistentes(peluqueroId), cargarHistorial(peluqueroId)])
   }
 
   const ejecutarPago = async (peluquero) => {
@@ -103,9 +108,9 @@ export default function Liquidacion() {
       return
     }
 
-    const totalConPropinas = montoFinal + liq.propinasAPagar
-    const msgPago = liq.propinasAPagar > 0
-      ? `¿Confirmar pago a ${peluquero.nombre}?\nComisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasAPagar.toLocaleString('es-AR')} = $${totalConPropinas.toLocaleString('es-AR')} total a entregar.`
+    const totalConPropinas = montoFinal + liq.propinasRestantes
+    const msgPago = liq.propinasRestantes > 0
+      ? `¿Confirmar pago a ${peluquero.nombre}?\nComisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasRestantes.toLocaleString('es-AR')} = $${totalConPropinas.toLocaleString('es-AR')} total a entregar.`
       : `¿Confirmar pago de $${montoFinal.toLocaleString('es-AR')} a ${peluquero.nombre}?`
     confirmar(
       msgPago,
@@ -117,15 +122,15 @@ export default function Liquidacion() {
           desde,
           hasta,
           monto: montoFinal,
-          propinas_pagadas: liq.propinasAPagar,
+          propinas_pagadas: liq.propinasRestantes,
           fecha_pago: formPago.fecha_pago,
           notas: formPago.notas
         })
-        const msgOk = liq.propinasAPagar > 0
-          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasAPagar.toLocaleString('es-AR')} = $${(montoFinal + liq.propinasAPagar).toLocaleString('es-AR')} total`
+        const msgOk = liq.propinasRestantes > 0
+          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasRestantes.toLocaleString('es-AR')} = $${(montoFinal + liq.propinasRestantes).toLocaleString('es-AR')} total`
           : `✅ Pago registrado a ${peluquero.nombre}`
         alertar(msgOk, 'success')
-        await cargarPagosExistentes(peluquero.id)
+        await Promise.all([cargarPagosExistentes(peluquero.id), cargarHistorial(peluquero.id)])
       }
     )
   }
@@ -134,7 +139,7 @@ export default function Liquidacion() {
     confirmar(`¿Eliminar el pago de $${Number(pago.monto).toLocaleString('es-AR')} a ${pago.peluquero_nombre}?`, async () => {
       setModalConfirm(null)
       await window.electronAPI.deletePago(pago.id)
-      await cargarPagosExistentes(pago.peluquero_id)
+      await Promise.all([cargarPagosExistentes(pago.peluquero_id), cargarHistorial(pago.peluquero_id)])
     })
   }
 
@@ -186,9 +191,10 @@ export default function Liquidacion() {
       montoComision = (totalGenerado * comision) / 100
     }
 
-    const totalPagado = pagosExistentes
-      .filter(pg => pg.peluquero_id == peluqueroId)
-      .reduce((acc, pg) => acc + Number(pg.monto), 0)
+    const pagosDelPeluquero = pagosExistentes.filter(pg => pg.peluquero_id == peluqueroId)
+    const totalPagado = pagosDelPeluquero.reduce((acc, pg) => acc + Number(pg.monto), 0)
+    const propinasPagadas = pagosDelPeluquero.reduce((acc, pg) => acc + Number(pg.propinas_pagadas || 0), 0)
+    const propinasRestantes = Math.max(0, propinasAPagar - propinasPagadas)
 
     return {
       totalGenerado,
@@ -204,7 +210,9 @@ export default function Liquidacion() {
       totalPropinasEfectivo,
       totalPropinasTransferencia,
       porcentajePropina,
-      propinasAPagar
+      propinasAPagar,
+      propinasPagadas,
+      propinasRestantes
     }
   }
 
@@ -506,11 +514,11 @@ export default function Liquidacion() {
                             <label>Total calculado</label>
                             <div style={{ background: 'var(--bg-main)', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: 10, padding: '8px 14px' }}>
                               <div style={{ fontSize: 15, fontWeight: 700, color: '#f87171' }}>
-                                ${(Math.max(0, pendiente) + p.propinasAPagar).toLocaleString('es-AR')}
+                                ${(Math.max(0, pendiente) + p.propinasRestantes).toLocaleString('es-AR')}
                               </div>
-                              {p.propinasAPagar > 0 && (
+                              {p.propinasRestantes > 0 && (
                                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                  comisión ${Math.max(0, pendiente).toLocaleString('es-AR')} + propinas ${p.propinasAPagar.toLocaleString('es-AR')}
+                                  comisión ${Math.max(0, pendiente).toLocaleString('es-AR')} + propinas ${p.propinasRestantes.toLocaleString('es-AR')}
                                 </div>
                               )}
                             </div>
@@ -529,9 +537,9 @@ export default function Liquidacion() {
                               placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
                               style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
                             />
-                            {formPago.montoManual !== '' && p.propinasAPagar > 0 && (
+                            {formPago.montoManual !== '' && p.propinasRestantes > 0 && (
                               <div style={{ fontSize: 11, color: '#facc15', marginTop: 4 }}>
-                                total a entregar: ${(Number(formPago.montoManual) + p.propinasAPagar).toLocaleString('es-AR')}
+                                total a entregar: ${(Number(formPago.montoManual) + p.propinasRestantes).toLocaleString('es-AR')}
                               </div>
                             )}
                           </div>
@@ -565,11 +573,11 @@ export default function Liquidacion() {
                           />
                         </div>
 
-                        {/* Historial de pagos en el período */}
-                        {pagadoEste.length > 0 && (
+                        {/* Historial completo de pagos */}
+                        {historialPagos.length > 0 ? (
                           <div>
                             <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 10 }}>
-                              Pagos realizados en este período
+                              Historial de pagos
                             </div>
                             <table className="table">
                               <thead>
@@ -582,37 +590,40 @@ export default function Liquidacion() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {pagadoEste.map(pg => (
-                                  <tr key={pg.id}>
-                                    <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
-                                    <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
-                                    <td style={{ color: '#4ade80', fontWeight: 700 }}>
-                                      ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
-                                      {Number(pg.propinas_pagadas) > 0 && (
-                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                          com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
-                                    <td>
-                                      <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
+                                {historialPagos.map(pg => {
+                                  const esPeriodoActual = pagadoEste.some(p => p.id === pg.id)
+                                  return (
+                                    <tr key={pg.id} style={{ background: esPeriodoActual ? 'rgba(167,139,250,0.06)' : undefined }}>
+                                      <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
+                                      <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
+                                      <td style={{ color: '#4ade80', fontWeight: 700 }}>
+                                        ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
+                                        {Number(pg.propinas_pagadas) > 0 && (
+                                          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                            com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
+                                      <td>
+                                        <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>
+                                          <Trash2 size={13} />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
                               </tbody>
                             </table>
-                            <div style={{ textAlign: 'right', marginTop: 8, fontSize: 13, color: '#4ade80', fontWeight: 700 }}>
-                              Total pagado en este período: ${totalPagadoPeriodo.toLocaleString('es-AR')}
-                            </div>
+                            {totalPagadoPeriodo > 0 && (
+                              <div style={{ textAlign: 'right', marginTop: 8, fontSize: 13, color: '#a78bfa', fontWeight: 600 }}>
+                                Pagado en el período actual: ${totalPagadoPeriodo.toLocaleString('es-AR')}
+                              </div>
+                            )}
                           </div>
-                        )}
-
-                        {pagadoEste.length === 0 && (
+                        ) : (
                           <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>
-                            No hay pagos registrados en este período todavía.
+                            No hay pagos registrados todavía.
                           </div>
                         )}
                       </div>

@@ -49,6 +49,10 @@ export default function Gastos() {
   const [form, setForm]                     = useState({ descripcion: '', monto: '', fecha: hoy(), categoria: '' })
   const [modalConfirm, setModalConfirm]     = useState(null)
   const [modalAlert, setModalAlert]         = useState(null)
+  const [peluquerosExpandidos, setPeluquerosExpandidos] = useState({})
+
+  const togglePeluqueroExpandido = (key) =>
+    setPeluquerosExpandidos(prev => ({ ...prev, [key]: !prev[key] }))
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
@@ -389,7 +393,7 @@ export default function Gastos() {
                           </div>
                         </div>
 
-                        {/* ── PAGOS A PELUQUEROS ── */}
+                        {/* ── PAGOS A PELUQUEROS ── agrupados por peluquero */}
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                             <Users size={15} color="#fb923c" />
@@ -406,45 +410,102 @@ export default function Gastos() {
                             }}>
                               No hay pagos confirmados este mes. Podés confirmarlos desde <strong>Liquidación</strong>.
                             </div>
-                          ) : (
-                            <table className="table">
-                              <thead>
-                                <tr>
-                                  <th>Peluquero</th>
-                                  <th>Período cubierto</th>
-                                  <th>Fecha de pago</th>
-                                  <th>Monto</th>
-                                  <th>Notas</th>
-                                  <th></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pagos.map(pg => (
-                                  <tr key={pg.id}>
-                                    <td style={{ fontWeight: 600 }}>{pg.peluquero_nombre}</td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                                      {formatFecha(pg.desde)} → {formatFecha(pg.hasta)}
-                                    </td>
-                                    <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
-                                    <td style={{ color: '#fb923c', fontWeight: 700 }}>
-                                      ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
-                                      {Number(pg.propinas_pagadas) > 0 && (
-                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                                          com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
+                          ) : (() => {
+                            const agrupados = pagos.reduce((acc, pg) => {
+                              const key = String(pg.peluquero_id)
+                              if (!acc[key]) acc[key] = { nombre: pg.peluquero_nombre, pagos: [], total: 0 }
+                              acc[key].pagos.push(pg)
+                              acc[key].total += Number(pg.monto) + Number(pg.propinas_pagadas || 0)
+                              return acc
+                            }, {})
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {Object.entries(agrupados).map(([pelId, grupo]) => {
+                                  const expandKey = `${item.mes}-${pelId}`
+                                  const expandido = !!peluquerosExpandidos[expandKey]
+                                  return (
+                                    <div key={pelId} style={{ border: '1px solid var(--border-soft)', borderRadius: 10, overflow: 'hidden' }}>
+                                      <div
+                                        onClick={() => togglePeluqueroExpandido(expandKey)}
+                                        style={{
+                                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                          padding: '12px 16px', cursor: 'pointer', userSelect: 'none',
+                                          background: expandido ? 'rgba(251, 146, 60, 0.06)' : 'var(--bg-main)',
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                          <span style={{
+                                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                            width: 20, height: 20, borderRadius: '50%',
+                                            background: 'rgba(251, 146, 60, 0.15)', color: '#fb923c',
+                                            fontSize: 10, flexShrink: 0,
+                                            transition: 'transform 0.2s ease',
+                                            transform: expandido ? 'rotate(90deg)' : 'rotate(0deg)',
+                                          }}>▶</span>
+                                          <span style={{ fontWeight: 700, color: '#fb923c', fontSize: 14 }}>{grupo.nombre}</span>
+                                          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                            {grupo.pagos.length} pago{grupo.pagos.length !== 1 ? 's' : ''}
+                                          </span>
                                         </div>
-                                      )}
-                                    </td>
-                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
-                                    <td>
-                                      <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
+                                        <span style={{ color: '#fb923c', fontWeight: 700, fontSize: 15 }}>
+                                          ${grupo.total.toLocaleString('es-AR')}
+                                        </span>
+                                      </div>
+
+                                      <AnimatePresence>
+                                        {expandido && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.2 }}
+                                            style={{ overflow: 'hidden' }}
+                                          >
+                                            <table className="table" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                                              <thead>
+                                                <tr>
+                                                  <th>Período cubierto</th>
+                                                  <th>Fecha de pago</th>
+                                                  <th>Monto</th>
+                                                  <th>Notas</th>
+                                                  <th></th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {grupo.pagos.map(pg => (
+                                                  <tr key={pg.id}>
+                                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                                                      {formatFecha(pg.desde)} → {formatFecha(pg.hasta)}
+                                                    </td>
+                                                    <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
+                                                    <td style={{ color: '#fb923c', fontWeight: 700 }}>
+                                                      ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
+                                                      {Number(pg.propinas_pagadas) > 0 && (
+                                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                                          com ${Number(pg.monto).toLocaleString('es-AR')} + prop ${Number(pg.propinas_pagadas).toLocaleString('es-AR')}
+                                                        </div>
+                                                      )}
+                                                    </td>
+                                                    <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{pg.notas || '—'}</td>
+                                                    <td>
+                                                      <button className="btn btn-danger" onClick={() => eliminarPago(pg)} style={{ padding: '6px 10px' }}>
+                                                        <Trash2 size={13} />
+                                                      </button>
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )
+                          })()}
                         </div>
 
                         {/* ── GASTOS OPERATIVOS ── */}

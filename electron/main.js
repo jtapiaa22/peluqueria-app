@@ -548,7 +548,8 @@ ipcMain.handle('gastos:delete',async(_,id)=>{ db.prepare('DELETE FROM gastos WHE
 // PAGOS PELUQUEROS
 ipcMain.handle('pagos:create',async(_,d)=>{ const r=db.prepare(`INSERT INTO pagos_peluqueros(peluquero_id,peluquero_nombre,desde,hasta,monto,fecha_pago,notas,propinas_pagadas) VALUES(?,?,?,?,?,?,?,?)`).run(d.peluquero_id,d.peluquero_nombre,d.desde,d.hasta,Number(d.monto),d.fecha_pago,d.notas||null,Number(d.propinas_pagadas||0)); return r.lastInsertRowid })
 ipcMain.handle('pagos:getByMes',(_,mes)=>{ const [a,m]=mes.split('-'); const desde=`${a}-${m}-01`; const u=new Date(parseInt(a),parseInt(m),0).getDate(); const hasta=`${a}-${m}-${String(u).padStart(2,'0')}`; return db.prepare('SELECT * FROM pagos_peluqueros WHERE fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC,id DESC').all(desde,hasta) })
-ipcMain.handle('pagos:getByPeluqueroYRango',(_,{peluquero_id,desde,hasta})=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? AND fecha_pago BETWEEN ? AND ? ORDER BY fecha_pago DESC').all(peluquero_id,desde,hasta))
+ipcMain.handle('pagos:getByPeluqueroYRango',(_,{peluquero_id,desde,hasta})=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? AND desde<=? AND hasta>=? ORDER BY fecha_pago DESC').all(peluquero_id,hasta,desde))
+ipcMain.handle('pagos:getAllByPeluquero',(_,peluquero_id)=>db.prepare('SELECT * FROM pagos_peluqueros WHERE peluquero_id=? ORDER BY fecha_pago DESC, id DESC').all(peluquero_id))
 ipcMain.handle('pagos:delete',async(_,id)=>{ db.prepare('DELETE FROM pagos_peluqueros WHERE id=?').run(id); return true })
 
 // TURNOS MANUALES

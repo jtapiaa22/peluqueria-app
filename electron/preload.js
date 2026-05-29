@@ -67,6 +67,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createPago:                 (data)  => ipcRenderer.invoke('pagos:create', data),
   getPagosByMes:              (mes)   => ipcRenderer.invoke('pagos:getByMes', mes),
   getPagosByPeluqueroYRango:  (data)  => ipcRenderer.invoke('pagos:getByPeluqueroYRango', data),
+  getAllPagosByPeluquero:      (id)    => ipcRenderer.invoke('pagos:getAllByPeluquero', id),
   deletePago:                 (id)    => ipcRenderer.invoke('pagos:delete', id),
 
   // Turnos manuales (Agenda local)
