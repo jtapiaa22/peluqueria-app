@@ -825,7 +825,10 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
 
     if (accion === 'cancelado') {
       const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(turno.id)
-      if (local) db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
+      if (local) {
+        db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
+        await syncTurnoManual(local, true)
+      }
       await sb.from('turnos_senas').delete().eq('turno_web_id', turno.id).neq('estado', 'pagada')
     }
 

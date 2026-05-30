@@ -266,7 +266,7 @@ export default function Agenda() {
   const turnosDelDiaEnMes = (dia) => {
     if (!dia) return []
     const f = `${anio}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`
-    return turnosMes.filter(t => t.fecha === f)
+    return turnosMes.filter(t => t.fecha === f && t.estado !== 'cancelado')
   }
 
   // ── BLOQUEO DE DÍAS ───────────────────────────────────────────
