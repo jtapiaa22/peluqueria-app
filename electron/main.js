@@ -1250,6 +1250,14 @@ if (!gotTheLock) {
       if (tiene > 0) syncBackupCompleto()
     }, 10000)
 
+    // Cada 20 min — Re-backup nube para no perder atenciones del día
+    setInterval(async () => {
+      const pid = await getPid()
+      if (!pid) return
+      const tiene = db.prepare('SELECT COUNT(*) as c FROM atenciones').get().c
+      if (tiene > 0) syncBackupCompleto()
+    }, 20 * 60 * 1000)
+
     // Cada 1h — Re-verificar licencia silenciosamente
     setInterval(() => {
       const res = verificarLicencia()
