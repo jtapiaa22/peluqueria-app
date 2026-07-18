@@ -256,8 +256,9 @@ export default function Reportes() {
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)' }}>
                 {horaPico ? `${horaPico[0]}:00 - ${horaPico[0]}:59hs` : '-'}
               </div>
+              {/* "X de Y": X es la hora más cargada, Y el total del rango (incluye vales, que son cortes hechos) */}
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                {horaPico ? `${horaPico[1]} atenciones` : ''}
+                {horaPico ? `${horaPico[1]} de ${atenciones.length} atenciones` : ''}
               </div>
             </div>
           </div>

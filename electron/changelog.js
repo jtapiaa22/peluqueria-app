@@ -1,4 +1,11 @@
 module.exports = {
+  '3.3.0': [
+    { titulo: 'Nuevo diseño en la sección de Reportes', desc: 'La sección de Reportes ahora tiene un diseño más moderno y limpio, con gráficos mejorados y una navegación más intuitiva.' },
+    { titulo: 'Gráficos interactivos', desc: 'Los gráficos en Reportes ahora son interactivos, permitiéndote hacer clic para ver detalles específicos de cada día o categoría.' },
+    { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación, especialmente al cargar grandes cantidades de datos en Reportes y Liquidación.' },
+    { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
+  ],
+
   '3.2.0': [
     { titulo: 'Control de vales más seguro', desc: 'Ya no se puede registrar una atención con Vale si el contador de vales está cerrado, así ningún vale queda sin contabilizar. La app te avisa y te deja abrir el contador al instante.' },
     { titulo: 'Los vales ahora cuentan como cortes', desc: 'En Reportes y Caja, la cantidad de "Cortes" por peluquero ahora incluye los cortes pagados con vale (siguen sin sumar dinero, pero cuentan como trabajo realizado). Los vales se muestran igual aparte como desglose.' },
