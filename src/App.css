@@ -715,6 +715,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .table tbody tr:nth-child(8)  { animation-delay: 160ms; }
 .table tbody tr:nth-child(n+9){ animation-delay: 175ms; }
 
+/* Entrada escalonada de secciones (misma sensación que el Dashboard al abrir) */
+@keyframes sectionFadeIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stagger-sections > * {
+  animation: sectionFadeIn 0.42s var(--ease-out) both;
+}
+.stagger-sections > *:nth-child(1)   { animation-delay: 0.04s; }
+.stagger-sections > *:nth-child(2)   { animation-delay: 0.10s; }
+.stagger-sections > *:nth-child(3)   { animation-delay: 0.16s; }
+.stagger-sections > *:nth-child(4)   { animation-delay: 0.22s; }
+.stagger-sections > *:nth-child(5)   { animation-delay: 0.28s; }
+.stagger-sections > *:nth-child(n+6) { animation-delay: 0.34s; }
+
 /* Label de sección en sidebar */
 .sidebar-section-label {
   font-size: 10px;

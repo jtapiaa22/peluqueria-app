@@ -189,7 +189,8 @@ export default function Reportes() {
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
       {cargando && <ReportesSkeleton />}
-      {!cargando && <>
+      {!cargando && (
+        <div className="stagger-sections">
 
       {sinDatos && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: 'var(--text-muted)', fontSize: 14, textAlign: 'center' }}>
@@ -210,7 +211,8 @@ export default function Reportes() {
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general (cortes)</div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atencionesReales.length} cortes</div>
+          {/* Cortes = todos los cortes hechos (incluye los pagados con vale, que no suman dinero pero sí son cortes realizados) */}
+          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atenciones.length} cortes</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>💰 Propinas</div>
@@ -364,7 +366,8 @@ export default function Reportes() {
                             <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 14 }}>{nombre}</span>
                           </div>
                         </td>
-                        <td style={{ textAlign: 'center' }}>{data.atenciones}</td>
+                        {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale no suma dinero pero sí es un corte realizado */}
+                        <td style={{ textAlign: 'center' }}>{data.atenciones + data.vales}</td>
                         <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)', textAlign: 'center' }}>
                           {data.vales > 0 ? data.vales : '—'}
                         </td>
@@ -632,7 +635,8 @@ export default function Reportes() {
         </div>
       )}
 
-      </>}
+        </div>
+      )}
       </div>{/* fin área scrolleable */}
     </div>
   )

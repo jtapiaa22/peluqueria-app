@@ -1,4 +1,12 @@
 module.exports = {
+  '3.2.0': [
+    { titulo: 'Control de vales más seguro', desc: 'Ya no se puede registrar una atención con Vale si el contador de vales está cerrado, así ningún vale queda sin contabilizar. La app te avisa y te deja abrir el contador al instante.' },
+    { titulo: 'Los vales ahora cuentan como cortes', desc: 'En Reportes y Caja, la cantidad de "Cortes" por peluquero ahora incluye los cortes pagados con vale (siguen sin sumar dinero, pero cuentan como trabajo realizado). Los vales se muestran igual aparte como desglose.' },
+    { titulo: 'Animación de entrada en Reportes', desc: 'La sección de Reportes ahora aparece con una animación suave y escalonada al abrirla, igual que el Dashboard, para una experiencia más fluida.' },
+    { titulo: 'Correcciones y mejoras menores', desc: 'Se corrigieron detalles de visualización y se mejoró la estabilidad general de la aplicación.' },
+  ],
+
+
   '3.1.0': [
     { titulo: 'Dashboard inteligente', desc: 'El panel principal ahora incluye un "Resumen inteligente" con los datos clave de un vistazo: proyección de cierre del mes, tu mejor día de la semana, la franja horaria más activa, tu servicio estrella y el ticket promedio por atención.' },
     { titulo: 'Top servicios y ritmo de la semana', desc: 'Nuevas tarjetas en el Dashboard: el ranking de los servicios que más facturan y un gráfico con los días de la semana que más rinden.' },

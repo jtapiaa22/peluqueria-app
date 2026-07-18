@@ -298,7 +298,8 @@ export default function Caja() {
                   {Object.entries(resumenPorPeluqueroCierre).map(([nombre, data]) => (
                     <tr key={nombre}>
                       <td>{nombre}</td>
-                      <td>{data.atenciones}</td>
+                      {/* Cortes = todos los cortes hechos (incluye los pagados con vale) */}
+                      <td>{data.atenciones + data.vales}</td>
                       <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
                         {data.vales > 0 ? data.vales : '—'}
                       </td>
@@ -425,7 +426,8 @@ export default function Caja() {
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total general</div>
               <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
-                {atencionesReales.length} cortes
+                {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale se muestra aparte como desglose */}
+                {atenciones.length} cortes
                 {valesHoy.length > 0 && (
                   <span style={{ marginLeft: 6, color: '#fbbf24' }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} 🎫</span>
                 )}
@@ -463,7 +465,8 @@ export default function Caja() {
                       <tr key={nombre}>
                         <td>{nombre}</td>
                         <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
-                        <td>{data.cortes}</td>
+                        {/* Cortes = todos los cortes hechos (incluye los pagados con vale) */}
+                        <td>{data.cortes + data.vales}</td>
                         <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
                           {data.vales > 0 ? data.vales : '—'}
                         </td>
