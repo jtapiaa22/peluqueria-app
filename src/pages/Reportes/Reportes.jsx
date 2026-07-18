@@ -241,8 +241,9 @@ export default function Reportes() {
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)' }}>
                 {diaMasActivo ? DIAS[diaMasActivo[0]] : '-'}
               </div>
+              {/* "X de Y": X es el día de semana más cargado, Y el total del rango (incluye vales, que son cortes hechos) */}
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
-                {diaMasActivo ? `${diaMasActivo[1]} atenciones` : ''}
+                {diaMasActivo ? `${diaMasActivo[1]} de ${atenciones.length} atenciones` : ''}
               </div>
             </div>
           </div>
