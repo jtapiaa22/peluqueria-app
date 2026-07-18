@@ -569,6 +569,7 @@ ipcMain.handle('peluqueria:getConfig',()=>{
   const senaAlias  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()
   const senaHoras  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()
   const senaCorreo = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_correo'").get()
+  const senaActiva = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_activa'").get()
   let horario = null
   try { horario = horarioRaw ? JSON.parse(horarioRaw.valor) : null } catch {}
   return {
@@ -577,15 +578,22 @@ ipcMain.handle('peluqueria:getConfig',()=>{
     sena_alias: senaAlias?.valor || '',
     sena_horas_vencimiento: senaHoras?.valor || '24',
     sena_correo: senaCorreo?.valor || '',
+    // Si nunca se guardó, se asume activa: asi las peluquerias que ya venian
+    // con monto y alias cargados siguen pidiendo seña igual que antes.
+    sena_activa: senaActiva ? senaActiva.valor === '1' : true,
   }
 })
-ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sena_horas_vencimiento, sena_correo }) => {
+ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sena_horas_vencimiento, sena_correo, sena_activa }) => {
   try {
+    // Si no viene el dato (version vieja del front) se asume activa.
+    const activa = sena_activa !== false
+
     // Guardar en local
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_monto',?)").run(String(sena_monto || ''))
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_alias',?)").run(sena_alias || '')
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_horas_vencimiento',?)").run(String(sena_horas_vencimiento || 24))
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_correo',?)").run(sena_correo || '')
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('sena_activa',?)").run(activa ? '1' : '0')
 
     // Sincronizar con Supabase si está registrada
     const pid = await getPid()
@@ -596,6 +604,7 @@ ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sen
         sena_alias: sena_alias || null,
         sena_horas_vencimiento: Number(sena_horas_vencimiento) || 24,
         sena_correo: sena_correo || null,
+        sena_activa: activa,
       }).eq('id', pid)
     }
     return { ok: true }
@@ -723,8 +732,12 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
       const senaAlias  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()?.valor
       const senaHoras  = Number(db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()?.valor || 24)
       const senaCorreo = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_correo'").get()?.valor?.trim() || ''
+      // Interruptor de Configuracion › Seña. Si nunca se guardó se asume
+      // activa, para no cambiarle el comportamiento a quien ya la tenia puesta.
+      const senaFlag   = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_activa'").get()?.valor
+      const senaActiva = senaFlag === undefined ? true : senaFlag === '1'
 
-      if (senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
+      if (senaActiva && senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
         // HAY SEÑA: actualizar turnos_web + insertar en turnos_senas
         const venceAt = new Date(Date.now() + senaHoras * 60 * 60 * 1000).toISOString()
 

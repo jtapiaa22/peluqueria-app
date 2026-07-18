@@ -69,6 +69,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [senaAlias, setSenaAlias] = useState('')
   const [senaHoras, setSenaHoras] = useState('24')
   const [senaCorreo, setSenaCorreo] = useState('')
+  const [senaActiva, setSenaActiva] = useState(true)
   const [senaLoading, setSenaLoading] = useState(false)
   const [senaGuardada, setSenaGuardada] = useState(false)
 
@@ -257,6 +258,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (cfg?.sena_alias) setSenaAlias(cfg.sena_alias)
     if (cfg?.sena_horas_vencimiento) setSenaHoras(cfg.sena_horas_vencimiento)
     if (cfg?.sena_correo) setSenaCorreo(cfg.sena_correo)
+    // Chequeo explícito: con `if (cfg?.sena_activa)` un false no entraría nunca.
+    if (cfg?.sena_activa !== undefined) setSenaActiva(cfg.sena_activa !== false)
   }
 
   const guardarNombre = async () => {
@@ -377,7 +380,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
   const guardarSena = async () => {
     const monto = Number(senaMonto)
-    if (monto > 0 && !senaAlias.trim()) {
+    // Con las señas apagadas no exigimos alias: los datos quedan guardados
+    // como estaban para cuando se vuelvan a prender.
+    if (senaActiva && monto > 0 && !senaAlias.trim()) {
       setModalAlert({ mensaje: 'Si configurás un monto de seña, tenés que ingresar el alias o CBU.', tipo: 'warning' })
       return
     }
@@ -387,6 +392,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
       sena_alias: senaAlias.trim(),
       sena_horas_vencimiento: Number(senaHoras) || 24,
       sena_correo: senaCorreo.trim(),
+      sena_activa: senaActiva,
     })
     setSenaLoading(false)
     if (result?.ok) {
@@ -1384,10 +1390,46 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
           {seccion === 'sena' && webPaso === 'configurado' && (
             <div>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>Seña para reservas web</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28, lineHeight: 1.6 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
                 Cuando un cliente pide turno y vos lo confirmás, se le pedirá que pague una seña por transferencia antes de que el turno quede definitivo.
-                Dejá el monto en 0 para desactivar las señas.
               </p>
+
+              {/* Interruptor de señas */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                padding: '16px 18px', marginBottom: 28, borderRadius: 12,
+                border: `1px solid ${senaActiva ? 'rgba(251,146,60,0.35)' : 'var(--border-soft)'}`,
+                background: senaActiva ? 'rgba(251,146,60,0.08)' : 'transparent',
+                transition: 'all 0.2s',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 3 }}>
+                    Pedir seña para confirmar turnos
+                  </div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 12, lineHeight: 1.5 }}>
+                    {senaActiva
+                      ? 'Al confirmar un turno, el cliente recibe los datos para transferir.'
+                      : 'Los turnos se confirman al instante. Tus datos de seña quedan guardados.'}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSenaActiva(v => !v)}
+                  role="switch"
+                  aria-checked={senaActiva}
+                  aria-label="Pedir seña para confirmar turnos"
+                  style={{
+                    flexShrink: 0, width: 52, height: 30, borderRadius: 999, border: 'none',
+                    cursor: 'pointer', padding: 3, transition: 'background 0.2s',
+                    background: senaActiva ? '#fb923c' : 'var(--border-soft)',
+                  }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: '50%', background: '#fff',
+                    transform: `translateX(${senaActiva ? 22 : 0}px)`,
+                    transition: 'transform 0.2s',
+                  }} />
+                </button>
+              </div>
 
               {/* Monto */}
               <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
@@ -1406,14 +1448,19 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     style={{ flex: 1, fontSize: 16, fontWeight: 600 }}
                   />
                 </div>
-                {Number(senaMonto) > 0 && (
+                {senaActiva && Number(senaMonto) > 0 && (
                   <div style={{ marginTop: 10, fontSize: 12, color: '#4ade80' }}>
                     ✅ Se pedirá seña de <strong>${Number(senaMonto).toLocaleString('es-AR')}</strong> al confirmar cada turno.
                   </div>
                 )}
-                {(!senaMonto || Number(senaMonto) === 0) && (
+                {senaActiva && (!senaMonto || Number(senaMonto) === 0) && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: '#fbbf24' }}>
+                    ⚠️ El monto está en 0, así que no se pedirá seña aunque el interruptor esté prendido.
+                  </div>
+                )}
+                {!senaActiva && (
                   <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-                    ℹ️ Señas desactivadas — los turnos se confirman directamente.
+                    ℹ️ Señas apagadas — los turnos se confirman directamente.
                   </div>
                 )}
               </div>
@@ -1476,7 +1523,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               </div>
 
               {/* Preview */}
-              {Number(senaMonto) > 0 && senaAlias.trim() && (
+              {senaActiva && Number(senaMonto) > 0 && senaAlias.trim() && (
                 <div style={{
                   background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.25)',
                   borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13,

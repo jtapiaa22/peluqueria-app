@@ -1,4 +1,11 @@
 module.exports = {
+  '3.4.0': [
+    { titulo: 'Respondé los turnos desde el celular', desc: 'Ya no hace falta estar en la computadora del local: ahora podés aceptar, rechazar o proponer otro horario desde el teléfono, y el turno aparece solo en la Agenda cuando volvés a la compu. Pedile tu link y tu clave de acceso a PeluApp.' },
+    { titulo: 'Confirmá las señas desde el celular', desc: 'Cuando te llegue la transferencia de una seña, la confirmás desde el mismo panel del teléfono y el turno queda agendado al instante. Vas a ver el monto, el alias y cuánto le queda al cliente antes de que la seña venza.' },
+    { titulo: 'Interruptor para prender y apagar las señas', desc: 'En Configuración → Seña ahora hay un interruptor para dejar de pedir seña sin tener que borrar nada. Tu monto, alias y correo quedan guardados para cuando la quieras prender de nuevo.' },
+    { titulo: 'Reportes más claros', desc: 'La tarjeta de "Día más activo" ahora muestra cuántas atenciones fueron de ese día sobre el total del período, para no confundir el dato con el total general.' },
+  ],
+
   '3.3.0': [
     { titulo: 'Nuevo diseño en la sección de Reportes', desc: 'La sección de Reportes ahora tiene un diseño más moderno y limpio, con gráficos mejorados y una navegación más intuitiva.' },
     { titulo: 'Gráficos interactivos', desc: 'Los gráficos en Reportes ahora son interactivos, permitiéndote hacer clic para ver detalles específicos de cada día o categoría.' },
