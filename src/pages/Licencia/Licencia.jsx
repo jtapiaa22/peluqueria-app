@@ -82,7 +82,7 @@ export default function Licencia({ onActivada }) {
             borderRadius: 8, padding: '10px 14px',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
-            <code style={{ color: '#a78bfa', fontSize: 12, flex: 1, wordBreak: 'break-all', lineHeight: 1.5 }}>
+            <code style={{ color: 'var(--accent-bright)', fontSize: 12, flex: 1, wordBreak: 'break-all', lineHeight: 1.5 }}>
               {machineId || 'Cargando...'}
             </code>
             <button
@@ -107,7 +107,7 @@ export default function Licencia({ onActivada }) {
           onClick={cargarArchivo}
           disabled={cargando}
           style={{
-            width: '100%', background: '#7c3aed', color: 'white', border: 'none',
+            width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
             borderRadius: 10, padding: '12px 20px', cursor: cargando ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             fontSize: 14, fontWeight: 600, opacity: cargando ? 0.7 : 1,

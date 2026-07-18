@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronUp, Trash2, Users } from 'lucide-react'
 import { ModalAlert, ModalConfirm } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import EmptyState from '../../components/EmptyState'
+import Skeleton from '../../components/Skeleton'
 import { usePDF } from '../../hooks/usePDF'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -27,6 +30,22 @@ const fmtMiles = (val) => {
 }
 const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
+function LiquidacionSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: 0 }}>
+          <div style={{ flex: 1 }}>
+            <Skeleton width={150} height={16} style={{ marginBottom: 10 }} />
+            <Skeleton width={200} height={12} />
+          </div>
+          <Skeleton width={110} height={32} radius={8} />
+        </div>
+      ))}
+    </>
+  )
+}
+
 export default function Liquidacion() {
   const [peluqueros, setPeluqueros] = useState([])
   const [atenciones, setAtenciones] = useState([])
@@ -34,6 +53,7 @@ export default function Liquidacion() {
   const [hasta, setHasta] = useState(hoy())
   const [modalAlert, setModalAlert] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
+  const [cargando, setCargando] = useState(true)
 
   const [panelPago, setPanelPago] = useState(null)
   const [formPago, setFormPago] = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
@@ -42,7 +62,11 @@ export default function Liquidacion() {
   const [tramosComision, setTramosComision] = useState({})
 
   const { generarReporte } = usePDF()
-  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
 
   const cargarDatos = async () => {
@@ -67,7 +91,8 @@ export default function Liquidacion() {
   }
 
   useEffect(() => {
-    cargarDatos()
+    setCargando(true)
+    cargarDatos().finally(() => setCargando(false))
   }, [desde, hasta])
 
   const cargarPagosExistentes = async (peluqueroId) => {
@@ -290,9 +315,11 @@ export default function Liquidacion() {
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {peluquerosConDatos.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-            No hay peluqueros registrados
+        {cargando ? (
+          <LiquidacionSkeleton />
+        ) : peluquerosConDatos.length === 0 ? (
+          <div className="card">
+            <EmptyState icono={<Users size={30} />} titulo="No hay datos para liquidar" texto="No hay peluqueros con atenciones en el período seleccionado." padding="24px" />
           </div>
         ) : (
           peluquerosConDatos.map(p => {
@@ -340,7 +367,7 @@ export default function Liquidacion() {
                         📊 Tramos configurados
                       </span>
                     ) : (
-                      <span style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
+                      <span style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', color: 'var(--accent-bright)', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
                         {p.comision}% de comisión
                       </span>
                     )}
@@ -372,7 +399,7 @@ export default function Liquidacion() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Queda para el local</div>
-                      <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>
@@ -384,7 +411,7 @@ export default function Liquidacion() {
                           <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>
                         )}
                         {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
-                        {p.totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
+                        {p.totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                       </div>
                     </div>
                     <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
@@ -421,7 +448,7 @@ export default function Liquidacion() {
                                 <div style={{ color: '#f87171', fontWeight: 700 }}>${d.propina.toLocaleString('es-AR')}</div>
                                 <div style={{ display: 'flex', gap: 6, fontSize: 10, marginTop: 2 }}>
                                   {d.propina_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${d.propina_efectivo.toLocaleString('es-AR')}</span>}
-                                  {d.propina_transferencia > 0 && <span style={{ color: '#c084fc' }}>T: ${d.propina_transferencia.toLocaleString('es-AR')}</span>}
+                                  {d.propina_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${d.propina_transferencia.toLocaleString('es-AR')}</span>}
                                 </div>
                               </td>
                             </tr>
@@ -456,7 +483,7 @@ export default function Liquidacion() {
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 2, fontSize: 11 }}>
                                 {p.totalPropinas !== p.propinasAPagar && <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>}
                                 {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
-                                {p.totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
+                                {p.totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                               </div>
                             </td>
                           </tr>
@@ -576,7 +603,7 @@ export default function Liquidacion() {
                         {/* Historial completo de pagos */}
                         {historialPagos.length > 0 ? (
                           <div>
-                            <div style={{ fontSize: 13, color: '#a78bfa', fontWeight: 600, marginBottom: 10 }}>
+                            <div style={{ fontSize: 13, color: 'var(--accent-bright)', fontWeight: 600, marginBottom: 10 }}>
                               Historial de pagos
                             </div>
                             <table className="table">
@@ -593,7 +620,7 @@ export default function Liquidacion() {
                                 {historialPagos.map(pg => {
                                   const esPeriodoActual = pagadoEste.some(p => p.id === pg.id)
                                   return (
-                                    <tr key={pg.id} style={{ background: esPeriodoActual ? 'rgba(167,139,250,0.06)' : undefined }}>
+                                    <tr key={pg.id} style={{ background: esPeriodoActual ? 'rgba(var(--accent-bright-rgb),0.06)' : undefined }}>
                                       <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
                                       <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
                                       <td style={{ color: '#4ade80', fontWeight: 700 }}>
@@ -616,7 +643,7 @@ export default function Liquidacion() {
                               </tbody>
                             </table>
                             {totalPagadoPeriodo > 0 && (
-                              <div style={{ textAlign: 'right', marginTop: 8, fontSize: 13, color: '#a78bfa', fontWeight: 600 }}>
+                              <div style={{ textAlign: 'right', marginTop: 8, fontSize: 13, color: 'var(--accent-bright)', fontWeight: 600 }}>
                                 Pagado en el período actual: ${totalPagadoPeriodo.toLocaleString('es-AR')}
                               </div>
                             )}

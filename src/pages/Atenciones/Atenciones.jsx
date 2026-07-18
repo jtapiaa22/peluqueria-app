@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Plus, Trash2, Eye, Pencil, X } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import Skeleton from '../../components/Skeleton'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function hoy() {
@@ -36,6 +38,37 @@ const formatFechaFormateada = (f) => {
   const [y, m, d] = f.split('-').map(Number)
   return `${d} ${MESES_NOMBRE[m - 1]} ${y}`
 }
+
+function BadgePago({ a }) {
+  if (a.metodo_pago === 'vale') {
+    return (
+      <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
+        Vale
+      </span>
+    )
+  }
+  if (a.metodo_pago === 'mixto') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+          Efectivo ${Number(a.monto_efectivo || 0).toLocaleString('es-AR')}
+        </span>
+        <span style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', color: 'var(--accent-2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+          Transf. ${Number(a.monto_transferencia || 0).toLocaleString('es-AR')}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <span style={{
+      background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(var(--accent-2-rgb), 0.15)',
+      color: a.metodo_pago === 'efectivo' ? '#4ade80' : 'var(--accent-2)',
+      padding: '2px 10px', borderRadius: 99, fontSize: 12
+    }}>
+      {a.metodo_pago}
+    </span>
+  )
+}
 const fmtMiles = (val) => {
   if (val === '' || val == null) return ''
   const n = Number(String(val).replace(/\./g, ''))
@@ -45,6 +78,7 @@ const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, ''
 
 export default function Atenciones() {
   const [atenciones, setAtenciones] = useState([])
+  const [cargando, setCargando] = useState(true)
   const [peluqueros, setPeluqueros] = useState([])
   const [servicios, setServicios] = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -63,7 +97,11 @@ export default function Atenciones() {
   const [valesDetalle, setValesDetalle] = useState([])
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByFecha(fechaFiltro)
@@ -117,7 +155,10 @@ export default function Atenciones() {
     cargarPeriodosVales()
   }, [])
 
-  useEffect(() => { cargar() }, [fechaFiltro])
+  useEffect(() => {
+    setCargando(true)
+    cargar().finally(() => setCargando(false))
+  }, [fechaFiltro])
 
   const onServicioChange = (e) => {
     const id = e.target.value
@@ -166,7 +207,15 @@ export default function Atenciones() {
     }
 
     if (form.metodo_pago === 'vale') {
-      // Sin validaciones adicionales — solo se registra el peluquero
+      // No se puede registrar un vale sin el contador de vales abierto: los vales se
+      // cuentan por el rango de fecha/hora del período, así que un vale cargado sin
+      // período abierto quedaría fuera de todo conteo. Se permite re-guardar un vale
+      // que ya existía (edición), pero no crear uno nuevo ni convertir a vale.
+      const eraVale = editando && atenciones.find(a => a.id === editando)?.metodo_pago === 'vale'
+      if (!periodoAbierto && !eraVale) {
+        alertar('El contador de vales está cerrado. Abrí el "Control de Vales" antes de registrar un vale; si no, no se va a contabilizar para ningún peluquero.', 'error')
+        return
+      }
     } else if (form.metodo_pago === 'mixto') {
       if (!form.servicio_id) { alertar('Seleccioná el servicio.', 'warning'); return }
       if (!form.monto_efectivo || !form.monto_transferencia) {
@@ -236,38 +285,6 @@ export default function Atenciones() {
   const totalTransfDia   = atencionesReales.reduce((acc, a) => acc + Number(a.monto_transferencia || 0), 0)
   const totalPropinasDia = atenciones.reduce((acc, a) => acc + Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0), 0)
 
-
-  const BadgePago = ({ a }) => {
-    if (a.metodo_pago === 'vale') {
-      return (
-        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
-          Vale
-        </span>
-      )
-    }
-    if (a.metodo_pago === 'mixto') {
-      return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
-            Efectivo ${Number(a.monto_efectivo || 0).toLocaleString('es-AR')}
-          </span>
-          <span style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
-            Transf. ${Number(a.monto_transferencia || 0).toLocaleString('es-AR')}
-          </span>
-        </div>
-      )
-    }
-    return (
-      <span style={{
-        background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(192, 132, 252, 0.15)',
-        color: a.metodo_pago === 'efectivo' ? '#4ade80' : '#c084fc',
-        padding: '2px 10px', borderRadius: 99, fontSize: 12
-      }}>
-        {a.metodo_pago}
-      </span>
-    )
-  }
-
   return (
     <div className="page-animation">
       {modalConfirm && (
@@ -296,7 +313,7 @@ export default function Atenciones() {
                 style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                 <X size={18} />
               </button>
-              <h3 style={{ color: '#a78bfa', marginBottom: 20 }}>Detalle de atención</h3>
+              <h3 style={{ color: 'var(--accent-bright)', marginBottom: 20 }}>Detalle de atención</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Peluquero</span>
@@ -315,19 +332,19 @@ export default function Atenciones() {
                 {detalle.metodo_pago !== 'vale' && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Precio cobrado</span>
-                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.precio_cobrado).toLocaleString('es-AR')}</span>
+                    <span style={{ color: 'var(--accent-bright)', fontWeight: 700 }}>${Number(detalle.precio_cobrado).toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 {detalle.propina_efectivo > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Propina (Efectivo)</span>
-                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.propina_efectivo).toLocaleString('es-AR')}</span>
+                    <span style={{ color: 'var(--accent-bright)', fontWeight: 700 }}>${Number(detalle.propina_efectivo).toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 {detalle.propina_transferencia > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Propina (Transferencia)</span>
-                    <span style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(detalle.propina_transferencia).toLocaleString('es-AR')}</span>
+                    <span style={{ color: 'var(--accent-bright)', fontWeight: 700 }}>${Number(detalle.propina_transferencia).toLocaleString('es-AR')}</span>
                   </div>
                 )}
                 {detalle.nombre_transferencia && (
@@ -390,7 +407,7 @@ export default function Atenciones() {
             exit={{ height: 0, opacity: 0 }}
           >
             <div className="card">
-              <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+              <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>
                 {editando ? 'Editar atención' : 'Nueva atención'}
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -419,7 +436,7 @@ export default function Atenciones() {
                   <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-soft)' }}>
                     {[
                       { value: 'efectivo',      label: 'Efectivo',      color: '#4ade80',  bg: 'rgba(74,222,128,0.18)'   },
-                      { value: 'transferencia', label: 'Transferencia', color: '#c084fc',  bg: 'rgba(192,132,252,0.18)'  },
+                      { value: 'transferencia', label: 'Transferencia', color: 'var(--accent-2)',  bg: 'rgba(var(--accent-2-rgb),0.18)'  },
                       { value: 'mixto',         label: 'Mixto',         color: '#fbbf24',  bg: 'rgba(251,191,36,0.18)'   },
                       { value: 'vale',          label: 'Vale 🎫',       color: '#fb923c',  bg: 'rgba(251,146,60,0.18)'   },
                     ].map((op, i) => (
@@ -455,9 +472,21 @@ export default function Atenciones() {
                 )}
 
                 {form.metodo_pago === 'vale' && (
-                  <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
-                    💳 Vale: no suma en caja. Solo se registra el peluquero.
-                  </div>
+                  periodoAbierto ? (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
+                      💳 Vale: no suma en caja. Solo se registra el peluquero.
+                      <span style={{ color: 'var(--text-muted)' }}>· Contador abierto desde el {formatFechaFormateada(periodoAbierto.fecha_apertura)} a las {periodoAbierto.hora_apertura}hs</span>
+                    </div>
+                  ) : (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#f87171' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 320px' }}>
+                        ⚠️ El contador de vales está <strong>cerrado</strong>. Si registrás un vale ahora, no se va a contabilizar para ningún peluquero.
+                      </span>
+                      <button type="button" className="btn btn-primary" onClick={abrirPeriodo} style={{ whiteSpace: 'nowrap' }}>
+                        🎫 Abrir contador de vales
+                      </button>
+                    </div>
+                  )
                 )}
 
                 {form.metodo_pago !== 'vale' && (
@@ -492,8 +521,8 @@ export default function Atenciones() {
                           style={{
                             flex: 1, padding: '10px 20px', fontSize: 13, border: 'none', cursor: 'pointer',
                             borderLeft: '1px solid var(--border-soft)',
-                            background: form.propina_tipo === 'transferencia' ? 'rgba(192, 132, 252, 0.18)' : 'var(--bg-main)',
-                            color: form.propina_tipo === 'transferencia' ? '#c084fc' : 'var(--text-muted)',
+                            background: form.propina_tipo === 'transferencia' ? 'rgba(var(--accent-2-rgb), 0.18)' : 'var(--bg-main)',
+                            color: form.propina_tipo === 'transferencia' ? 'var(--accent-2)' : 'var(--text-muted)',
                             fontWeight: form.propina_tipo === 'transferencia' ? 700 : 400,
                           }}
                         >
@@ -542,7 +571,7 @@ export default function Atenciones() {
                         <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-main)', borderRadius: 8, padding: '0 16px' }}>
                           <div>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Total calculado</div>
-                            <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>
+                            <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>
                               ${(Number(form.monto_efectivo || 0) + Number(form.monto_transferencia || 0)).toLocaleString('es-AR')}
                             </div>
                           </div>
@@ -686,11 +715,11 @@ export default function Atenciones() {
                 )}
                 {valesDetalle.length > 1 && (
                   <div style={{
-                    gridColumn: '1 / -1', background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.3)',
+                    gridColumn: '1 / -1', background: 'rgba(var(--accent-bright-rgb),0.08)', border: '1px solid rgba(var(--accent-bright-rgb),0.3)',
                     borderRadius: 10, padding: '12px 18px', textAlign: 'center', marginTop: 10
                   }}>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>Total General</div>
-                    <div style={{ fontSize: 28, color: '#a78bfa', fontWeight: 700, lineHeight: 1 }}>
+                    <div style={{ fontSize: 28, color: 'var(--accent-bright)', fontWeight: 700, lineHeight: 1 }}>
                       {valesDetalle.reduce((acc, v) => acc + v.cantidad, 0)}
                     </div>
                   </div>
@@ -719,7 +748,7 @@ export default function Atenciones() {
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total</span>
-            <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
+            <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
           </div>
           {totalEfectivoDia > 0 && (
             <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -728,9 +757,9 @@ export default function Atenciones() {
             </div>
           )}
           {totalTransfDia > 0 && (
-            <div style={{ background: 'rgba(192,132,252,0.08)', border: '1px solid rgba(192,132,252,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'rgba(var(--accent-2-rgb),0.08)', border: '1px solid rgba(var(--accent-2-rgb),0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Transferencia</span>
-              <span style={{ color: '#c084fc', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           {totalPropinasDia > 0 && (
@@ -761,7 +790,18 @@ export default function Atenciones() {
             </tr>
           </thead>
           <tbody>
-            {atenciones.map(a => {
+            {cargando && Array.from({ length: 6 }).map((_, i) => (
+              <tr key={`sk-${i}`}>
+                <td><Skeleton width={38} height={12} /></td>
+                <td><Skeleton width="70%" height={14} /></td>
+                <td><Skeleton width="60%" height={14} /></td>
+                <td><Skeleton width={60} height={14} /></td>
+                <td><Skeleton width={54} height={20} radius={99} /></td>
+                <td><Skeleton width={64} height={20} radius={99} /></td>
+                <td><Skeleton width={90} height={28} radius={8} /></td>
+              </tr>
+            ))}
+            {!cargando && atenciones.map(a => {
               const propTotal = Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0)
               return (
                 <tr key={a.id}>
@@ -798,7 +838,7 @@ export default function Atenciones() {
                 </tr>
               )
             })}
-            {atenciones.length === 0 && (
+            {!cargando && atenciones.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>No hay atenciones registradas para este día</td></tr>
             )}
           </tbody>

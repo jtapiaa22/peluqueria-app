@@ -110,7 +110,7 @@ export default function Actualizador() {
             borderRadius: 20,
             border: '1px solid var(--border-primary)',
             background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
-            color: activo ? 'var(--text-muted)' : '#c4b5fd',
+            color: activo ? 'var(--text-muted)' : 'var(--accent-strong)',
             fontSize: 12,
             fontWeight: 600,
             display: 'flex',

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { X, Eye } from 'lucide-react'
+import { X, Eye, Scissors, Archive } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import Skeleton from '../../components/Skeleton'
+import EmptyState from '../../components/EmptyState'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function hoy() {
@@ -9,6 +12,38 @@ function hoy() {
 }
 function horaActual() {
   return new Date().toTimeString().split(' ')[0].slice(0, 5)
+}
+
+function CajaSkeleton() {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <Skeleton width={150} height={38} radius={8} />
+        <Skeleton width={130} height={38} radius={8} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card" style={{ textAlign: 'center', margin: 0 }}>
+            <Skeleton width="55%" height={12} style={{ margin: '0 auto 12px' }} />
+            <Skeleton width="70%" height={26} style={{ margin: '0 auto 10px' }} />
+            <Skeleton width="45%" height={10} style={{ margin: '0 auto' }} />
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <Skeleton width={200} height={16} style={{ marginBottom: 20 }} />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+            <Skeleton width="30%" height={14} />
+            <Skeleton width="20%" height={14} />
+            <Skeleton width="15%" height={14} />
+            <Skeleton width="15%" height={14} />
+            <Skeleton width="20%" height={14} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function Caja() {
@@ -22,12 +57,17 @@ export default function Caja() {
   const [detalleCierre, setDetalleCierre] = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert] = useState(null)
+  const [cargando, setCargando] = useState(true)
   const [fechasAbiertas, setFechasAbiertas] = useState({})
   const toggleFecha = (fecha) =>
     setFechasAbiertas(prev => ({ ...prev, [fecha]: !prev[fecha] }))
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByFecha(fechaFiltro)
@@ -77,7 +117,10 @@ export default function Caja() {
     setDetalleCierre({ cierre, atenciones: data })
   }
 
-  useEffect(() => { cargar(); verificarCaja() }, [fechaFiltro])
+  useEffect(() => {
+    setCargando(true)
+    Promise.all([cargar(), verificarCaja()]).finally(() => setCargando(false))
+  }, [fechaFiltro])
   useEffect(() => { if (vistaActiva === 'historial') cargarCierres(fechaHistorial) }, [vistaActiva])
 
   // Totales de caja (sin propinas)
@@ -139,7 +182,7 @@ export default function Caja() {
           <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
             ef ${Number(a.monto_efectivo).toLocaleString('es-AR')}
           </span>
-          <span style={{ background: 'rgba(192, 132, 252, 0.15)', color: '#c084fc', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+          <span style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', color: 'var(--accent-2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
             tr ${Number(a.monto_transferencia).toLocaleString('es-AR')}
           </span>
         </div>
@@ -147,8 +190,8 @@ export default function Caja() {
     }
     return (
       <span style={{
-        background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(192, 132, 252, 0.15)',
-        color: a.metodo_pago === 'efectivo' ? '#4ade80' : '#c084fc',
+        background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(var(--accent-2-rgb), 0.15)',
+        color: a.metodo_pago === 'efectivo' ? '#4ade80' : 'var(--accent-2)',
         padding: '2px 10px', borderRadius: 99, fontSize: 12
       }}>
         {a.metodo_pago}
@@ -185,7 +228,7 @@ export default function Caja() {
                 <X size={20} />
               </button>
 
-              <h3 style={{ color: '#a78bfa', marginBottom: 20 }}>Detalle del cierre</h3>
+              <h3 style={{ color: 'var(--accent-bright)', marginBottom: 20 }}>Detalle del cierre</h3>
 
               {/* Cards apertura / cierre */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
@@ -194,7 +237,7 @@ export default function Caja() {
                   <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 22 }}>{detalleCierre.cierre.hora_apertura}hs</div>
                   <div style={{ color: '#4ade80', fontSize: 13, marginTop: 4 }}>{detalleCierre.cierre.fecha}</div>
                 </div>
-                <div style={{ background: 'rgba(192, 132, 252, 0.1)', border: '1px solid rgba(192, 132, 252, 0.3)', borderRadius: 10, padding: '14px 18px' }}>
+                <div style={{ background: 'rgba(var(--accent-2-rgb), 0.1)', border: '1px solid rgba(var(--accent-2-rgb), 0.3)', borderRadius: 10, padding: '14px 18px' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Cierre
                     {detalleCierre.cierre.hora_cierre < detalleCierre.cierre.hora_apertura && (
@@ -203,8 +246,8 @@ export default function Caja() {
                       </span>
                     )}
                   </div>
-                  <div style={{ color: '#c084fc', fontWeight: 700, fontSize: 22 }}>{detalleCierre.cierre.hora_cierre}hs</div>
-                  <div style={{ color: '#c084fc', fontSize: 13, marginTop: 4 }}>
+                  <div style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 22 }}>{detalleCierre.cierre.hora_cierre}hs</div>
+                  <div style={{ color: 'var(--accent-2)', fontSize: 13, marginTop: 4 }}>
                     {detalleCierre.cierre.hora_cierre < detalleCierre.cierre.hora_apertura
                       ? (() => {
                         const d = new Date(detalleCierre.cierre.fecha + 'T00:00:00')
@@ -227,20 +270,20 @@ export default function Caja() {
                 </div>
                 <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Transferencia</div>
-                  <div style={{ color: '#c084fc', fontWeight: 700, fontSize: 18 }}>
+                  <div style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 18 }}>
                     ${Number(detalleCierre.cierre.total_transferencia).toLocaleString('es-AR')}
                   </div>
                 </div>
                 <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total</div>
-                  <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 18 }}>
+                  <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>
                     ${Number(detalleCierre.cierre.total_general).toLocaleString('es-AR')}
                   </div>
                 </div>
               </div>
 
               {/* Por peluquero (con columna Propinas) */}
-              <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Por peluquero</h4>
+              <h4 style={{ color: 'var(--accent-bright)', marginBottom: 12 }}>Por peluquero</h4>
               <table className="table" style={{ marginBottom: 24 }}>
                 <thead>
                   <tr>
@@ -264,7 +307,7 @@ export default function Caja() {
                         <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                         <div style={{ display: 'flex', gap: 6, marginTop: 2, fontSize: 11 }}>
                           {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
-                          {data.propinas_transferencia > 0 && <span style={{ color: '#c084fc' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
+                          {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                         </div>
                       </td>
                     </tr>
@@ -273,7 +316,7 @@ export default function Caja() {
               </table>
 
               {/* Todas las atenciones (con columna Propina) */}
-              <h4 style={{ color: '#a78bfa', marginBottom: 12 }}>Todas las atenciones</h4>
+              <h4 style={{ color: 'var(--accent-bright)', marginBottom: 12 }}>Todas las atenciones</h4>
               <table className="table">
                 <thead>
                   <tr>
@@ -328,7 +371,8 @@ export default function Caja() {
       </div>
 
       {/* VISTA DÍA */}
-      {vistaActiva === 'dia' && (
+      {vistaActiva === 'dia' && cargando && <CajaSkeleton />}
+      {vistaActiva === 'dia' && !cargando && (
         <div>
           <div className="form-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div style={{
@@ -372,14 +416,14 @@ export default function Caja() {
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Transferencia</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#c084fc' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-2)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'transferencia' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid var(--border-primary)' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total general</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#a78bfa' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.length} cortes
                 {valesHoy.length > 0 && (
@@ -392,14 +436,14 @@ export default function Caja() {
               <div style={{ fontSize: 26, fontWeight: 700, color: '#facc15' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
                 {totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
-                {totalPropinasTransferencia > 0 && <span style={{ color: '#c084fc', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
+                {totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
               </div>
             </div>
           </div>
 
           {/* Generado por peluquero (con columna Propinas) */}
           <div className="card">
-            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>Generado por peluquero</h3>
+            <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>Generado por peluquero</h3>
             <table className="table" style={{ width: '100%', marginTop: 12, borderCollapse: 'separate', borderSpacing: 0, border: '1px solid var(--border-soft)', borderRadius: 10, overflow: 'hidden', fontSize: 13 }}>
               <thead>
                 <tr>
@@ -412,7 +456,7 @@ export default function Caja() {
               </thead>
               <tbody>
                 {Object.keys(resumenPorPeluquero).length === 0
-                  ? <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>Sin atenciones para este día</td></tr>
+                  ? <tr><td colSpan={5} style={{ padding: 0 }}><EmptyState icono={<Scissors size={26} />} titulo="Sin atenciones para este día" texto="Las atenciones que cargues hoy van a aparecer acá." padding="32px 24px" /></td></tr>
                   : Object.entries(resumenPorPeluquero)
                     .sort((a, b) => b[1].total - a[1].total)
                     .map(([nombre, data]) => (
@@ -427,7 +471,7 @@ export default function Caja() {
                           <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                           <div style={{ display: 'flex', gap: 6, marginTop: 2, fontSize: 11 }}>
                             {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
-                            {data.propinas_transferencia > 0 && <span style={{ color: '#c084fc' }}>Tr: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
+                            {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                           </div>
                         </td>
                       </tr>
@@ -440,14 +484,14 @@ export default function Caja() {
           {/* Cerrar caja */}
           {cajaAbierta && (
             <div className="card">
-              <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>Cerrar caja</h3>
+              <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>Cerrar caja</h3>
 
               {/* Resumen del turno */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
                 {[
                   { label: 'Efectivo',      valor: totalEfectivo,      color: '#4ade80' },
-                  { label: 'Transferencia', valor: totalTransferencia,  color: '#c084fc' },
-                  { label: 'Total',         valor: totalGeneral,        color: '#a78bfa' },
+                  { label: 'Transferencia', valor: totalTransferencia,  color: 'var(--accent-2)' },
+                  { label: 'Total',         valor: totalGeneral,        color: 'var(--accent-bright)' },
                   { label: 'Propinas',      valor: totalPropinasDia,    color: '#facc15' },
                 ].map(({ label, valor, color }) => (
                   <div key={label} style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
@@ -480,7 +524,7 @@ export default function Caja() {
             <div className='caja-historial-container'>
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <h3 style={{ color: '#a78bfa', margin: 0 }}>Historial de cierres</h3>
+                  <h3 style={{ color: 'var(--accent-bright)', margin: 0 }}>Historial de cierres</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <label style={{ color: 'var(--text-muted)', fontSize: 14 }}>Filtrar por fecha</label>
                     <input
@@ -510,8 +554,8 @@ export default function Caja() {
                     <tbody>
                       {cierres.length === 0 ? (
                         <tr>
-                          <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
-                            No hay cierres registrados
+                          <td colSpan={8} style={{ padding: 0 }}>
+                            <EmptyState icono={<Archive size={26} />} titulo="No hay cierres registrados" texto="Cuando cierres un turno de caja, vas a ver el historial acá." padding="32px 24px" />
                           </td>
                         </tr>
                       ) : (
@@ -534,7 +578,7 @@ export default function Caja() {
                                   onClick={() => toggleFecha(fecha)}
                                   style={{
                                     cursor: 'pointer',
-                                    background: abierta ? 'rgba(124, 58, 237, 0.10)' : 'rgba(124, 58, 237, 0.04)',
+                                    background: abierta ? 'rgba(var(--accent-rgb), 0.10)' : 'rgba(var(--accent-rgb), 0.04)',
                                     transition: 'background 0.2s ease',
                                     userSelect: 'none',
                                   }}
@@ -547,17 +591,17 @@ export default function Caja() {
                                         justifyContent: 'center',
                                         width: 22, height: 22,
                                         borderRadius: '50%',
-                                        background: 'rgba(124, 58, 237, 0.15)',
-                                        color: '#a78bfa',
+                                        background: 'rgba(var(--accent-rgb), 0.15)',
+                                        color: 'var(--accent-bright)',
                                         fontSize: 11,
                                         transition: 'transform 0.2s ease',
                                         transform: abierta ? 'rotate(90deg)' : 'rotate(0deg)',
                                         flexShrink: 0,
                                       }}>▶</span>
-                                      <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 14 }}>{fecha}</span>
+                                      <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 14 }}>{fecha}</span>
                                       <span style={{
-                                        background: 'rgba(124, 58, 237, 0.15)',
-                                        color: '#a78bfa',
+                                        background: 'rgba(var(--accent-rgb), 0.15)',
+                                        color: 'var(--accent-bright)',
                                         borderRadius: 99,
                                         fontSize: 11,
                                         padding: '2px 8px',
@@ -569,7 +613,7 @@ export default function Caja() {
                                   </td>
                                   <td />
                                   <td style={{ color: '#4ade80', fontWeight: 600 }}>${efectivoDia.toLocaleString('es-AR')}</td>
-                                  <td style={{ color: '#c084fc', fontWeight: 600 }}>${transfDia.toLocaleString('es-AR')}</td>
+                                  <td style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${transfDia.toLocaleString('es-AR')}</td>
                                   <td style={{ color: '#facc15', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</td>
                                   <td colSpan={2} style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total del día</td>
                                 </tr>
@@ -591,7 +635,7 @@ export default function Caja() {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.18, delay: i * 0.04 }}
-                                        style={{ background: 'rgba(124, 58, 237, 0.02)' }}
+                                        style={{ background: 'rgba(var(--accent-rgb), 0.02)' }}
                                       >
                                         <td style={{ paddingLeft: 48, color: 'var(--text-muted)', fontSize: 12 }}>{c.fecha}</td>
                                         <td><div style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_apertura}hs</div></td>
@@ -607,8 +651,8 @@ export default function Caja() {
                                           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{fechaCierre}</div>
                                         </td>
                                         <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
-                                        <td style={{ color: '#c084fc' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
-                                        <td style={{ color: '#a78bfa', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: 'var(--accent-2)' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: 'var(--accent-bright)', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
                                         <td style={{ color: 'var(--text-muted)' }}>{c.observaciones || '-'}</td>
                                         <td>
                                           <button className="btn btn-secondary" onClick={(e) => { e.stopPropagation(); verDetalle(c) }}>

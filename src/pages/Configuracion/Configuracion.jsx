@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
 import { Upload, Sun, Moon, Globe, Link, Copy, Check, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2 } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
@@ -26,7 +27,16 @@ const HORARIO_DEFAULT = {
   fecha_unica: null,
 }
 
-export default function Configuracion({ onNombreChange, onLogoChange, tema, onToggleTema }) {
+const PALETAS = [
+  { id: 'turquesa',  label: 'Turquesa',  color: '#14b8a6' },
+  { id: 'violeta',   label: 'Violeta',   color: '#7c3aed' },
+  { id: 'esmeralda', label: 'Esmeralda', color: '#10b981' },
+  { id: 'rosa',      label: 'Rosa',      color: '#ec4899' },
+  { id: 'ambar',     label: 'Ámbar',     color: '#f59e0b' },
+]
+
+export default function Configuracion({ onNombreChange, onLogoChange, tema, onToggleTema, paleta, onCambiarPaleta }) {
+  const toast = useToast()
   const [seccion, setSeccion] = useState('apariencia')
   const [nombreInput, setNombreInput] = useState('')
   const [logoPreview, setLogoPreview] = useState(null)
@@ -253,7 +263,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (!nombreInput.trim()) return
     await window.electronAPI.setNombreApp(nombreInput.trim())
     if (onNombreChange) onNombreChange(nombreInput.trim())
-    setModalAlert({ mensaje: 'Nombre actualizado correctamente.', tipo: 'success' })
+    toast('Nombre actualizado', 'success')
   }
 
   const subirLogo = () => {
@@ -266,7 +276,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
         const logoData = await window.electronAPI.getLogo()
         setLogoPreview(logoData)
         if (onLogoChange) onLogoChange(logoData)
-        setModalAlert({ mensaje: 'Logo actualizado.', tipo: 'success' })
+        toast('Logo actualizado', 'success')
       } else {
         setModalAlert({ mensaje: 'Error al subir el logo.', tipo: 'error' })
       }
@@ -278,7 +288,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     await window.electronAPI.setLogo(null)
     setLogoPreview(null)
     if (onLogoChange) onLogoChange(null)
-    setModalAlert({ mensaje: 'Logo eliminado.', tipo: 'success' })
+    toast('Logo eliminado', 'success')
   }
 
   const registrarPeluqueria = async () => {
@@ -393,7 +403,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     { id: 'apariencia', label: 'Apariencia', icono: <Palette size={16} /> },
     {
       id: 'seguridad', label: 'Seguridad', icono: <Shield size={16} />,
-      badge: seccionesProtegidas > 0 ? String(seccionesProtegidas) : null, badgeColor: '#a78bfa'
+      badge: seccionesProtegidas > 0 ? String(seccionesProtegidas) : null, badgeColor: 'var(--accent-bright)'
     },
     { id: 'backups', label: 'Backups', icono: <HardDrive size={16} /> },
     {
@@ -433,12 +443,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
             </div>
 
             <div style={{
-              background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.25)',
+              background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.25)',
               borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 13,
               color: 'var(--text-muted)', lineHeight: 1.6,
             }}>
-              <strong style={{ color: '#c4b5fd' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br /><br />
-              <strong style={{ color: '#c4b5fd' }}>Empezar de cero</strong> va a mantener la base actual vacía y subir una nueva a la nube.
+              <strong style={{ color: 'var(--accent-strong)' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br /><br />
+              <strong style={{ color: 'var(--accent-strong)' }}>Empezar de cero</strong> va a mantener la base actual vacía y subir una nueva a la nube.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -497,13 +507,13 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 16px', border: 'none', cursor: 'pointer',
                 borderRadius: 8, margin: '0 8px',
-                background: seccion === item.id ? 'rgba(124,58,237,0.15)' : 'transparent',
-                color: seccion === item.id ? '#c4b5fd' : 'var(--text-muted)',
+                background: seccion === item.id ? 'rgba(var(--accent-rgb),0.15)' : 'transparent',
+                color: seccion === item.id ? 'var(--accent-strong)' : 'var(--text-muted)',
                 fontWeight: seccion === item.id ? 600 : 400,
                 fontSize: 13, transition: 'all 0.15s',
                 textAlign: 'left',
               }}>
-              <span style={{ color: seccion === item.id ? '#a78bfa' : 'var(--text-muted)', flexShrink: 0 }}>{item.icono}</span>
+              <span style={{ color: seccion === item.id ? 'var(--accent-bright)' : 'var(--text-muted)', flexShrink: 0 }}>{item.icono}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && <span style={{ fontSize: 10, color: item.badgeColor }}>{item.badge}</span>}
             </button>
@@ -538,9 +548,43 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     </div>
                   </div>
                   <button onClick={onToggleTema}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent-soft)', border: '1px solid var(--border-primary)', borderRadius: 99, padding: '9px 18px', cursor: 'pointer', color: tema === 'dark' ? '#c4b5fd' : '#6d28d9', fontWeight: 600, fontSize: 13, flexShrink: 0, marginLeft: 16 }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--accent-soft)', border: '1px solid var(--border-primary)', borderRadius: 99, padding: '9px 18px', cursor: 'pointer', color: tema === 'dark' ? 'var(--accent-strong)' : 'var(--accent-hover)', fontWeight: 600, fontSize: 13, flexShrink: 0, marginLeft: 16 }}>
                     {tema === 'dark' ? <><Moon size={15} /> Oscuro</> : <><Sun size={15} /> Claro</>}
                   </button>
+                </div>
+              </div>
+
+              {/* Paleta de color */}
+              <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 24, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <Palette size={15} style={{ color: 'var(--accent-bright)' }} />
+                  <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14 }}>Paleta de color</div>
+                </div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>Elegí el color principal de la app. Se aplica al instante en toda la app.</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {PALETAS.map(p => {
+                    const activa = paleta === p.id
+                    return (
+                      <button key={p.id} onClick={() => onCambiarPaleta(p.id)} title={p.label}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 10,
+                          background: activa ? 'var(--accent-soft)' : 'transparent',
+                          border: activa ? '1px solid var(--accent)' : '1px solid var(--border-soft)',
+                          borderRadius: 12, padding: '9px 14px', cursor: 'pointer', transition: 'all 0.15s',
+                        }}>
+                        <span style={{
+                          width: 20, height: 20, borderRadius: '50%', background: p.color, flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: activa ? `0 0 0 3px color-mix(in srgb, ${p.color} 35%, transparent)` : 'none',
+                        }}>
+                          {activa && <Check size={12} color="#fff" strokeWidth={3} />}
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: activa ? 700 : 500, color: activa ? 'var(--text-main)' : 'var(--text-soft)' }}>
+                          {p.label}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -562,7 +606,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 16 }}>Aparece en el sidebar. Recomendado: imagen cuadrada PNG.</div>
                 {logoPreview && (
                   <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <img src={logoPreview} style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border-soft)' }} />
+                    <img src={logoPreview} alt="Logo de la barbería" style={{ width: 60, height: 60, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border-soft)' }} />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <span style={{ color: '#4ade80', fontSize: 12 }}>✅ Logo cargado</span>
                       <button className="btn btn-danger" onClick={quitarLogo} style={{ fontSize: 12, padding: '5px 12px' }}>Quitar logo</button>
@@ -597,12 +641,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               {!maestraCargando && !tieneMaestra && (
                 <div style={{ maxWidth: 420 }}>
                   <div style={{
-                    background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)',
+                    background: 'rgba(var(--accent-bright-rgb),0.06)', border: '1px solid rgba(var(--accent-bright-rgb),0.2)',
                     borderRadius: 10, padding: '14px 18px', marginBottom: 24, fontSize: 13,
                     color: 'var(--text-muted)', lineHeight: 1.6,
                   }}>
-                    <Shield size={14} style={{ verticalAlign: 'middle', marginRight: 6, color: '#a78bfa' }} />
-                    Para proteger las secciones, primero tenés que crear una <strong style={{ color: '#c4b5fd' }}>contraseña maestra</strong>. Es la clave que te va a pedir cada vez que quieras gestionar las contraseñas.
+                    <Shield size={14} style={{ verticalAlign: 'middle', marginRight: 6, color: 'var(--accent-bright)' }} />
+                    Para proteger las secciones, primero tenés que crear una <strong style={{ color: 'var(--accent-strong)' }}>contraseña maestra</strong>. Es la clave que te va a pedir cada vez que quieras gestionar las contraseñas.
                   </div>
 
                   <div className="form-group">
@@ -642,9 +686,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                             style={{
                               padding: '9px 14px', borderRadius: 8, border: '1px solid',
                               fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
-                              borderColor: setupMaestra.pregunta === p ? '#a78bfa' : 'var(--border-soft)',
-                              background: setupMaestra.pregunta === p ? 'rgba(167,139,250,0.12)' : 'transparent',
-                              color: setupMaestra.pregunta === p ? '#c4b5fd' : 'var(--text-muted)',
+                              borderColor: setupMaestra.pregunta === p ? 'var(--accent-bright)' : 'var(--border-soft)',
+                              background: setupMaestra.pregunta === p ? 'rgba(var(--accent-bright-rgb),0.12)' : 'transparent',
+                              color: setupMaestra.pregunta === p ? 'var(--accent-strong)' : 'var(--text-muted)',
                               fontWeight: setupMaestra.pregunta === p ? 600 : 400,
                             }}>
                             {p}
@@ -674,7 +718,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               {!maestraCargando && tieneMaestra && !seguridadDesbloqueada && !modoRecuperacion && (
                 <div style={{ maxWidth: 380, margin: '30px auto' }}>
                   <div className="card" style={{ textAlign: 'center' }}>
-                    <Lock size={40} style={{ color: '#a78bfa', marginBottom: 16 }} />
+                    <Lock size={40} style={{ color: 'var(--accent-bright)', marginBottom: 16 }} />
                     <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Contraseña maestra</h3>
                     <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
                       Ingresá la contraseña maestra para gestionar las contraseñas de las secciones.
@@ -701,7 +745,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       Ingresar
                     </button>
                     <button onClick={iniciarRecuperacion}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 12, marginTop: 16, textDecoration: 'underline' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-bright)', fontSize: 12, marginTop: 16, textDecoration: 'underline' }}>
                       Olvidé mi contraseña maestra
                     </button>
                   </div>
@@ -721,9 +765,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     {!recoveryExito ? (
                       <>
                         <div style={{
-                          background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)',
+                          background: 'rgba(var(--accent-bright-rgb),0.08)', border: '1px solid rgba(var(--accent-bright-rgb),0.2)',
                           borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 14,
-                          color: '#c4b5fd', fontWeight: 600, textAlign: 'center',
+                          color: 'var(--accent-strong)', fontWeight: 600, textAlign: 'center',
                         }}>
                           {preguntaActual}
                         </div>
@@ -791,7 +835,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   }}>
                     <span><Unlock size={13} style={{ verticalAlign: 'middle', marginRight: 6 }} />Contraseña maestra verificada</span>
                     <button onClick={() => { setSeguridadDesbloqueada(false); setMaestraInput('') }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', fontSize: 12, fontWeight: 600 }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-bright)', fontSize: 12, fontWeight: 600 }}>
                       <Lock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} />Bloquear
                     </button>
                   </div>
@@ -1030,7 +1074,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <div style={{ maxWidth: 420 }}>
                       <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
                         Registrá esta peluquería para obtener tu link de reservas.<br />
-                        <strong style={{ color: '#a78bfa' }}>Si ya registraste con este email, se recuperará el ID existente automáticamente.</strong>
+                        <strong style={{ color: 'var(--accent-bright)' }}>Si ya registraste con este email, se recuperará el ID existente automáticamente.</strong>
                       </p>
                       <div className="form-group">
                         <label>Nombre de la peluquería</label>
@@ -1090,7 +1134,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 15 }}>{webConfig.nombre}</span>
                         <button onClick={() => setEditandoNombre(true)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a78bfa', padding: 4, borderRadius: 6 }}>
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-bright)', padding: 4, borderRadius: 6 }}>
                           <Pencil size={13} />
                         </button>
                       </div>
@@ -1108,7 +1152,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <div className="form-group" style={{ margin: 0 }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={13} /> Link para compartir</label>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <input className="input" readOnly value={webLink} style={{ fontSize: 12, color: '#a78bfa', flex: 1 }} />
+                        <input className="input" readOnly value={webLink} style={{ fontSize: 12, color: 'var(--accent-bright)', flex: 1 }} />
                         <button className="btn btn-secondary" onClick={copiarLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                           {linkCopiado ? <><Check size={14} color="#4ade80" /> Copiado</> : <><Copy size={14} /> Copiar</>}
                         </button>
@@ -1176,12 +1220,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         border: '1px solid',
                         cursor: 'pointer', transition: 'all 0.15s',
                         textAlign: 'left',
-                        borderColor: (horario.modo || 'normal') === val ? '#7c3aed' : 'var(--border-soft)',
-                        background: (horario.modo || 'normal') === val ? 'rgba(124,58,237,0.12)' : 'transparent',
+                        borderColor: (horario.modo || 'normal') === val ? 'var(--accent)' : 'var(--border-soft)',
+                        background: (horario.modo || 'normal') === val ? 'rgba(var(--accent-rgb),0.12)' : 'transparent',
                       }}>
                       <div style={{
                         fontWeight: 600, fontSize: 13, marginBottom: 2,
-                        color: (horario.modo || 'normal') === val ? '#c4b5fd' : 'var(--text-main)',
+                        color: (horario.modo || 'normal') === val ? 'var(--accent-strong)' : 'var(--text-main)',
                       }}>{label}</div>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
                     </button>
@@ -1199,9 +1243,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         style={{
                           padding: '7px 16px', borderRadius: 8, border: '1px solid',
                           fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                          borderColor: horario.dias.includes(num) ? '#7c3aed' : 'var(--border-soft)',
-                          background: horario.dias.includes(num) ? 'rgba(124,58,237,0.2)' : 'transparent',
-                          color: horario.dias.includes(num) ? '#c4b5fd' : 'var(--text-muted)',
+                          borderColor: horario.dias.includes(num) ? 'var(--accent)' : 'var(--border-soft)',
+                          background: horario.dias.includes(num) ? 'rgba(var(--accent-rgb),0.2)' : 'transparent',
+                          color: horario.dias.includes(num) ? 'var(--accent-strong)' : 'var(--text-muted)',
                         }}>
                         {label}
                       </button>
@@ -1218,7 +1262,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     Los clientes solo van a poder sacar turno para este día.
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <CalendarDays size={18} style={{ color: '#a78bfa', flexShrink: 0 }} />
+                    <CalendarDays size={18} style={{ color: 'var(--accent-bright)', flexShrink: 0 }} />
                     <input
                       type="date"
                       className="input"
@@ -1245,18 +1289,18 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   {horario.bloques.map((bloque, idx) => (
                     <div key={idx} style={{
                       border: '1px solid', borderRadius: 10, padding: '14px 16px',
-                      borderColor: bloque.activo ? '#7c3aed' : 'var(--border-soft)',
-                      background: bloque.activo ? 'rgba(124,58,237,0.06)' : 'var(--bg-main)',
+                      borderColor: bloque.activo ? 'var(--accent)' : 'var(--border-soft)',
+                      background: bloque.activo ? 'rgba(var(--accent-rgb),0.06)' : 'var(--bg-main)',
                       transition: 'all 0.15s',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: bloque.activo ? 14 : 0 }}>
-                        <span style={{ fontWeight: 600, fontSize: 13, color: bloque.activo ? '#c4b5fd' : 'var(--text-muted)' }}>
+                        <span style={{ fontWeight: 600, fontSize: 13, color: bloque.activo ? 'var(--accent-strong)' : 'var(--text-muted)' }}>
                           {idx === 0 ? '🌅 Bloque mañana' : '🌆 Bloque tarde'}
                         </span>
                         <button onClick={() => setHorario(h => ({ ...h, bloques: h.bloques.map((b, i) => i === idx ? { ...b, activo: !b.activo } : b) }))}
                           style={{
                             width: 40, height: 22, borderRadius: 99, border: 'none', cursor: 'pointer', transition: 'all 0.2s', position: 'relative',
-                            background: bloque.activo ? '#7c3aed' : 'var(--border-soft)'
+                            background: bloque.activo ? 'var(--accent)' : 'var(--border-soft)'
                           }}>
                           <span style={{ position: 'absolute', top: 3, width: 16, height: 16, borderRadius: '50%', background: 'white', transition: 'all 0.2s', left: bloque.activo ? 21 : 3 }} />
                         </button>
@@ -1295,9 +1339,9 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       style={{
                         padding: '8px 22px', borderRadius: 8, border: '1px solid',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
-                        borderColor: horario.intervalo === val ? '#7c3aed' : 'var(--border-soft)',
-                        background: horario.intervalo === val ? 'rgba(124,58,237,0.2)' : 'transparent',
-                        color: horario.intervalo === val ? '#c4b5fd' : 'var(--text-muted)',
+                        borderColor: horario.intervalo === val ? 'var(--accent)' : 'var(--border-soft)',
+                        background: horario.intervalo === val ? 'rgba(var(--accent-rgb),0.2)' : 'transparent',
+                        color: horario.intervalo === val ? 'var(--accent-strong)' : 'var(--text-muted)',
                       }}>
                       {label}
                     </button>
@@ -1310,7 +1354,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.8 }}>
                   {(horario.modo || 'normal') === 'fecha_unica' ? (
                     <>
-                      📌 Solo el <strong style={{ color: '#c4b5fd' }}>
+                      📌 Solo el <strong style={{ color: 'var(--accent-strong)' }}>
                         {horario.fecha_unica
                           ? new Date(horario.fecha_unica + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
                           : '(sin fecha)'}
@@ -1318,7 +1362,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     </>
                   ) : (
                     <>
-                      📅 <strong style={{ color: '#c4b5fd' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color: 'var(--text-main)' }}>{horario.intervalo} min</strong>:<br />
+                      📅 <strong style={{ color: 'var(--accent-strong)' }}>{DIAS.filter(d => horario.dias.includes(d.num)).map(d => d.label).join(', ') || '—'}</strong>, cada <strong style={{ color: 'var(--text-main)' }}>{horario.intervalo} min</strong>:<br />
                     </>
                   )}
                   {horario.bloques.filter(b => b.activo).map((b, i) => (

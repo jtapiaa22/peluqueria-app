@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TrendingUp, Scissors, User, Clock, Calendar, Award, DollarSign } from 'lucide-react'
+import Skeleton from '../../components/Skeleton'
 
 function hoy() {
   const d = new Date()
@@ -16,17 +17,58 @@ function primerDiaMes() {
 
 const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+function ReportesSkeleton() {
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="card" style={{ textAlign: 'center', margin: 0 }}>
+            <Skeleton width="60%" height={12} style={{ margin: '0 auto 10px' }} />
+            <Skeleton width="75%" height={22} style={{ margin: '0 auto' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
+            <Skeleton width={40} height={40} radius={10} />
+            <div style={{ flex: 1 }}>
+              <Skeleton width="70%" height={11} style={{ marginBottom: 8 }} />
+              <Skeleton width="55%" height={16} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <Skeleton width={220} height={16} style={{ marginBottom: 20 }} />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+            <Skeleton width="34%" height={14} />
+            <Skeleton width="22%" height={14} />
+            <Skeleton width="18%" height={14} />
+            <Skeleton width="18%" height={14} />
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function Reportes() {
   const [atenciones, setAtenciones] = useState([])
   const [desde, setDesde] = useState(primerDiaMes())
   const [hasta, setHasta] = useState(hoy())
+  const [cargando, setCargando] = useState(true)
 
   const cargar = async () => {
     const data = await window.electronAPI.getAtencionesByRango({ desde, hasta })
     setAtenciones(data)
   }
 
-  useEffect(() => { cargar() }, [desde, hasta])
+  useEffect(() => {
+    setCargando(true)
+    cargar().finally(() => setCargando(false))
+  }, [desde, hasta])
 
   // Separar vales de atenciones reales
   const atencionesReales = atenciones.filter(a => a.metodo_pago !== 'vale')
@@ -146,6 +188,9 @@ export default function Reportes() {
       {/* ÁREA SCROLLEABLE */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
+      {cargando && <ReportesSkeleton />}
+      {!cargando && <>
+
       {sinDatos && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: 'var(--text-muted)', fontSize: 14, textAlign: 'center' }}>
           No hay atenciones registradas en el rango seleccionado.
@@ -160,11 +205,11 @@ export default function Reportes() {
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total transferencias</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#c084fc' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-2)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general (cortes)</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#a78bfa' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atencionesReales.length} cortes</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
@@ -172,7 +217,7 @@ export default function Reportes() {
           <div style={{ fontSize: 22, fontWeight: 700, color: '#facc15' }}>${totalPropinas.toLocaleString('es-AR')}</div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
             <div style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
-            <div style={{ color: '#c084fc', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
+            <div style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
           </div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
@@ -248,8 +293,8 @@ export default function Reportes() {
 
           {/* ranking de servicio TOP */}
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(45, 212, 191, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Scissors size={20} color="#2dd4bf" />
+            <div style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Scissors size={20} color="var(--accent-bright)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>SERVICIO TOP</div>
@@ -270,7 +315,7 @@ export default function Reportes() {
 
         {/* ── TABLA ÚNICA: PELUQUEROS CON DESGLOSE EXPANDIBLE ── */}
         <div className="card" style={{ marginBottom: 16 }}>
-          <h3 style={{ marginBottom: 16, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <User size={16} /> Rendimiento por peluquero
           </h3>
           <table className="table">
@@ -301,7 +346,7 @@ export default function Reportes() {
                         onClick={() => togglePeluquero(nombre)}
                         style={{
                           cursor: 'pointer',
-                          background: abierto ? 'rgba(124,58,237,0.10)' : 'rgba(124,58,237,0.04)',
+                          background: abierto ? 'rgba(var(--accent-rgb),0.10)' : 'rgba(var(--accent-rgb),0.04)',
                           transition: 'background 0.2s ease',
                           userSelect: 'none',
                         }}
@@ -311,12 +356,12 @@ export default function Reportes() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                               width: 22, height: 22, borderRadius: '50%',
-                              background: 'rgba(124,58,237,0.15)', color: '#a78bfa',
+                              background: 'rgba(var(--accent-rgb),0.15)', color: 'var(--accent-bright)',
                               fontSize: 11, flexShrink: 0,
                               transition: 'transform 0.2s ease',
                               transform: abierto ? 'rotate(90deg)' : 'rotate(0deg)',
                             }}>▶</span>
-                            <span style={{ color: '#a78bfa', fontWeight: 700, fontSize: 14 }}>{nombre}</span>
+                            <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 14 }}>{nombre}</span>
                           </div>
                         </td>
                         <td style={{ textAlign: 'center' }}>{data.atenciones}</td>
@@ -327,7 +372,7 @@ export default function Reportes() {
                           <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 2, fontSize: 11 }}>
                             {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
-                            {data.propinas_transferencia > 0 && <span style={{ color: '#c084fc' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
+                            {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                           </div>
                         </td>
                         <td style={{ color: '#4ade80', fontWeight: 600, textAlign: 'center' }}>${data.total.toLocaleString('es-AR')}</td>
@@ -337,7 +382,7 @@ export default function Reportes() {
                       <AnimatePresence>
                         {abierto && (
                           <tr>
-                            <td colSpan={6} style={{ padding: 0, background: 'rgba(124,58,237,0.02)' }}>
+                            <td colSpan={6} style={{ padding: 0, background: 'rgba(var(--accent-rgb),0.02)' }}>
                               <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
@@ -407,7 +452,7 @@ export default function Reportes() {
 
         {/* Tabla por servicio */}
         <div className="card" style={{ margin: 0 }}>
-          <h3 style={{ marginBottom: 16, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Scissors size={16} /> Por servicio
           </h3>
           <table className="table">
@@ -442,7 +487,7 @@ export default function Reportes() {
       {!sinDatos && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ marginBottom: 20, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ marginBottom: 20, color: 'var(--accent-bright)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <TrendingUp size={16} /> Actividad por día de la semana
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -458,7 +503,7 @@ export default function Reportes() {
                     <div style={{ flex: 1, background: 'var(--border-soft)', borderRadius: 4, height: 20, overflow: 'hidden' }}>
                       <div style={{
                         width: `${pct}%`, height: '100%',
-                        background: `rgba(167, 139, 250, ${pct > 0 ? 0.25 + (pct / 100) * 0.75 : 0})`,
+                        background: `rgba(var(--accent-bright-rgb), ${pct > 0 ? 0.25 + (pct / 100) * 0.75 : 0})`,
                         borderRadius: 4,
                         transition: 'width 0.5s cubic-bezier(0.23, 1, 0.32, 1)'
                       }} />
@@ -471,11 +516,11 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0 }}>
-            <h3 style={{ marginBottom: 20, color: '#a78bfa' }}>Métodos de pago</h3>
+            <h3 style={{ marginBottom: 20, color: 'var(--accent-bright)' }}>Métodos de pago</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
                 { label: 'Efectivo', cant: cantEfectivo, color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)' },
-                { label: 'Transferencia', cant: cantTransferencia, color: '#c084fc', bg: 'rgba(192, 132, 252, 0.15)' },
+                { label: 'Transferencia', cant: cantTransferencia, color: 'var(--accent-2)', bg: 'rgba(var(--accent-2-rgb), 0.15)' },
                 { label: 'Mixto', cant: cantMixto, color: '#facc15', bg: 'rgba(250, 204, 21, 0.15)' },
                 { label: 'Vale 🎫', cant: cantVale, color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
               ].filter(m => m.cant > 0).map(({ label, cant, color, bg }) => {
@@ -494,7 +539,7 @@ export default function Reportes() {
               })}
             </div>
 
-            <h3 style={{ marginTop: 28, marginBottom: 16, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ marginTop: 28, marginBottom: 16, color: 'var(--accent-bright)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Clock size={16} /> Distribución horaria
             </h3>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 60 }}>
@@ -506,7 +551,7 @@ export default function Reportes() {
                   <div key={hora} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                     <div style={{
                       width: '100%', height: h,
-                      background: `rgba(167, 139, 250, ${cant > 0 ? 0.2 + (cant / max) * 0.8 : 0})`,
+                      background: `rgba(var(--accent-bright-rgb), ${cant > 0 ? 0.2 + (cant / max) * 0.8 : 0})`,
                       borderRadius: '3px 3px 0 0'
                     }} />
                     <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{hora}h</div>
@@ -522,7 +567,7 @@ export default function Reportes() {
       {!sinDatos && diasOrdenados.length > 1 && (
         <div className="card" style={{ marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h3 style={{ margin: 0, color: '#a78bfa', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ margin: 0, color: 'var(--accent-bright)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <TrendingUp size={16} /> Ingresos y propinas por día
             </h3>
             <div style={{ display: 'flex', gap: 14 }}>
@@ -569,7 +614,7 @@ export default function Reportes() {
                       {ingreso > 0 && (
                         <div title={`Ingresos: $${ingreso.toLocaleString('es-AR')}`} style={{
                           width: '100%', height: alturaIng,
-                          background: `rgba(167, 139, 250, ${opacidad})`,
+                          background: `rgba(var(--accent-bright-rgb), ${opacidad})`,
                           borderRadius: propina > 0 ? '0' : '4px 4px 0 0',
                           minHeight: 4,
                           cursor: 'default'
@@ -587,6 +632,7 @@ export default function Reportes() {
         </div>
       )}
 
+      </>}
       </div>{/* fin área scrolleable */}
     </div>
   )

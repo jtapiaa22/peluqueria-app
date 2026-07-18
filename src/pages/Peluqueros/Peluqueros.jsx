@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, DollarSign } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, DollarSign, Users } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import EmptyState from '../../components/EmptyState'
+import Skeleton from '../../components/Skeleton'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function formatFecha(f) {
@@ -31,6 +34,7 @@ export default function Peluqueros() {
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
   const [sincState, setSincState]       = useState(null)
+  const [cargando, setCargando]         = useState(true)
   const [bloqueoAbierto, setBloqueoAbierto] = useState(null)
   const [formBloqueo, setFormBloqueo]       = useState({ desde: '', hasta: '', motivo: '' })
   const [guardandoBloqueo, setGuardandoBloqueo] = useState(false)
@@ -42,7 +46,11 @@ export default function Peluqueros() {
   const [guardandoTramos, setGuardandoTramos] = useState(false)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar   = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
 
   const cargar = async () => {
     const data = await window.electronAPI.getPeluqueros()
@@ -63,7 +71,10 @@ export default function Peluqueros() {
     setTramos(agrupadosT)
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    setCargando(true)
+    cargar().finally(() => setCargando(false))
+  }, [])
 
   const guardar = async () => {
     if (!form.nombre.trim()) { alertar('Por favor ingresá el nombre del peluquero.', 'warning'); return }
@@ -181,7 +192,7 @@ export default function Peluqueros() {
           {sincState && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12,
-              color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : '#a78bfa',
+              color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : 'var(--accent-bright)',
             }}>
               <RefreshCw size={13} style={{ animation: sincState === 'syncing' ? 'spin 1s linear infinite' : 'none' }} />
               {sincState === 'syncing' ? 'Sincronizando...' : sincState === 'ok' ? '✓ Sincronizado' : 'Error al sincronizar'}
@@ -203,7 +214,7 @@ export default function Peluqueros() {
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}
           >
-            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+            <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>
               {editando ? 'Editar peluquero' : 'Nuevo peluquero'}
             </h3>
             <div className="form-group">
@@ -231,13 +242,23 @@ export default function Peluqueros() {
 
       {/* Lista de peluqueros como cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {peluqueros.length === 0 && (
-          <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
-            No hay peluqueros registrados
+        {cargando && Array.from({ length: 4 }).map((_, i) => (
+          <div key={`sk-${i}`} className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ flex: 1 }}>
+              <Skeleton width={160} height={16} style={{ marginBottom: 10 }} />
+              <Skeleton width={220} height={12} />
+            </div>
+            <Skeleton width={90} height={32} radius={8} />
+          </div>
+        ))}
+
+        {!cargando && peluqueros.length === 0 && (
+          <div className="card">
+            <EmptyState icono={<Users size={30} />} titulo="No hay peluqueros registrados" texto="Agregá el primero con el botón de arriba." padding="20px" />
           </div>
         )}
 
-        {peluqueros.map(p => {
+        {!cargando && peluqueros.map(p => {
           const bloqueosP     = bloqueos[p.id] || []
           const tramosP       = tramos[p.id] || []
           const hoy           = new Date().toISOString().substring(0, 10)
@@ -254,10 +275,10 @@ export default function Peluqueros() {
                   {/* Avatar */}
                   <div style={{
                     width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: bloqueoActivo ? 'rgba(251,191,36,0.15)' : 'rgba(124,58,237,0.15)',
+                    background: bloqueoActivo ? 'rgba(251,191,36,0.15)' : 'rgba(var(--accent-rgb),0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 17, fontWeight: 700,
-                    color: bloqueoActivo ? '#fbbf24' : '#a78bfa',
+                    color: bloqueoActivo ? '#fbbf24' : 'var(--accent-bright)',
                   }}>
                     {p.nombre[0].toUpperCase()}
                   </div>
@@ -312,8 +333,8 @@ export default function Peluqueros() {
                     title="Gestionar ausencias"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      color: panelAbierto ? '#a78bfa' : undefined,
-                      borderColor: panelAbierto ? 'rgba(124,58,237,0.5)' : undefined
+                      color: panelAbierto ? 'var(--accent-bright)' : undefined,
+                      borderColor: panelAbierto ? 'rgba(var(--accent-rgb),0.5)' : undefined
                     }}
                   >
                     <CalendarOff size={14} />
@@ -424,10 +445,10 @@ export default function Peluqueros() {
                   >
                     <div style={{
                       borderTop: '1px solid var(--border)',
-                      background: 'rgba(124,58,237,0.03)',
+                      background: 'rgba(var(--accent-rgb),0.03)',
                       padding: '16px 18px',
                     }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-bright)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 1 }}>
                         🏖 Ausencias / Vacaciones
                       </p>
 

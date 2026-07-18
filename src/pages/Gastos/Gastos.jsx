@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, TrendingDown, Users, DollarSign } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import EmptyState from '../../components/EmptyState'
+import Skeleton from '../../components/Skeleton'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function mesLegible(mes) {
@@ -38,8 +41,22 @@ function getRangoMes(mes) {
   return [desde, hasta]
 }
 
+function GastosSkeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton width={140} height={16} />
+          <Skeleton width={100} height={16} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function Gastos() {
   const [resumenMensual, setResumenMensual] = useState([])
+  const [cargando, setCargando]             = useState(true)
   const [mesAbierto, setMesAbierto]         = useState(null)
   const [detallesMes, setDetallesMes]       = useState({})   // gastos operativos por mes
   const [pagosMes, setPagosMes]             = useState({})   // pagos peluqueros por mes
@@ -55,14 +72,21 @@ export default function Gastos() {
     setPeluquerosExpandidos(prev => ({ ...prev, [key]: !prev[key] }))
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar   = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
 
   const cargarResumen = async () => {
     const resumen = await window.electronAPI.getResumenMensualGastos()
     setResumenMensual(resumen)
   }
 
-  useEffect(() => { cargarResumen() }, [])
+  useEffect(() => {
+    setCargando(true)
+    cargarResumen().finally(() => setCargando(false))
+  }, [])
 
   const cargarDetalleMes = async (mes, forceRefresh = false) => {
     if (!forceRefresh && detallesMes[mes] && pagosMes[mes]) return
@@ -195,12 +219,12 @@ export default function Gastos() {
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(167, 139, 250, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <TrendingDown size={20} color="#a78bfa" />
+            <div style={{ background: 'rgba(var(--accent-bright-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <TrendingDown size={20} color="var(--accent-bright)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total egresos</div>
-              <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -228,7 +252,7 @@ export default function Gastos() {
             exit={{ opacity: 0, y: -20 }}
             className="card"
           >
-            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+            <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>
               {editando ? 'Editar gasto' : 'Nuevo gasto operativo'}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -280,9 +304,11 @@ export default function Gastos() {
       </AnimatePresence>
 
       {/* Lista de meses */}
-      {resumenMensual.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-          No hay gastos registrados todavía.
+      {cargando ? (
+        <GastosSkeleton />
+      ) : resumenMensual.length === 0 ? (
+        <div className="card">
+          <EmptyState icono={<TrendingDown size={30} />} titulo="No hay gastos registrados" texto="Cuando cargues gastos, vas a verlos acá agrupados por mes." padding="24px" />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -332,7 +358,7 @@ export default function Gastos() {
                     )}
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>EGRESOS</div>
-                      <div style={{ color: '#a78bfa', fontWeight: 700, fontSize: 16 }}>${totalEgr.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 16 }}>${totalEgr.toLocaleString('es-AR')}</div>
                     </div>
                     {ingresos > 0 && (
                       <div style={{ textAlign: 'right' }}>
@@ -352,7 +378,7 @@ export default function Gastos() {
                         </div>
                       </div>
                     )}
-                    {abierto ? <ChevronUp size={18} color="#a78bfa" /> : <ChevronDown size={18} color="var(--text-muted)" />}
+                    {abierto ? <ChevronUp size={18} color="var(--accent-bright)" /> : <ChevronDown size={18} color="var(--text-muted)" />}
                   </div>
                 </div>
 
@@ -541,7 +567,7 @@ export default function Gastos() {
                                     <td>{g.descripcion}</td>
                                     <td>
                                       {g.categoria
-                                        ? <span style={{ background: 'rgba(167, 139, 250, 0.15)', color: '#a78bfa', padding: '2px 10px', borderRadius: 20, fontSize: 12 }}>{g.categoria}</span>
+                                        ? <span style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', color: 'var(--accent-bright)', padding: '2px 10px', borderRadius: 20, fontSize: 12 }}>{g.categoria}</span>
                                         : <span style={{ color: 'var(--text-muted)' }}>—</span>
                                       }
                                     </td>

@@ -1153,7 +1153,21 @@ ipcMain.handle('dashboard:getResumen',()=>{
   const resMes=db.prepare("SELECT COALESCE(SUM(precio_cobrado),0) as total,COALESCE(SUM(COALESCE(propina_efectivo,0)+COALESCE(propina_transferencia,0)),0) as propinas FROM atenciones WHERE fecha BETWEEN ? AND ? AND metodo_pago!='vale'").get(pm,fechaHoy)
   const totalMes=Number(resMes.total)||0
   const propinasMes=Number(resMes.propinas)||0
-  return {fechaHoy,atencionesHoy,totalHoy:atencionesHoy.reduce((a,x)=>a+Number(x.precio_cobrado),0),efectivoHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_efectivo||0),0),transferenciaHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_transferencia||0),0),ingresosPorDia,topPeluqueros,ultimoCierre,cajaAbierta,totalMes,propinasMes}
+  // ── Métricas comparativas / "inteligentes" ──
+  const diaHoy=hoy.getDate()
+  const ultimoDiaMesAnt=new Date(hoy.getFullYear(),hoy.getMonth(),0).getDate()
+  const diaClamp=Math.min(diaHoy,ultimoDiaMesAnt)
+  const mesAntBase=new Date(hoy.getFullYear(),hoy.getMonth()-1,1)
+  const pmAnt=`${mesAntBase.getFullYear()}-${String(mesAntBase.getMonth()+1).padStart(2,'0')}-01`
+  const pmAntHasta=`${mesAntBase.getFullYear()}-${String(mesAntBase.getMonth()+1).padStart(2,'0')}-${String(diaClamp).padStart(2,'0')}`
+  const totalMesAnterior=Number(db.prepare("SELECT COALESCE(SUM(precio_cobrado),0) as total FROM atenciones WHERE fecha BETWEEN ? AND ? AND metodo_pago!='vale'").get(pmAnt,pmAntHasta).total)||0
+  const atencionesMes=Number(db.prepare("SELECT COUNT(*) as c FROM atenciones WHERE fecha BETWEEN ? AND ? AND metodo_pago!='vale'").get(pm,fechaHoy).c)||0
+  const ticketPromedioMes=atencionesMes>0?Math.round(totalMes/atencionesMes):0
+  const topServicios=db.prepare(`SELECT COALESCE(s.nombre,'Sin servicio') as nombre,COUNT(*) as cantidad,COALESCE(SUM(a.precio_cobrado),0) as total FROM atenciones a LEFT JOIN servicios s ON a.servicio_id=s.id WHERE a.fecha BETWEEN ? AND ? AND a.metodo_pago!='vale' GROUP BY a.servicio_id ORDER BY total DESC LIMIT 5`).all(pm,fechaHoy)
+  // ── Patrones históricos (todo el historial, sin vales): día de semana y hora pico ──
+  const porDiaSemana=db.prepare(`SELECT CAST(strftime('%w',fecha) AS INTEGER) as dow,COUNT(*) as atenciones,COALESCE(SUM(precio_cobrado),0) as total,COUNT(DISTINCT fecha) as dias FROM atenciones WHERE metodo_pago!='vale' GROUP BY dow`).all()
+  const porHora=db.prepare(`SELECT CAST(substr(hora,1,2) AS INTEGER) as hora,COUNT(*) as cantidad,COALESCE(SUM(precio_cobrado),0) as total FROM atenciones WHERE metodo_pago!='vale' AND hora IS NOT NULL AND hora!='' GROUP BY CAST(substr(hora,1,2) AS INTEGER) ORDER BY 1`).all()
+  return {fechaHoy,atencionesHoy,totalHoy:atencionesHoy.reduce((a,x)=>a+Number(x.precio_cobrado),0),efectivoHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_efectivo||0),0),transferenciaHoy:atencionesHoy.reduce((a,x)=>a+Number(x.monto_transferencia||0),0),ingresosPorDia,topPeluqueros,ultimoCierre,cajaAbierta,totalMes,propinasMes,totalMesAnterior,atencionesMes,ticketPromedioMes,topServicios,porDiaSemana,porHora}
 })
 
 ipcMain.handle('peluqueria:sincronizar', async () => {

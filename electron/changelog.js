@@ -1,4 +1,13 @@
 module.exports = {
+  '3.1.0': [
+    { titulo: 'Dashboard inteligente', desc: 'El panel principal ahora incluye un "Resumen inteligente" con los datos clave de un vistazo: proyección de cierre del mes, tu mejor día de la semana, la franja horaria más activa, tu servicio estrella y el ticket promedio por atención.' },
+    { titulo: 'Top servicios y ritmo de la semana', desc: 'Nuevas tarjetas en el Dashboard: el ranking de los servicios que más facturan y un gráfico con los días de la semana que más rinden.' },
+    { titulo: 'Temas de color personalizables', desc: 'Ahora podés elegir la paleta de colores de la app desde Configuración → Apariencia (turquesa, violeta, esmeralda, rosa o ámbar) para darle tu propio estilo.' },
+    { titulo: 'Control de vales más seguro', desc: 'Ya no se puede registrar una atención con Vale si el contador de vales está cerrado, así ningún vale queda sin contabilizar. La app te avisa y te deja abrir el contador al instante.' },
+    { titulo: 'Interfaz más pulida', desc: 'Avisos tipo notificación, pantallas de carga más suaves, estados vacíos más claros y pequeñas animaciones en toda la app para una experiencia más ágil.' },
+    { titulo: 'Correcciones y mejoras menores', desc: 'Se corrigieron detalles de visualización y se mejoró la estabilidad general de la aplicación.' },
+  ],
+
   '3.0.1': [
     { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizo el diseño de todas las secciones, dividiendola a cada una por su categoria para proporcionar una mejor experiencia de usuario.' },
     { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación.' },

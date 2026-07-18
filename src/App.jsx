@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { HashRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe } from 'lucide-react'
+import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { MotionConfig, motion } from 'framer-motion'
+import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe, Star } from 'lucide-react'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
@@ -14,11 +15,29 @@ import Configuracion from './pages/Configuracion/Configuracion'
 import Licencia     from './pages/Licencia/Licencia'
 import Actualizador from './components/Actualizador'
 import PasswordGate from './components/PasswordGate'
+import { ToastProvider } from './components/Toast'
+import EmptyState from './components/EmptyState'
 import './App.css'
 import { useTheme } from './hooks/useTheme'
 
+// Transición suave al cambiar de sección (se remonta al cambiar la ruta)
+function RouteFade({ children }) {
+  const location = useLocation()
+  return (
+    <motion.div
+      key={location.pathname}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      style={{ height: '100%' }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 function App() {
-  const { tema, toggleTema } = useTheme()
+  const { tema, toggleTema, paleta, cambiarPaleta } = useTheme()
   const [licenciaValida, setLicenciaValida] = useState(null)
   const [diasRestantes, setDiasRestantes]   = useState(null)
   const [fechaVence, setFechaVence]         = useState(null)
@@ -97,7 +116,8 @@ function App() {
   const borderDias = diasRestantes <= 5  ? 'rgba(251, 191, 36, 0.35)' : diasRestantes <= 10 ? 'rgba(251, 146, 60, 0.35)' : 'rgba(74, 222, 128, 0.35)'
 
   return (
-    <>
+    <MotionConfig reducedMotion="user">
+    <ToastProvider>
     {changelog && (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
@@ -132,7 +152,7 @@ function App() {
               {changelog.items.map((item, i) => (
                 <div key={i} style={{
                   background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px',
-                  borderLeft: '3px solid #a78bfa'
+                  borderLeft: '3px solid var(--accent-bright)'
                 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-main)', marginBottom: 4 }}>
                     {item.titulo}
@@ -164,11 +184,17 @@ function App() {
 
           <div className="sidebar-header">
             {logo
-              ? <img src={logo} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} />
+              ? <img src={logo} alt={`Logo de ${nombreApp}`} style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover' }} />
               : <Scissors size={28} />
             }
             <span>{nombreApp}</span>
+            <span className="mundial-estrellas" title="Campeón del Mundo" aria-label="Tres estrellas: campeón del mundo">
+              <Star size={11} />
+              <Star size={11} />
+              <Star size={11} />
+            </span>
           </div>
+          <div className="franja-argentina" aria-hidden="true" />
 
           <nav className="sidebar-nav">
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
@@ -224,17 +250,17 @@ function App() {
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '7px 12px', borderRadius: 10, border: '1px solid var(--border-soft)',
-                background: noLeidas > 0 ? 'rgba(167,139,250,0.08)' : 'transparent',
+                background: noLeidas > 0 ? 'rgba(var(--accent-bright-rgb),0.08)' : 'transparent',
                 cursor: 'pointer', transition: 'all 0.15s',
               }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Bell size={16} color={noLeidas > 0 ? '#a78bfa' : 'var(--text-muted)'} />
-                <span style={{ fontSize: 13, color: noLeidas > 0 ? '#a78bfa' : 'var(--text-muted)', fontWeight: noLeidas > 0 ? 600 : 400 }}>
+                <Bell size={16} color={noLeidas > 0 ? 'var(--accent-bright)' : 'var(--text-muted)'} />
+                <span style={{ fontSize: 13, color: noLeidas > 0 ? 'var(--accent-bright)' : 'var(--text-muted)', fontWeight: noLeidas > 0 ? 600 : 400 }}>
                   Turnos web
                 </span>
               </div>
               {noLeidas > 0 && (
-                <div style={{ background: '#a78bfa', color: 'white', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
+                <div style={{ background: 'var(--accent-bright)', color: 'white', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
                   {noLeidas}
                 </div>
               )}
@@ -264,16 +290,17 @@ function App() {
                 </div>
                 <div style={{ overflowY: 'auto', flex: 1 }}>
                   {notificaciones.length === 0 ? (
-                    <div style={{ padding: '28px 14px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                      <Globe size={24} style={{ marginBottom: 8, opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
-                      Sin turnos nuevos
-                    </div>
+                    <EmptyState
+                      padding="28px 14px"
+                      icono={<Globe size={24} />}
+                      texto="Sin turnos nuevos"
+                    />
                   ) : (
                     notificaciones.map((n, i) => (
                       <div key={n.id || i} style={{
                         padding: '10px 14px',
                         borderBottom: i < notificaciones.length - 1 ? '1px solid var(--border-soft)' : 'none',
-                        background: n.leida ? 'transparent' : 'rgba(167,139,250,0.05)',
+                        background: n.leida ? 'transparent' : 'rgba(var(--accent-bright-rgb),0.05)',
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
@@ -285,7 +312,7 @@ function App() {
                             </div>
                           </div>
                           {!n.leida && (
-                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#a78bfa', flexShrink: 0, marginTop: 4 }} />
+                            <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent-bright)', flexShrink: 0, marginTop: 4 }} />
                           )}
                         </div>
                       </div>
@@ -338,6 +365,7 @@ function App() {
         </aside>
 
         <main className="main-content">
+          <RouteFade>
           <Routes>
             <Route path="/" element={
               <PasswordGate configKey="password_dashboard" titulo="Dashboard"
@@ -416,12 +444,16 @@ function App() {
               onLogoChange={setLogo}
               tema={tema}
               onToggleTema={toggleTema}
+              paleta={paleta}
+              onCambiarPaleta={cambiarPaleta}
             />} />
           </Routes>
+          </RouteFade>
         </main>
       </div>
     </Router>
-    </>
+    </ToastProvider>
+    </MotionConfig>
   )
 }
 

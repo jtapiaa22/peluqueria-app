@@ -32,14 +32,14 @@ export default function PasswordGate({ configKey, titulo, desbloqueado, onDesblo
             position: 'fixed', bottom: 24, right: 24, zIndex: 900,
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '10px 16px', borderRadius: 99,
-            background: 'rgba(124,58,237,0.15)',
-            border: '1px solid rgba(124,58,237,0.35)',
-            color: '#a78bfa', fontSize: 12, fontWeight: 600,
+            background: 'rgba(var(--accent-rgb),0.15)',
+            border: '1px solid rgba(var(--accent-rgb),0.35)',
+            color: 'var(--accent-bright)', fontSize: 12, fontWeight: 600,
             cursor: 'pointer', transition: 'all 0.2s',
             backdropFilter: 'blur(8px)',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.3)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(124,58,237,0.15)' }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.3)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.15)' }}
         >
           <Lock size={13} />
           Bloquear
@@ -68,10 +68,10 @@ export default function PasswordGate({ configKey, titulo, desbloqueado, onDesblo
       <h1 className="page-title">{titulo}</h1>
       <div style={{ maxWidth: 380, margin: '60px auto' }}>
         <div className="card" style={{ textAlign: 'center' }}>
-          <Lock size={40} style={{ color: '#a78bfa', marginBottom: 16 }} />
+          <Lock size={40} style={{ color: 'var(--accent-bright)', marginBottom: 16 }} />
           <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Sección protegida</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-            Ingresá la contraseña para acceder a <strong style={{ color: '#c4b5fd' }}>{titulo}</strong>.
+            Ingresá la contraseña para acceder a <strong style={{ color: 'var(--accent-strong)' }}>{titulo}</strong>.
           </p>
           <div className="form-group" style={{ textAlign: 'left' }}>
             <label>Contraseña</label>

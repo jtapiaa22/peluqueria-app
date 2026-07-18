@@ -13,28 +13,19 @@
 /* VARIABLES — TEMA OSCURO */
 /* ============================= */
 :root {
+  /* ---- NEUTROS (tema oscuro, por defecto) ---- */
   --bg-main:    #0f0f0f;
   --bg-sidebar: #141414;
   --bg-card:    #1a1a1a;
 
-  --border-primary: #3b2f6e;
   --border-soft:    #1f1f1f;
 
   --text-main:  #f5f5f5;
   --text-soft:  #a1a1aa;
   --text-muted: #737373;
 
-  --accent:       #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft:  #2d1f5e;
-
   --danger:       #991b1b;
   --danger-hover: #7f1d1d;
-
-  /* Nuevas variables para inputs y elementos que antes estaban hardcodeados */
-  --input-bg:       #1c1a27;
-  --input-bg-focus: #201c2e;
-  --input-border:   #6f5aa5;
 
   --btn-secondary-bg:       #2a2a2a;
   --btn-secondary-color:    #cccccc;
@@ -44,9 +35,6 @@
   --table-row-hover:   #181818;
   --scrollbar-thumb:   #2a2a2a;
   --nav-item-hover-bg: #222222;
-
-  --total-dia-bg:     #1c1a27;
-  --total-dia-border: #2e2545;
 
   --radius:    12px;
   --radius-sm: 8px;
@@ -59,6 +47,25 @@
   --main-padding-xl: 32px 48px;
 
   --scroll-color: rgba(255,255,255,0.15);
+
+  /* ---- ACENTO por defecto (paleta Turquesa) — lo sobrescribe [data-palette] ---- */
+  --accent:        #14b8a6;
+  --accent-hover:  #0d9488;
+  --accent-bright: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-2:      #38bdf8;
+  --accent-rgb:        20, 184, 166;
+  --accent-bright-rgb: 45, 212, 191;
+  --accent-2-rgb:      56, 189, 248;
+
+  /* ---- Tintes suaves derivados del acento (se adaptan a paleta y modo) ---- */
+  --accent-soft:      color-mix(in srgb, var(--accent) 30%, var(--bg-card));
+  --border-primary:   color-mix(in srgb, var(--accent) 34%, var(--bg-card));
+  --input-bg:         color-mix(in srgb, var(--accent) 9%,  var(--bg-card));
+  --input-bg-focus:   color-mix(in srgb, var(--accent) 14%, var(--bg-card));
+  --input-border:     color-mix(in srgb, var(--accent) 55%, var(--bg-card));
+  --total-dia-bg:     color-mix(in srgb, var(--accent) 9%,  var(--bg-card));
+  --total-dia-border: color-mix(in srgb, var(--accent) 26%, var(--bg-card));
 }
 
 /* ============================= */
@@ -69,23 +76,14 @@
   --bg-sidebar: #ffffff;
   --bg-card:    #ffffff;
 
-  --border-primary: #c4b5fd;
   --border-soft:    #e4e4e7;
 
   --text-main:  #18181b;
   --text-soft:  #52525b;
   --text-muted: #71717a;
 
-  --accent:       #7c3aed;
-  --accent-hover: #6d28d9;
-  --accent-soft:  #ede9fe;
-
   --danger:       #dc2626;
   --danger-hover: #b91c1c;
-
-  --input-bg:       #fafafa;
-  --input-bg-focus: #f5f3ff;
-  --input-border:   #a78bfa;
 
   --btn-secondary-bg:       #e4e4e7;
   --btn-secondary-color:    #3f3f46;
@@ -96,15 +94,81 @@
   --scrollbar-thumb: #d4d4d8;
   --nav-item-hover-bg: #f4f4f5;
 
-  --total-dia-bg:     #f5f3ff;
-  --total-dia-border: #c4b5fd;
-
   --scroll-color: rgba(161, 159, 159, 0.945);
+
+  /* Tintes suaves para modo claro (menos saturados sobre blanco) */
+  --accent-soft:      color-mix(in srgb, var(--accent) 15%, var(--bg-card));
+  --border-primary:   color-mix(in srgb, var(--accent) 40%, var(--bg-card));
+  --input-bg:         #fafafa;
+  --input-bg-focus:   color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+  --input-border:     color-mix(in srgb, var(--accent) 55%, var(--bg-card));
+  --total-dia-bg:     color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+  --total-dia-border: color-mix(in srgb, var(--accent) 40%, var(--bg-card));
+}
+
+/* ============================= */
+/* PALETAS DE COLOR                */
+/* Cada una define solo el acento; */
+/* los tintes suaves se derivan.   */
+/* ============================= */
+[data-palette="turquesa"] {
+  --accent:        #14b8a6;
+  --accent-hover:  #0d9488;
+  --accent-bright: #2dd4bf;
+  --accent-strong: #5eead4;
+  --accent-2:      #38bdf8;
+  --accent-rgb:        20, 184, 166;
+  --accent-bright-rgb: 45, 212, 191;
+  --accent-2-rgb:      56, 189, 248;
+}
+
+[data-palette="violeta"] {
+  --accent:        #7c3aed;
+  --accent-hover:  #6d28d9;
+  --accent-bright: #a78bfa;
+  --accent-strong: #c4b5fd;
+  --accent-2:      #c084fc;
+  --accent-rgb:        124, 58, 237;
+  --accent-bright-rgb: 167, 139, 250;
+  --accent-2-rgb:      192, 132, 252;
+}
+
+[data-palette="esmeralda"] {
+  --accent:        #10b981;
+  --accent-hover:  #059669;
+  --accent-bright: #34d399;
+  --accent-strong: #6ee7b7;
+  --accent-2:      #22d3ee;
+  --accent-rgb:        16, 185, 129;
+  --accent-bright-rgb: 52, 211, 153;
+  --accent-2-rgb:      34, 211, 238;
+}
+
+[data-palette="rosa"] {
+  --accent:        #ec4899;
+  --accent-hover:  #db2777;
+  --accent-bright: #f472b6;
+  --accent-strong: #f9a8d4;
+  --accent-2:      #a78bfa;
+  --accent-rgb:        236, 72, 153;
+  --accent-bright-rgb: 244, 114, 182;
+  --accent-2-rgb:      167, 139, 250;
+}
+
+[data-palette="ambar"] {
+  --accent:        #f59e0b;
+  --accent-hover:  #d97706;
+  --accent-bright: #fbbf24;
+  --accent-strong: #fcd34d;
+  --accent-2:      #fb923c;
+  --accent-rgb:        245, 158, 11;
+  --accent-bright-rgb: 251, 191, 36;
+  --accent-2-rgb:      251, 146, 60;
 }
 
 [data-theme="light"] .nav-item.active {
   background: var(--accent-soft);
-  color: #6d28d9;
+  color: var(--accent-hover);
 }
 
 
@@ -182,6 +246,33 @@ body {
   flex-shrink: 0;
 }
 
+/* ============================= */
+/* DETALLE SELECCIÓN ARGENTINA */
+/* ============================= */
+
+/* 3 estrellas doradas de campeón del mundo junto al nombre */
+.sidebar-header .mundial-estrellas {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  color: #f5c518;
+}
+
+.sidebar-header .mundial-estrellas svg {
+  fill: currentColor;
+  stroke: currentColor;
+  filter: drop-shadow(0 0 2px rgba(245, 197, 24, 0.45));
+}
+
+/* Franja celeste-blanco-celeste bajo el header */
+.franja-argentina {
+  height: 4px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #75AADB 0%, #eaf3fb 50%, #75AADB 100%);
+}
+
 
 .sidebar-nav {
   display: flex;
@@ -229,7 +320,7 @@ body {
 
 .nav-item.active {
   background: var(--accent-soft);
-  color: #c4b5fd;
+  color: var(--accent-strong);
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--accent);
 }
@@ -288,15 +379,45 @@ body {
   position: relative;
   display: block;
   min-height: 100px;
-  transition: border var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card:hover {
-  border-color: var(--border-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-primary));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  transform: translateY(-2px);
 }
 
 [data-theme="light"] .card:hover {
   border-color: var(--accent-soft);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================= */
+/* SKELETON (carga)              */
+/* ============================= */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-muted) 20%, var(--bg-card));
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text-soft) 18%, transparent),
+    transparent
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
 }
 
 .card table {
@@ -318,7 +439,7 @@ body {
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
-  transition: background var(--transition), transform 160ms var(--ease-out), opacity var(--transition);
+  transition: background var(--transition), transform 160ms var(--ease-out), opacity var(--transition), box-shadow var(--transition);
 }
 
 .btn:disabled {
@@ -338,6 +459,7 @@ body {
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
   transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);
 }
 
 .btn-secondary {
@@ -379,7 +501,7 @@ body {
 
 .input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25);
   background: var(--input-bg-focus);
 }
 
@@ -430,7 +552,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .total-dia strong {
-  color: #c4b5fd;
+  color: var(--accent-strong);
   font-weight: 600;
 }
 
@@ -451,16 +573,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .table > thead {
   background: linear-gradient(
     90deg,
-    rgba(124, 58, 237, 0.12),
-    rgba(124, 58, 237, 0.04)
+    rgba(var(--accent-rgb), 0.12),
+    rgba(var(--accent-rgb), 0.04)
   );
 }
 
 [data-theme="light"] .table > thead {
   background: linear-gradient(
     90deg,
-    rgba(124, 58, 237, 0.09),
-    rgba(124, 58, 237, 0.02)
+    rgba(var(--accent-rgb), 0.09),
+    rgba(var(--accent-rgb), 0.02)
   );
 }
 
@@ -493,6 +615,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Hover fila completo */
+.table > tbody > tr > td {
+  transition: background var(--transition);
+}
+
 .table > tbody > tr:hover > td {
   background: var(--table-row-hover);
 }
@@ -542,8 +668,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .badge-transferencia {
-  background: rgba(192, 132, 252, 0.15);
-  color: #c084fc;
+  background: rgba(var(--accent-2-rgb), 0.15);
+  color: var(--accent-2);
 }
 
 /* ============================= */

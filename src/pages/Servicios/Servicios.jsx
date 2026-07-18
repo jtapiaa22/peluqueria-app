@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Scissors } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import EmptyState from '../../components/EmptyState'
+import Skeleton from '../../components/Skeleton'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const fmtMiles = (val) => {
@@ -18,16 +21,24 @@ export default function Servicios() {
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
   const [sincState, setSincState] = useState(null)
+  const [cargando, setCargando] = useState(true)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
-  const alertar   = (mensaje, tipo = 'info') => setModalAlert({ mensaje, tipo })
+  const toast = useToast()
+  const alertar   = (mensaje, tipo = 'info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje, tipo })
+    else toast(mensaje, tipo)
+  }
 
   const cargar = async () => {
     const data = await window.electronAPI.getServicios()
     setServicios(data)
   }
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    setCargando(true)
+    cargar().finally(() => setCargando(false))
+  }, [])
 
   const guardar = async () => {
     if (!form.nombre.trim() || !form.precio) {
@@ -88,7 +99,7 @@ export default function Servicios() {
         {sincState && (
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 12, color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : '#a78bfa',
+            fontSize: 12, color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : 'var(--accent-bright)',
             marginBottom: 16
           }}>
             <RefreshCw size={13} style={{ animation: sincState === 'syncing' ? 'spin 1s linear infinite' : 'none' }} />
@@ -108,7 +119,7 @@ export default function Servicios() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <h3 style={{ marginBottom: 16, color: '#a78bfa' }}>
+            <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>
               {editando ? 'Editar servicio' : 'Nuevo servicio'}
             </h3>
             <div className="form-group">
@@ -137,7 +148,14 @@ export default function Servicios() {
             </tr>
           </thead>
           <tbody>
-            {servicios.map(s => (
+            {cargando && Array.from({ length: 5 }).map((_, i) => (
+              <tr key={`sk-${i}`}>
+                <td><Skeleton width="60%" height={14} /></td>
+                <td><Skeleton width={70} height={14} /></td>
+                <td><Skeleton width={80} height={28} radius={8} /></td>
+              </tr>
+            ))}
+            {!cargando && servicios.map(s => (
               <tr key={s.id}>
                 <td>{s.nombre}</td>
                 <td>${Number(s.precio).toLocaleString('es-AR')}</td>
@@ -149,10 +167,10 @@ export default function Servicios() {
                 </td>
               </tr>
             ))}
-            {servicios.length === 0 && (
+            {!cargando && servicios.length === 0 && (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>
-                  No hay servicios registrados
+                <td colSpan={3}>
+                  <EmptyState icono={<Scissors size={28} />} titulo="No hay servicios registrados" texto="Creá el primero con el botón de arriba." padding="28px" />
                 </td>
               </tr>
             )}

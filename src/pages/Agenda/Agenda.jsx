@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban, DollarSign } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
+import { useToast } from '../../components/Toast'
+import Skeleton from '../../components/Skeleton'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -84,7 +86,7 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
         <p style={{ color:'var(--text-muted)', fontSize:13, margin:'0 0 20px' }}>
           <strong style={{ color:'var(--text-main)' }}>{turno.cliente_nombre}</strong>
           {' '}— {formatFechaCorta(turno.fecha)} a las {turno.hora?.substring(0,5)}hs
-          {turno.peluquero_nombre && <span style={{ color:'#a78bfa' }}> · {turno.peluquero_nombre}</span>}
+          {turno.peluquero_nombre && <span style={{ color:'var(--accent-bright)' }}> · {turno.peluquero_nombre}</span>}
         </p>
 
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
@@ -170,9 +172,14 @@ export default function Agenda() {
   const [confirmandoSena, setConfirmandoSena] = useState(null)
   const [pendientesCount, setPendientesCount] = useState(0)
   const [senasCount, setSenasCount]           = useState(0)
+  const [cargandoDia, setCargandoDia]         = useState(true)
 
   const confirmar = (msg, fn) => setModalConfirm({ mensaje:msg, onConfirm:fn })
-  const alertar   = (msg, tipo='info') => setModalAlert({ mensaje:msg, tipo })
+  const toast = useToast()
+  const alertar   = (msg, tipo='info') => {
+    if (tipo === 'error' || tipo === 'warning') setModalAlert({ mensaje: msg, tipo })
+    else toast(msg, tipo)
+  }
 
   const cargarDiasBloqueados = () =>
     window.electronAPI.getDiasBloqueados().then(data => setDiasBloqueados(data || []))
@@ -251,7 +258,10 @@ export default function Agenda() {
   }
 
   useEffect(() => { cargarMes() }, [cargarMes])
-  useEffect(() => { cargarDia() }, [cargarDia])
+  useEffect(() => {
+    setCargandoDia(true)
+    cargarDia().finally(() => setCargandoDia(false))
+  }, [cargarDia])
   useEffect(() => { if (peluqueriaId) cargarTurnosWeb() }, [peluqueriaId, filtroWeb, anio, mes])
 
   const irMesAnterior  = () => mes === 0  ? (setMes(11), setAnio(a=>a-1)) : setMes(m=>m-1)
@@ -456,17 +466,17 @@ export default function Agenda() {
               return (
                 <div key={dia} onClick={()=>seleccionarDia(dia)}
                   style={{ borderRadius:8, padding:'8px 4px 6px', textAlign:'center', cursor:'pointer', transition:'all 0.15s ease', minHeight:52, display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                    background: bloqueado ? 'rgba(248,113,113,0.08)' : sel?'var(--accent-soft)':esH?'rgba(167,139,250,0.08)':'transparent',
-                    border: bloqueado ? '1px solid rgba(248,113,113,0.3)' : sel?'1px solid var(--accent)':esH?'1px solid rgba(124,58,237,0.3)':'1px solid transparent',
+                    background: bloqueado ? 'rgba(248,113,113,0.08)' : sel?'var(--accent-soft)':esH?'rgba(var(--accent-bright-rgb),0.08)':'transparent',
+                    border: bloqueado ? '1px solid rgba(248,113,113,0.3)' : sel?'1px solid var(--accent)':esH?'1px solid rgba(var(--accent-rgb),0.3)':'1px solid transparent',
                     opacity: bloqueado ? 0.7 : 1,
                   }}>
-                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color: bloqueado?'#f87171':sel?'#c4b5fd':esH?'#a78bfa':'var(--text-main)' }}>{dia}</span>
+                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color: bloqueado?'#f87171':sel?'var(--accent-strong)':esH?'var(--accent-bright)':'var(--text-main)' }}>{dia}</span>
                   {bloqueado
                     ? <Ban size={10} color="#f87171" />
                     : tdm.length > 0 && (
                       <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center' }}>
                         {tdm.length<=3
-                          ? tdm.map((t,idx)=><div key={idx} style={{ width:6,height:6,borderRadius:'50%',background:ESTADOS[t.estado]?.color||'#a78bfa' }} />)
+                          ? tdm.map((t,idx)=><div key={idx} style={{ width:6,height:6,borderRadius:'50%',background:ESTADOS[t.estado]?.color||'var(--accent-bright)' }} />)
                           : <><div style={{ width:6,height:6,borderRadius:'50%',background:dotColor(tdm) }} /><span style={{ fontSize:9,color:'var(--text-muted)',lineHeight:1 }}>+{tdm.length}</span></>
                         }
                       </div>
@@ -523,7 +533,7 @@ export default function Agenda() {
             {mostrarForm && (
               <motion.div initial={{ opacity:0,y:-12 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:-12 }} className="card" style={{ margin:0 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-                  <h4 style={{ color:'#a78bfa', margin:0 }}>Nuevo turno — {formatFechaLinda(diaSeleccionado)}</h4>
+                  <h4 style={{ color:'var(--accent-bright)', margin:0 }}>Nuevo turno — {formatFechaLinda(diaSeleccionado)}</h4>
                   <button className="btn btn-secondary" onClick={()=>setMostrarForm(false)} style={{ padding:'4px 8px' }}><X size={14} /></button>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
@@ -567,7 +577,20 @@ export default function Agenda() {
               <span style={{ fontWeight:600, fontSize:14, color:'var(--text-main)' }}>Turnos del día</span>
               <span style={{ fontSize:12, color:'var(--text-muted)' }}>{turnosDia.length} turno{turnosDia.length!==1?'s':''}</span>
             </div>
-            {turnosDia.length === 0 ? (
+            {cargandoDia ? (
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} style={{ padding:'14px 20px', borderBottom: i<3?'1px solid var(--border-soft)':'none', display:'flex', alignItems:'flex-start', gap:14 }}>
+                    <Skeleton width={40} height={16} />
+                    <div style={{ flex:1 }}>
+                      <Skeleton width={140} height={13} style={{ marginBottom:8 }} />
+                      <Skeleton width={180} height={11} />
+                    </div>
+                    <Skeleton width={70} height={22} radius={99} />
+                  </div>
+                ))}
+              </div>
+            ) : turnosDia.length === 0 ? (
               <div style={{ padding:'36px 20px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
                 {estaBloquado ? '🚫 Este día está bloqueado para reservas web.' : 'No hay turnos para este día.'}
               </div>
@@ -579,7 +602,7 @@ export default function Agenda() {
                     <motion.div key={turno.id} initial={{ opacity:0 }} animate={{ opacity:1 }}
                       style={{ padding:'14px 20px', borderBottom:i<turnosDia.length-1?'1px solid var(--border-soft)':'none', display:'flex', alignItems:'flex-start', gap:14 }}>
                       <div style={{ minWidth:48, textAlign:'center', paddingTop:2 }}>
-                        <div style={{ fontSize:15, fontWeight:700, color:'#a78bfa' }}>{turno.hora}</div>
+                        <div style={{ fontSize:15, fontWeight:700, color:'var(--accent-bright)' }}>{turno.hora}</div>
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
@@ -619,7 +642,7 @@ export default function Agenda() {
       <div style={{ marginTop:36 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <Globe size={20} color="#a78bfa" />
+            <Globe size={20} color="var(--accent-bright)" />
             <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:'var(--text-main)' }}>Reservas Online</h2>
             {pendientesCount > 0 && (
               <div style={{ background:'#fbbf24', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
@@ -728,7 +751,7 @@ export default function Agenda() {
                     <div style={{ padding:'14px 16px' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
                         <div style={{ width:34,height:34,borderRadius:'50%',background:'var(--accent-soft)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>
-                          <span style={{ color:'#a78bfa',fontWeight:700,fontSize:15 }}>{turno.cliente_nombre?.[0]?.toUpperCase()}</span>
+                          <span style={{ color:'var(--accent-bright)',fontWeight:700,fontSize:15 }}>{turno.cliente_nombre?.[0]?.toUpperCase()}</span>
                         </div>
                         <div>
                           <div style={{ fontWeight:600, fontSize:14, color:'var(--text-main)' }}>{turno.cliente_nombre}</div>
