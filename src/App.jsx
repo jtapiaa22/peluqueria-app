@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { MotionConfig, motion } from 'framer-motion'
-import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe, Star } from 'lucide-react'
+import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe, Star, GitCompare } from 'lucide-react'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
 import Atenciones   from './pages/Atenciones/Atenciones'
 import Caja         from './pages/Caja/Caja'
 import Reportes     from './pages/Reportes/Reportes'
+import Comparaciones from './pages/Comparaciones/Comparaciones'
 import Liquidacion  from './pages/Liquidacion/Liquidacion'
 import Gastos       from './pages/Gastos/Gastos'
 import Agenda       from './pages/Agenda/Agenda'
@@ -51,7 +52,7 @@ function App() {
   const [pendientesWeb, setPendientesWeb] = useState(0)
   const [desbloqueados, setDesbloqueados] = useState({
     dashboard: false, agenda: false, peluqueros: false, servicios: false,
-    atenciones: false, reportes: false, caja: false, liquidacion: false, gastos: false,
+    atenciones: false, reportes: false, comparaciones: false, caja: false, liquidacion: false, gastos: false,
   })
 
   const desbloquearSeccion = (key) => setDesbloqueados(prev => ({ ...prev, [key]: true }))
@@ -226,6 +227,9 @@ function App() {
             <div className="sidebar-section-label">Finanzas</div>
             <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <BarChart2 size={18} /> Reportes
+            </NavLink>
+            <NavLink to="/comparaciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
+              <GitCompare size={18} /> Comparaciones
             </NavLink>
             <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
               <Lock size={18} /> Liquidación
@@ -421,6 +425,14 @@ function App() {
                 onDesbloquear={() => desbloquearSeccion('reportes')}
                 onBloquear={() => bloquearSeccion('reportes')}>
                 <Reportes />
+              </PasswordGate>
+            } />
+            <Route path="/comparaciones" element={
+              <PasswordGate configKey="password_comparaciones" titulo="Comparaciones"
+                desbloqueado={desbloqueados.comparaciones}
+                onDesbloquear={() => desbloquearSeccion('comparaciones')}
+                onBloquear={() => bloquearSeccion('comparaciones')}>
+                <Comparaciones />
               </PasswordGate>
             } />
             <Route path="/liquidacion" element={

@@ -81,6 +81,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     { key: 'password_servicios', label: 'Servicios', icono: '✂️' },
     { key: 'password_atenciones', label: 'Atenciones', icono: '📋' },
     { key: 'password_reportes', label: 'Reportes', icono: '📈' },
+    { key: 'password_comparaciones', label: 'Comparaciones', icono: '⚖️' },
     { key: 'password_caja', label: 'Caja', icono: '💰' },
     { key: 'password_liquidacion', label: 'Liquidación', icono: '🔒' },
     { key: 'password_gastos', label: 'Gastos', icono: '📉' },

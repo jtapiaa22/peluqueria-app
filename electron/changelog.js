@@ -1,4 +1,9 @@
 module.exports = {
+  '3.5.0': [
+    { titulo: 'Nueva sección: Comparaciones Mensuales', desc: 'Elegí cualquier par de meses y compará ingresos, propinas, gastos, ganancia neta, cantidad de atenciones, ticket promedio y el rendimiento de cada peluquero, con la variación en % entre ambos períodos. Se protege con contraseña igual que el resto de las secciones, configurable desde Configuración → Seguridad.' },
+    { titulo: 'Más seguridad para tu backup en la nube', desc: 'Además del backup automático de siempre, ahora se guarda una copia fechada por día durante 30 días. Si algo llegara a corromper el backup más reciente, siempre queda un punto anterior al que volver.' },
+  ],
+
   '3.4.0': [
     { titulo: 'Respondé los turnos desde el celular', desc: 'Ya no hace falta estar en la computadora del local: ahora podés aceptar, rechazar o proponer otro horario desde el teléfono, y el turno aparece solo en la Agenda cuando volvés a la compu. Pedile tu link y tu clave de acceso a PeluApp.' },
     { titulo: 'Confirmá las señas desde el celular', desc: 'Cuando te llegue la transferencia de una seña, la confirmás desde el mismo panel del teléfono y el turno queda agendado al instante. Vas a ver el monto, el alias y cuánto le queda al cliente antes de que la seña venza.' },

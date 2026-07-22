@@ -302,6 +302,33 @@ async function syncBackupCompleto() {
 
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultimo_backup_nube',?)").run(new Date().toISOString())
 
+    // Historial de backups en la nube: una copia fechada por día (no pisa la última),
+    // para poder volver a un punto anterior si el backup "actual" se corrompe.
+    // Cualquier error acá no debe afectar el resultado del backup principal.
+    try {
+      const hoy = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+      const ultimoHistorial = db.prepare("SELECT valor FROM configuracion WHERE clave='ultimo_backup_historial'").get()?.valor
+      if (ultimoHistorial !== hoy) {
+        await sb.storage
+          .from('backups-db')
+          .upload(`${pid}/historial/database_${hoy}.sqlite`, fileBuffer, {
+            contentType: 'application/x-sqlite3',
+            upsert: true
+          })
+        db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('ultimo_backup_historial',?)").run(hoy)
+
+        // Rotación: conservar solo los últimos 30 backups diarios en la nube
+        const { data: listado } = await sb.storage.from('backups-db').list(`${pid}/historial`)
+        if (listado && listado.length > 30) {
+          const sobrantes = listado
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .slice(0, listado.length - 30)
+            .map(f => `${pid}/historial/${f.name}`)
+          if (sobrantes.length) await sb.storage.from('backups-db').remove(sobrantes)
+        }
+      }
+    } catch (e) { console.error('⚠️ Historial nube:', e.message) }
+
     // Stats para mostrar en la UI
     const peluqueros = db.prepare('SELECT COUNT(*) as c FROM peluqueros').get().c
     const servicios  = db.prepare('SELECT COUNT(*) as c FROM servicios').get().c
