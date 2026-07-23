@@ -56,7 +56,7 @@ export default function Liquidacion() {
   const [cargando, setCargando] = useState(true)
 
   const [panelPago, setPanelPago] = useState(null)
-  const [formPago, setFormPago] = useState({ fecha_pago: hoy(), notas: '', montoManual: '' })
+  const [formPago, setFormPago] = useState({ fecha_pago: hoy(), notas: '', montoManual: '', propinasManual: '' })
   const [pagosExistentes, setPagosExistentes] = useState([])
   const [historialPagos, setHistorialPagos] = useState([])
   const [tramosComision, setTramosComision] = useState({})
@@ -111,7 +111,7 @@ export default function Liquidacion() {
       return
     }
     setPanelPago(peluqueroId)
-    setFormPago({ fecha_pago: hoy(), notas: '', montoManual: '' })
+    setFormPago({ fecha_pago: hoy(), notas: '', montoManual: '', propinasManual: '' })
     await Promise.all([cargarPagosExistentes(peluqueroId), cargarHistorial(peluqueroId)])
   }
 
@@ -133,9 +133,13 @@ export default function Liquidacion() {
       return
     }
 
-    const totalConPropinas = montoFinal + liq.propinasRestantes
-    const msgPago = liq.propinasRestantes > 0
-      ? `¿Confirmar pago a ${peluquero.nombre}?\nComisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasRestantes.toLocaleString('es-AR')} = $${totalConPropinas.toLocaleString('es-AR')} total a entregar.`
+    // Las propinas a entregar ahora son independientes del monto de comisión: por defecto se sugieren
+    // todas las pendientes, pero en un pago parcial de comisión se pueden dejar en $0 o en otro valor.
+    const propinasFinal = formPago.propinasManual !== '' ? Number(formPago.propinasManual) : liq.propinasRestantes
+
+    const totalConPropinas = montoFinal + propinasFinal
+    const msgPago = propinasFinal > 0
+      ? `¿Confirmar pago a ${peluquero.nombre}?\nComisión $${montoFinal.toLocaleString('es-AR')} + propinas $${propinasFinal.toLocaleString('es-AR')} = $${totalConPropinas.toLocaleString('es-AR')} total a entregar.`
       : `¿Confirmar pago de $${montoFinal.toLocaleString('es-AR')} a ${peluquero.nombre}?`
     confirmar(
       msgPago,
@@ -147,12 +151,12 @@ export default function Liquidacion() {
           desde,
           hasta,
           monto: montoFinal,
-          propinas_pagadas: liq.propinasRestantes,
+          propinas_pagadas: propinasFinal,
           fecha_pago: formPago.fecha_pago,
           notas: formPago.notas
         })
-        const msgOk = liq.propinasRestantes > 0
-          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${liq.propinasRestantes.toLocaleString('es-AR')} = $${(montoFinal + liq.propinasRestantes).toLocaleString('es-AR')} total`
+        const msgOk = propinasFinal > 0
+          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${propinasFinal.toLocaleString('es-AR')} = $${(montoFinal + propinasFinal).toLocaleString('es-AR')} total`
           : `✅ Pago registrado a ${peluquero.nombre}`
         alertar(msgOk, 'success')
         await Promise.all([cargarPagosExistentes(peluquero.id), cargarHistorial(peluquero.id)])
@@ -530,7 +534,7 @@ export default function Liquidacion() {
                       <div style={{ padding: '20px 24px', background: 'rgba(74, 222, 128, 0.03)' }}>
 
                         {/* Formulario de pago */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: p.propinasRestantes > 0 ? '1fr 1fr 1fr 1fr 1fr auto' : '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Período cubierto</label>
                             <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--text-soft)' }}>
@@ -564,12 +568,30 @@ export default function Liquidacion() {
                               placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
                               style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
                             />
-                            {formPago.montoManual !== '' && p.propinasRestantes > 0 && (
-                              <div style={{ fontSize: 11, color: '#facc15', marginTop: 4 }}>
-                                total a entregar: ${(Number(formPago.montoManual) + p.propinasRestantes).toLocaleString('es-AR')}
-                              </div>
-                            )}
                           </div>
+                          {p.propinasRestantes > 0 && (
+                            <div className="form-group" style={{ margin: 0 }}>
+                              <label>
+                                Propinas a pagar ahora
+                                <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 4 }}>(de ${p.propinasRestantes.toLocaleString('es-AR')})</span>
+                              </label>
+                              <input
+                                className="input"
+                                type="text"
+                                inputMode="numeric"
+                                value={fmtMiles(formPago.propinasManual)}
+                                onChange={e => setFormPago({ ...formPago, propinasManual: parseMiles(e.target.value) })}
+                                placeholder={`$${p.propinasRestantes.toLocaleString('es-AR')}`}
+                                style={{ fontSize: 14, fontWeight: formPago.propinasManual ? 700 : 400, color: formPago.propinasManual ? '#facc15' : undefined }}
+                              />
+                              <div style={{ fontSize: 11, color: '#facc15', marginTop: 4 }}>
+                                total a entregar: ${(
+                                  (formPago.montoManual !== '' ? Number(formPago.montoManual) : Math.max(0, pendiente)) +
+                                  (formPago.propinasManual !== '' ? Number(formPago.propinasManual) : p.propinasRestantes)
+                                ).toLocaleString('es-AR')}
+                              </div>
+                            </div>
+                          )}
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Fecha de pago</label>
                             <input

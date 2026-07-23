@@ -1,4 +1,10 @@
 module.exports = {
+  '3.6.0': [
+    { titulo: 'Nueva sección: Comparaciones Mensuales', desc: 'Elegí cualquier par de meses y compará ingresos, propinas, gastos, ganancia neta, cantidad de atenciones, ticket promedio y el rendimiento de cada peluquero, con la variación en % entre ambos períodos. Se protege con contraseña igual que el resto de las secciones, configurable desde Configuración → Seguridad.' },
+    { titulo: 'Más seguridad para tu backup en la nube', desc: 'Además del backup automático de siempre, ahora se guarda una copia fechada por día durante 30 días. Si algo llegara a corromper el backup más reciente, siempre queda un punto anterior al que volver.' },
+    {titulo: 'Cambios importantes en la seccion Liquidacion.', desc: 'Se agregaron nuevas funcionalidades y mejoras en la sección de Liquidación, incluyendo un resumen más detallado de los pagos.'},
+  ],
+
   '3.5.0': [
     { titulo: 'Nueva sección: Comparaciones Mensuales', desc: 'Elegí cualquier par de meses y compará ingresos, propinas, gastos, ganancia neta, cantidad de atenciones, ticket promedio y el rendimiento de cada peluquero, con la variación en % entre ambos períodos. Se protege con contraseña igual que el resto de las secciones, configurable desde Configuración → Seguridad.' },
     { titulo: 'Más seguridad para tu backup en la nube', desc: 'Además del backup automático de siempre, ahora se guarda una copia fechada por día durante 30 días. Si algo llegara a corromper el backup más reciente, siempre queda un punto anterior al que volver.' },
