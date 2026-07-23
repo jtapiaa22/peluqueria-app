@@ -393,7 +393,11 @@ export default function Atenciones() {
       {/* Aviso caja abierta */}
       {cajaAbierta && (
         <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 10, padding: '12px 20px', marginBottom: 20, color: '#4ade80', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-          Caja abierta desde las <strong>{cajaAbierta.hora_apertura}hs</strong>
+          Caja abierta {cajaAbierta.fecha !== hoy() ? (
+          <>desde el <strong>{cajaAbierta.fecha}</strong></>
+        ) : (
+          'hoy'
+        )} a las <strong>{cajaAbierta.hora_apertura}hs</strong>
         </div>
       )}
 

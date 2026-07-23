@@ -392,7 +392,7 @@ export default function Caja() {
               : <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 8, padding: '8px 16px', color: '#4ade80', fontSize: 13 }}>
                 Caja abierta desde las <strong>{cajaAbierta.hora_apertura}hs</strong>
                 {cajaAbierta.fecha !== hoy() && (
-                  <span style={{ marginLeft: 8, background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 11, padding: '1px 8px', borderRadius: 99 }}>
+                  <span style={{ marginLeft: 8, background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 13, padding: '1px 8px', borderRadius: 99 }}>
                     desde el {cajaAbierta.fecha}
                   </span>
                 )}
