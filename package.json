@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build && electron-builder",
-    "publish": "vite build && npx electron-builder --win nsis --publish always",
+    "publish": "vite build && dotenv -e .env.publish -- npx electron-builder --win nsis --publish always",
     "preview": "vite preview"
   },
   "build": {
@@ -72,6 +72,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
     "concurrently": "^8.2.2",
+    "dotenv-cli": "^11.0.0",
     "electron": "^29.1.0",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",

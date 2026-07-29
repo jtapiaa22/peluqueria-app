@@ -43,6 +43,7 @@ npm-debug.log*
 # Variables de entorno
 .env
 .env.local
+.env.publish
 
 # Sistema operativo
 .DS_Store
