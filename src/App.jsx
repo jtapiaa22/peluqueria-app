@@ -345,23 +345,9 @@ function App() {
             <Actualizador />
           </div>
 
-          <div className="footer-container">
+          <div className="sidebar-footer">
             <footer className="app-footer">
-              <div
-                className="version-text"
-                style={{
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '4px',
-                  padding: '2px 8px',
-                  fontSize: '0.80rem',
-                }}
-              >
-                {version && `v${version.split('.').slice(0, 2).join('.')}`}
-              </div>
-              <div className="footer-author">
-                Desarrollado por<br />
-                <strong style={{ color: 'var(--text-soft)', fontSize: '0.90rem' }}>TADevStudio</strong>
-              </div>
+              <div className="sidebar-watermark">Copyright © TADevStudio {version && `v${version.split('.').slice(0, 2).join('.')}`}</div>
             </footer>
           </div>
 

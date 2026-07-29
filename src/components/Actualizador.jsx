@@ -68,7 +68,7 @@ export default function Actualizador() {
         />
       )}
 
-      <div style={{ width: '100%', marginTop: 6 }}>
+      <div style={{ width: '100%', marginTop: 2 }}>
 
         {/* Barra de progreso */}
         {descargando && (
@@ -106,7 +106,7 @@ export default function Actualizador() {
           disabled={activo}
           style={{
             width: '100%',
-            padding: '7px 12px',
+            padding: '5px 12px',
             borderRadius: 20,
             border: '1px solid var(--border-primary)',
             background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
