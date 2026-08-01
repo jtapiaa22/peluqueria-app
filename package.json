@@ -1,6 +1,6 @@
 {
   "name": "tadevstudio-peluapp",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "description": "Sistema de gestión para peluquería",
   "author": "TADevStudio",
   "main": "electron/main.js",
@@ -17,7 +17,8 @@
     "extraResources": [],
     "npmRebuild": true,
     "asarUnpack": [
-      "node_modules/sql.js/**"
+      "node_modules/sql.js/**",
+      "node_modules/better-sqlite3/**"
     ],
     "files": [
       "dist/**/*",
