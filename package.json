@@ -1,13 +1,13 @@
 {
   "name": "tadevstudio-peluapp",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Sistema de gestión para peluquería",
   "author": "TADevStudio",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build && electron-builder",
-    "publish": "vite build && dotenv -e .env.publish -- npx electron-builder --win nsis --publish always",
+    "publish": "vite build && dotenv -e .env.publish -o -- npx electron-builder --win nsis --publish always",
     "preview": "vite preview"
   },
   "build": {

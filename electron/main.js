@@ -172,6 +172,38 @@ async function getPid() {
   return db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()?.valor || null
 }
 
+async function getDeviceToken() {
+  return db.prepare("SELECT valor FROM configuracion WHERE clave='device_token'").get()?.valor || null
+}
+
+// turnos_web/turnos_manuales_web/turnos_senas ya no son accesibles con la clave
+// anon (ver migraciones/004-lock-turnos-web.sql en peluapp-web): hay que pasar
+// por las rutas /api/admin/* y /api/device/*, autenticadas con este token.
+async function vincularDevice(peluqueriaId) {
+  try {
+    const r = await fetch(`${WEB_URL}/api/device/vincular`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peluqueriaId }),
+    })
+    const d = await r.json()
+    if (!r.ok || !d.token) return null
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('device_token',?)").run(d.token)
+    return d.token
+  } catch (e) { console.error('⚠️ Vincular device:', e.message); return null }
+}
+
+async function apiDevice(path, opciones = {}) {
+  const token = await getDeviceToken()
+  const r = await fetch(`${WEB_URL}${path}`, {
+    ...opciones,
+    headers: { 'Content-Type': 'application/json', ...(opciones.headers || {}), Authorization: `Bearer ${token}` },
+  })
+  const data = await r.json().catch(() => null)
+  if (!r.ok) throw new Error(data?.error || `Error ${r.status}`)
+  return data
+}
+
 // ── HELPER: enviar a la ventana aunque mainWindow sea null ────
 function sendToWindow(channel, data) {
   const wins = BrowserWindow.getAllWindows()
@@ -181,7 +213,6 @@ function sendToWindow(channel, data) {
 // ── NOTIFICACIONES ────────────────────────────────────────────
 let turnosNotificados = new Set()
 let primeraVerificacion = true
-let realtimeChannel = null
 
 function notificarTurno(t) {
   if (turnosNotificados.has(t.id)) return
@@ -206,39 +237,11 @@ function notificarTurno(t) {
 async function checkNuevosTurnos() {
   try {
     const pid = await getPid()
-    if (!pid) return
-    const sb = await getSupabase()
-    const { data } = await sb.from('turnos_web')
-      .select('id,cliente_nombre,peluquero_nombre,fecha,hora')
-      .eq('peluqueria_id', pid).eq('estado', 'pendiente')
-    for (const t of (data || [])) notificarTurno(t)
+    if (!pid || !(await getDeviceToken())) return
+    const { pendientes } = await apiDevice('/api/admin/turnos')
+    for (const t of pendientes.filter(t => t.estado === 'pendiente')) notificarTurno(t)
     primeraVerificacion = false
   } catch(e) { console.error('⚠️ Notif:', e.message) }
-}
-
-async function iniciarRealtime() {
-  try {
-    const pid = await getPid()
-    if (!pid) return
-    const sb = await getSupabase()
-
-    // Cancelar canal anterior si existía
-    if (realtimeChannel) { await sb.removeChannel(realtimeChannel); realtimeChannel = null }
-
-    realtimeChannel = sb.channel(`turnos_web_${pid}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'turnos_web',
-        filter: `peluqueria_id=eq.${pid}`
-      }, (payload) => {
-        const t = payload.new
-        if (t.estado === 'pendiente') notificarTurno(t)
-      })
-      .subscribe((status) => {
-        console.log('Realtime status:', status)
-      })
-  } catch(e) { console.error('⚠️ Realtime:', e.message) }
 }
 
 // ── SYNC DÍAS BLOQUEADOS ──────────────────────────────────────
@@ -421,17 +424,11 @@ async function syncSupabase() {
 async function syncTurnoManual(turno, eliminar = false) {
   try {
     const pid = await getPid()
-    if (!pid) return
-    const sb = await getSupabase()
-    const webId = `${pid}_${turno.id}`
-    if (eliminar) {
-      await sb.from('turnos_manuales_web').delete().eq('id', webId)
-    } else {
-      await sb.from('turnos_manuales_web').upsert(
-        { id: webId, peluquero_id: turno.peluquero_id, fecha: turno.fecha, hora: turno.hora, peluqueria_id: pid },
-        { onConflict: 'id' }
-      )
-    }
+    if (!pid || !(await getDeviceToken())) return
+    await apiDevice('/api/admin/manual-turno', {
+      method: 'POST',
+      body: JSON.stringify({ id: turno.id, peluquero_id: turno.peluquero_id, fecha: turno.fecha, hora: turno.hora, eliminar }),
+    })
   } catch(e) { console.error('⚠️ SyncTurno:', e.message) }
 }
 
@@ -666,6 +663,7 @@ ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
+    await vincularDevice(data.id)
     await syncSupabase()
     return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}`, yaExistia }
   } catch(e){ return { ok:false, error:e.message } }
@@ -678,6 +676,7 @@ ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(peluqueriaId)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(data.email)
+    await vincularDevice(peluqueriaId)
     await syncSupabase()
     return { ok:true, id:peluqueriaId, link:`${WEB_URL}/?p=${peluqueriaId}` }
   } catch(e){ return { ok:false, error:e.message } }
@@ -708,9 +707,8 @@ ipcMain.handle('peluqueria:actualizarNombre', async (_, { nombre }) => {
 ipcMain.handle('turnosWeb:getPendientes',async()=>{
   try {
     const pid=await getPid(); if(!pid) return []
-    const sb=await getSupabase()
-    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).in('estado',['pendiente','modificado']).order('fecha',{ascending:true}).order('hora',{ascending:true})
-    return data||[]
+    const { pendientes } = await apiDevice('/api/admin/turnos')
+    return pendientes
   } catch(e){ return [] }
 })
 
@@ -718,111 +716,34 @@ ipcMain.handle('turnosWeb:getSenas', async () => {
   try {
     const pid = await getPid()
     if (!pid) return []
-    const sb = await getSupabase()
-
-    const { data } = await sb
-      .from('turnos_senas')
-      .select('*')
-      .eq('peluqueria_id', pid)
-      .eq('estado', 'pendiente_sena')
-      .order('fecha', { ascending: true })
-      .order('hora',  { ascending: true })
-
-    return data || []
+    const { senas } = await apiDevice('/api/admin/senas')
+    return senas
   } catch (e) { return [] }
 })
 
 ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
   try {
     const pid=await getPid(); if(!pid) return []
-    const sb=await getSupabase()
     const [a,m]=mes.split('-').map(Number)
     const desde=`${a}-${String(m).padStart(2,'0')}-01`
     const u=new Date(a,m,0).getDate()
     const hasta=`${a}-${String(m).padStart(2,'0')}-${String(u).padStart(2,'0')}`
-    const {data}=await sb.from('turnos_web').select('*').eq('peluqueria_id',pid).gte('fecha',desde).lte('fecha',hasta).order('fecha',{ascending:true}).order('hora',{ascending:true})
-    return data||[]
+    const { turnos } = await apiDevice(`/api/admin/mes?desde=${desde}&hasta=${hasta}`)
+    return turnos
   } catch(e){ return [] }
 })
 
 ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, hora_propuesta, motivo }) => {
   try {
-    const pid = await getPid()
-    const sb = await getSupabase()
+    // /api/admin/responder hace el update en Supabase, inserta/borra turnos_senas
+    // y manda el WhatsApp al cliente (mismo endpoint que usa el panel web).
+    const d = await apiDevice('/api/admin/responder', {
+      method: 'POST',
+      body: JSON.stringify({ id, accion, fecha_propuesta, hora_propuesta, motivo }),
+    })
+    const turno = d.turno
 
-    const { data: turno } = await sb.from('turnos_web').select('*').eq('id', id).single()
-    if (!turno) return { ok: false, error: 'Turno no encontrado' }
-
-    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
-
-    // ── CONFIRMADO: chequear seña ANTES de tocar Supabase ──────────────
-    if (accion === 'confirmado') {
-      const senaMonto  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_monto'").get()?.valor
-      const senaAlias  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()?.valor
-      const senaHoras  = Number(db.prepare("SELECT valor FROM configuracion WHERE clave='sena_horas_vencimiento'").get()?.valor || 24)
-      const senaCorreo = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_correo'").get()?.valor?.trim() || ''
-      // Interruptor de Configuracion › Seña. Si nunca se guardó se asume
-      // activa, para no cambiarle el comportamiento a quien ya la tenia puesta.
-      const senaFlag   = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_activa'").get()?.valor
-      const senaActiva = senaFlag === undefined ? true : senaFlag === '1'
-
-      if (senaActiva && senaMonto && Number(senaMonto) > 0 && senaAlias && senaAlias.trim()) {
-        // HAY SEÑA: actualizar turnos_web + insertar en turnos_senas
-        const venceAt = new Date(Date.now() + senaHoras * 60 * 60 * 1000).toISOString()
-
-        const { error: errUpdate } = await sb.from('turnos_web').update({
-          estado: 'esperando_sena',
-          sena_vence_at: venceAt,
-          respondido_at: new Date().toISOString(),
-          motivo: motivo || null,
-        }).eq('id', id)
-        if (errUpdate) return { ok: false, error: errUpdate.message }
-
-        // Insertar en tabla independiente turnos_senas
-        await sb.from('turnos_senas').insert({
-          turno_web_id:     turno.id,
-          peluqueria_id:    pid,
-          cliente_nombre:   turno.cliente_nombre,
-          cliente_telefono: turno.cliente_telefono,
-          peluquero_nombre: turno.peluquero_nombre,
-          peluquero_id:     turno.peluquero_id,
-          servicio_nombre:  turno.servicio_nombre || null,
-          fecha:            turno.fecha,
-          hora:             turno.hora?.substring(0, 5),
-          monto:            Number(senaMonto),
-          alias:            senaAlias,
-          vence_at:         venceAt,
-          estado:           'pendiente_sena',
-        })
-
-        await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            telefono: turno.cliente_telefono,
-            nombre: turno.cliente_nombre,
-            peluqueria_nombre: pelNombre,
-            peluquero_nombre: turno.peluquero_nombre,
-            peluqueria_id: pid,
-            accion: 'esperando_sena',
-            fecha_original: turno.fecha,
-            hora_original: turno.hora?.substring(0, 5),
-            sena_monto:  Number(senaMonto),
-            sena_alias:  senaAlias,
-            sena_horas:  senaHoras,
-            sena_correo: senaCorreo,
-          })
-        }).catch(() => {})
-        return { ok: true, esperandoSena: true }
-      }
-
-      // SIN SEÑA: confirmar directo
-      await sb.from('turnos_web').update({
-        estado: 'confirmado',
-        motivo: motivo || null,
-        respondido_at: new Date().toISOString(),
-      }).eq('id', id)
-
+    if (accion === 'confirmado' && !d.esperandoSena) {
       const rTurno = db.prepare(`
         INSERT INTO turnos(peluquero_id, servicio_id, cliente_nombre, fecha, hora, estado, notas, turno_web_id)
         VALUES (?, ?, ?, ?, ?, 'confirmado', 'Reserva web', ?)
@@ -835,64 +756,17 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
         turno.id
       )
       await syncTurnoManual({ id: rTurno.lastInsertRowid, peluquero_id: turno.peluquero_id, fecha: turno.fecha, hora: turno.hora?.substring(0, 5) })
-
-      await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telefono: turno.cliente_telefono,
-          nombre: turno.cliente_nombre,
-          peluqueria_nombre: pelNombre,
-          peluquero_nombre: turno.peluquero_nombre,
-          peluqueria_id: pid,
-          accion: 'confirmado',
-          fecha_original: turno.fecha,
-          hora_original: turno.hora?.substring(0, 5),
-        })
-      }).catch(() => {})
-      return { ok: true }
     }
 
-    // ── MODIFICADO / RECHAZADO / CANCELADO ─────────────────────────────
-    const expira = accion === 'modificado'
-      ? new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
-      : null
-
-    await sb.from('turnos_web').update({
-      estado: accion,
-      motivo: motivo || null,
-      respondido_at: new Date().toISOString(),
-      ...(accion === 'modificado' ? { fecha_propuesta, hora_propuesta, expira_confirmacion_at: expira } : {})
-    }).eq('id', id)
-
     if (accion === 'cancelado') {
-      const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(turno.id)
+      const local = db.prepare('SELECT id FROM turnos WHERE turno_web_id = ?').get(id)
       if (local) {
         db.prepare('DELETE FROM turnos WHERE id = ?').run(local.id)
         await syncTurnoManual(local, true)
       }
-      await sb.from('turnos_senas').delete().eq('turno_web_id', turno.id).neq('estado', 'pagada')
     }
 
-    await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        telefono: turno.cliente_telefono,
-        nombre: turno.cliente_nombre,
-        peluqueria_nombre: pelNombre,
-        peluquero_nombre: turno.peluquero_nombre,
-        peluqueria_id: pid,
-        accion,
-        fecha_original: turno.fecha,
-        hora_original: turno.hora?.substring(0, 5),
-        fecha_propuesta,
-        hora_propuesta,
-        motivo
-      })
-    }).catch(() => {})
-
-    return { ok: true }
+    return { ok: true, esperandoSena: d.esperandoSena }
   } catch (e) {
     return { ok: false, error: e.message }
   }
@@ -900,21 +774,12 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
 
 ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoSenaId) => {
   try {
-    const pid = await getPid()
-    const sb = await getSupabase()
-
-    // Leer desde turnos_senas
-    const { data: sena } = await sb.from('turnos_senas').select('*').eq('id', turnoSenaId).single()
-    if (!sena) return { ok: false, error: 'Seña no encontrada' }
-
-    // Marcar seña como pagada
-    await sb.from('turnos_senas').update({ estado: 'pagada' }).eq('id', turnoSenaId)
-
-    // Confirmar turno web
-    await sb.from('turnos_web').update({
-      estado: 'confirmado',
-      respondido_at: new Date().toISOString(),
-    }).eq('id', sena.turno_web_id)
+    // /api/admin/senas (POST) marca la seña pagada, confirma el turno_web y
+    // manda el WhatsApp de confirmación al cliente.
+    const { sena } = await apiDevice('/api/admin/senas', {
+      method: 'POST',
+      body: JSON.stringify({ id: turnoSenaId }),
+    })
 
     // Crear turno local si no existe
     const yaExiste = db.prepare('SELECT id FROM turnos WHERE turno_web_id=?').get(sena.turno_web_id)
@@ -935,24 +800,6 @@ ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoSenaId) => {
       await syncTurnoManual({ id: yaExiste.id, peluquero_id: sena.peluquero_id, fecha: sena.fecha, hora: sena.hora })
     }
 
-    const pelNombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()?.valor || 'PeluApp'
-
-    // WhatsApp de confirmación al cliente
-    await fetch(`${WEB_URL}/api/notificar-respuesta`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        telefono: sena.cliente_telefono,
-        nombre: sena.cliente_nombre,
-        peluqueria_nombre: pelNombre,
-        peluquero_nombre: sena.peluquero_nombre,
-        peluqueria_id: pid,
-        accion: 'confirmado',
-        fecha_original: sena.fecha,
-        hora_original: sena.hora,
-      })
-    }).catch(() => {})
-
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -964,12 +811,7 @@ ipcMain.handle('turnosWeb:sincronizarCancelados', async () => {
     const pid = await getPid()
     if (!pid) return { ok: true, eliminados: 0 }
 
-    const sb = await getSupabase()
-    const { data: cancelados } = await sb
-      .from('turnos_web')
-      .select('id')
-      .eq('peluqueria_id', pid)
-      .eq('estado', 'cancelado')
+    const { cancelados } = await apiDevice('/api/admin/reconciliar')
 
     if (!cancelados?.length) return { ok: true, eliminados: 0 }
 
@@ -993,12 +835,7 @@ ipcMain.handle('turnosWeb:sincronizarConfirmados', async () => {
     const pid = await getPid()
     if (!pid) return { ok: true, creados: 0 }
 
-    const sb = await getSupabase()
-    const { data: confirmados } = await sb
-      .from('turnos_web')
-      .select('*')
-      .eq('peluqueria_id', pid)
-      .eq('estado', 'confirmado')
+    const { confirmados } = await apiDevice('/api/admin/reconciliar')
 
     if (!confirmados?.length) return { ok: true, creados: 0 }
 
@@ -1219,20 +1056,15 @@ ipcMain.handle('peluqueria:sincronizar', async () => {
 
     await syncSupabase()
 
-    const sb = await getSupabase()
     const turnos = db.prepare('SELECT * FROM turnos').all()
 
-    if (turnos.length) {
-      await sb.from('turnos_manuales_web').upsert(
-        turnos.map(t => ({
-          id: `${pid}_${t.id}`,
-          peluquero_id: t.peluquero_id,
-          fecha: t.fecha,
-          hora: t.hora,
-          peluqueria_id: pid
-        })),
-        { onConflict: 'id' }
-      )
+    if (turnos.length && (await getDeviceToken())) {
+      await apiDevice('/api/admin/manual-turnos-bulk', {
+        method: 'POST',
+        body: JSON.stringify({
+          turnos: turnos.map(t => ({ id: t.id, peluquero_id: t.peluquero_id, fecha: t.fecha, hora: t.hora })),
+        }),
+      })
     }
 
     await syncDiasBloqueados()
@@ -1295,10 +1127,13 @@ if (!gotTheLock) {
     // 3s — Sync inicial con Supabase
     setTimeout(() => syncSupabase(), 3000)
 
-    // 8s — Verificar turnos nuevos y arrancar realtime
+    // 8s — Verificar turnos nuevos
     setTimeout(async () => {
+      // Instalaciones vinculadas antes de que existiera device_token: emparejar una vez.
+      const pid = await getPid()
+      if (pid && !(await getDeviceToken())) await vincularDevice(pid)
+
       await checkNuevosTurnos()
-      iniciarRealtime()
       setInterval(checkNuevosTurnos, 20000)
     }, 8000)
 
