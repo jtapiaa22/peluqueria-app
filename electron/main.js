@@ -500,7 +500,7 @@ ipcMain.handle('atenciones:getValesPorMes', () =>
 
 // CONFIG
 ipcMain.handle('config:get',(_,c)=>db.prepare('SELECT valor FROM configuracion WHERE clave=?').get(c)||null)
-const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','password_dashboard','password_agenda','password_peluqueros','password_servicios','password_atenciones','password_reportes','password_caja','password_gastos','password_maestra','pregunta_seguridad','respuesta_seguridad','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app','sena_monto','sena_alias','sena_horas_vencimiento','sena_correo'])
+const CONFIG_CLAVES_PERMITIDAS = new Set(['password_liquidacion','password_dashboard','password_agenda','password_peluqueros','password_servicios','password_atenciones','password_reportes','password_caja','password_gastos','password_maestra','pregunta_seguridad','respuesta_seguridad','peluqueria_id','peluqueria_nombre','peluqueria_email','peluqueria_horario','nombre_app','sena_monto','sena_alias','sena_horas_vencimiento','sena_correo','remoto_peluqueria','remoto_nombre_contacto','remoto_contacto','remoto_telefono'])
 ipcMain.handle('config:set',(_,{clave,valor})=>{ if(!CONFIG_CLAVES_PERMITIDAS.has(clave)) return false; db.prepare('INSERT OR REPLACE INTO configuracion(clave,valor) VALUES(?,?)').run(clave,valor); return true })
 
 // CAJA
@@ -638,34 +638,41 @@ ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sen
     return { ok: false, error: e.message }
   }
 })
+// Registra (o recupera, si el email ya existe) la fila en `peluquerias` y deja esta instalación
+// vinculada localmente — usado tanto por el botón manual "Registrar nueva" como por la activación
+// remota de licencia, que ya conoce el email del cliente y puede vincular sin pedirle nada de nuevo.
+async function vincularPeluqueriaPorEmail(nombre, email) {
+  const sb = await getSupabase()
+
+  // Intentar insertar; si viola unique constraint, recuperar el existente
+  const {data:nueva, error:errInsert} = await sb.from('peluquerias').insert({nombre,email,activo:true}).select().maybeSingle()
+
+  let data
+  if (errInsert) {
+    // Si es error de clave duplicada, buscar el registro existente
+    if (errInsert.code === '23505') {
+      const {data:existente, error:errSelect} = await sb.from('peluquerias').select('*').eq('email', email).maybeSingle()
+      if (errSelect || !existente) throw new Error('Email ya registrado pero no se pudo recuperar. Usá "Ya tengo ID".')
+      data = existente
+    } else {
+      throw errInsert
+    }
+  } else {
+    data = nueva
+  }
+
+  const yaExistia = !nueva
+  db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
+  db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
+  db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
+  await vincularDevice(data.id)
+  await syncSupabase()
+  return { id: data.id, yaExistia }
+}
 ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
   try {
-    const sb=await getSupabase()
-
-    // Intentar insertar; si viola unique constraint, recuperar el existente
-    const {data:nueva, error:errInsert} = await sb.from('peluquerias').insert({nombre,email,activo:true}).select().maybeSingle()
-
-    let data
-    if (errInsert) {
-      // Si es error de clave duplicada, buscar el registro existente
-      if (errInsert.code === '23505') {
-        const {data:existente, error:errSelect} = await sb.from('peluquerias').select('*').eq('email', email).maybeSingle()
-        if (errSelect || !existente) return { ok:false, error:'Email ya registrado pero no se pudo recuperar. Usá "Ya tengo ID".' }
-        data = existente
-      } else {
-        throw errInsert
-      }
-    } else {
-      data = nueva
-    }
-
-    const yaExistia = !nueva
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
-    await vincularDevice(data.id)
-    await syncSupabase()
-    return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}`, yaExistia }
+    const { id, yaExistia } = await vincularPeluqueriaPorEmail(nombre, email)
+    return { ok:true, id, link:`${WEB_URL}/?p=${id}`, yaExistia }
   } catch(e){ return { ok:false, error:e.message } }
 })
 ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
@@ -1012,6 +1019,18 @@ async function consultarActivacionRemota(machineId) {
       if (fila.peluqueria) {
         const actual = db.prepare("SELECT valor FROM configuracion WHERE clave='nombre_app'").get()
         if (!actual?.valor) db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('nombre_app',?)").run(fila.peluqueria)
+      }
+
+      // Si la activación trae email, ya existe (o se crea) su fila en `peluquerias` del lado del
+      // panel (ver generar-licencia.js) — la vinculamos acá para que Configuración → Web y Backups
+      // ya la muestre lista, sin que el cliente tenga que "Registrar" de nuevo con el mismo email.
+      const yaVinculada = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()?.valor
+      if (fila.contacto && !yaVinculada) {
+        try {
+          await vincularPeluqueriaPorEmail(fila.peluqueria, fila.contacto)
+        } catch (e) {
+          console.error('No se pudo vincular peluquerias automáticamente tras la activación remota:', e.message)
+        }
       }
 
       return verificarLicencia()

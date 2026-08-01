@@ -31,6 +31,23 @@ export default function Licencia({ onActivada }) {
   }, [])
 
   useEffect(() => {
+    Promise.all([
+      window.electronAPI.getConfig('remoto_peluqueria'),
+      window.electronAPI.getConfig('remoto_nombre_contacto'),
+      window.electronAPI.getConfig('remoto_contacto'),
+      window.electronAPI.getConfig('remoto_telefono'),
+      window.electronAPI.getConfig('peluqueria_nombre'),
+    ]).then(([peluqueria, nombreContacto, contacto, telefono, peluqueriaNombre]) => {
+      setRemoto(r => ({
+        peluqueria: peluqueria?.valor || peluqueriaNombre?.valor || r.peluqueria,
+        nombreContacto: nombreContacto?.valor || r.nombreContacto,
+        contacto: contacto?.valor || r.contacto,
+        telefono: telefono?.valor || r.telefono,
+      }))
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
@@ -86,6 +103,10 @@ export default function Licencia({ onActivada }) {
         setErrorRemoto(resultado.error || 'No se pudo enviar la solicitud')
         return
       }
+      window.electronAPI.setConfig({ clave: 'remoto_peluqueria', valor: remoto.peluqueria.trim() }).catch(() => {})
+      window.electronAPI.setConfig({ clave: 'remoto_nombre_contacto', valor: remoto.nombreContacto.trim() }).catch(() => {})
+      window.electronAPI.setConfig({ clave: 'remoto_contacto', valor: remoto.contacto.trim() }).catch(() => {})
+      window.electronAPI.setConfig({ clave: 'remoto_telefono', valor: remoto.telefono.trim() }).catch(() => {})
       setModo('remoto-esperando')
       iniciarPolling()
     } catch {
@@ -243,19 +264,19 @@ export default function Licencia({ onActivada }) {
 
             <div>
               <label style={labelStyle}>Nombre de la peluquería *</label>
-              <input style={inputStyle} value={remoto.peluqueria} placeholder="Ej: Jofre Barber Shop"
+              <input style={inputStyle} value={remoto.peluqueria} placeholder="Ej: Barberia ..."
                 onChange={e => setRemoto(r => ({ ...r, peluqueria: e.target.value }))} />
             </div>
 
             <div>
               <label style={labelStyle}>Nombre de la persona</label>
-              <input style={inputStyle} value={remoto.nombreContacto} placeholder="Ej: Joaquín Jofre"
+              <input style={inputStyle} value={remoto.nombreContacto} placeholder="Ej: Jorge Messi"
                 onChange={e => setRemoto(r => ({ ...r, nombreContacto: e.target.value }))} />
             </div>
 
             <div>
               <label style={labelStyle}>Correo *</label>
-              <input style={inputStyle} type="email" value={remoto.contacto} placeholder="jofre@gmail.com"
+              <input style={inputStyle} type="email" value={remoto.contacto} placeholder="TuCorreo@gmail.com"
                 onChange={e => setRemoto(r => ({ ...r, contacto: e.target.value }))} />
             </div>
 
