@@ -1,4 +1,13 @@
 module.exports = {
+  '4.0.2': [
+    { titulo: 'Ahora puedes poner en pantalla completa la app', desc: 'Apretando F11 podras poner la app en pantalla completa.' },
+    { titulo: 'Turnos online funcionando de nuevo', desc: 'Se solucionó un problema que hacía que la app no avisara de turnos nuevos y que impedía ver los pendientes, aceptar, rechazar, proponer otro horario o confirmar señas desde la app de escritorio.' },
+    { titulo: 'WhatsApp al cliente restablecido', desc: 'El aviso automático por WhatsApp al responder un turno (confirmado, rechazado, propuesta de horario o cancelación) vuelve a enviarse correctamente.' },
+    { titulo: 'Menos riesgo de doble reserva', desc: 'Los turnos que cargás manualmente en la Agenda vuelven a reflejarse en el calendario de reservas online, para que un cliente no pueda tomar un horario que ya está ocupado en el local.' },
+  ],
+
+
+
   '4.0.1': [
     { titulo: 'Turnos online funcionando de nuevo', desc: 'Se solucionó un problema que hacía que la app no avisara de turnos nuevos y que impedía ver los pendientes, aceptar, rechazar, proponer otro horario o confirmar señas desde la app de escritorio.' },
     { titulo: 'WhatsApp al cliente restablecido', desc: 'El aviso automático por WhatsApp al responder un turno (confirmado, rechazado, propuesta de horario o cancelación) vuelve a enviarse correctamente.' },

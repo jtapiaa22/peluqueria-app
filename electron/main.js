@@ -1103,6 +1103,12 @@ function createWindow(){
   mainWindow=new BrowserWindow({width:1280,height:800,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,webSecurity:!isDev}})
   // Chromium guarda el zoom por sitio en disco; forzamos 1.0 para pisar cualquier valor que haya quedado guardado
   mainWindow.webContents.on('did-finish-load', () => mainWindow.webContents.setZoomFactor(1))
+  // Sin menú de aplicación no hay atajo F11 por defecto: lo manejamos a mano
+  mainWindow.webContents.on('before-input-event', (_, input) => {
+    if (input.type === 'keyDown' && input.key === 'F11') {
+      mainWindow.setFullScreen(!mainWindow.isFullScreen())
+    }
+  })
   if(isDev) mainWindow.loadURL('http://localhost:5173')
   else mainWindow.loadFile(path.join(__dirname,'../dist/index.html'))
 }
