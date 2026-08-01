@@ -966,6 +966,63 @@ function verificarLicencia() {
   }
 }
 
+// ACTIVACIÓN REMOTA
+// Camino opcional para peluquerías con internet: en vez de recibir el .lic por mail y cargarlo a
+// mano, la app manda una "solicitud de activación" a Supabase (mismo proyecto que ya usa esta app
+// para turnos web y backups) y hace polling contra una función RPC hasta que la activen desde el
+// panel. El .lic manual sigue existiendo tal cual, sin cambios.
+async function solicitarActivacionRemota(datos, machineId) {
+  try {
+    const sb = await getSupabase()
+    const { error } = await sb.from('peluqueria_solicitudes').insert({
+      peluqueria: datos.peluqueria,
+      nombre_contacto: datos.nombreContacto || null,
+      contacto: datos.contacto,
+      telefono: datos.telefono || null,
+      machine_id: machineId,
+      nombre_maquina: os.hostname(),
+      estado: 'pendiente',
+    })
+    if (error) return { success: false, error: 'No se pudo enviar la solicitud.' }
+    return { success: true }
+  } catch {
+    return { success: false, error: 'No se pudo conectar. Revisá tu conexión a internet.' }
+  }
+}
+
+async function consultarActivacionRemota(machineId) {
+  try {
+    const sb = await getSupabase()
+    const { data, error } = await sb.rpc('peluqueria_estado_solicitud', { p_machine_id: machineId })
+    const fila = !error && data?.[0]
+    if (!fila) return { valida: false, pendiente: true }
+
+    if (fila.estado === 'rechazada') {
+      return { valida: false, mensaje: 'La solicitud de activación remota fue rechazada. Contactá a tu proveedor.' }
+    }
+
+    if (fila.estado === 'activada' && fila.lic_base64) {
+      const lp = isDev ? path.join(__dirname, '../licencia.lic') : path.join(app.getPath('userData'), 'licencia.lic')
+      fs.writeFileSync(lp, fila.lic_base64)
+      db.prepare("DELETE FROM configuracion WHERE clave='ultima_fecha_uso'").run()
+      db.prepare("DELETE FROM configuracion WHERE clave='dias_usados'").run()
+
+      // Precarga el nombre del negocio con el que se generó la licencia, salvo que ya haya uno
+      // personalizado — el .lic firmado no trae el nombre, así que solo se puede hacer acá.
+      if (fila.peluqueria) {
+        const actual = db.prepare("SELECT valor FROM configuracion WHERE clave='nombre_app'").get()
+        if (!actual?.valor) db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('nombre_app',?)").run(fila.peluqueria)
+      }
+
+      return verificarLicencia()
+    }
+
+    return { valida: false, pendiente: true }
+  } catch {
+    return { valida: false, pendiente: true }
+  }
+}
+
 // BACKUP NUBE
 ipcMain.handle('backup:syncNube',      async () => syncBackupCompleto())
 ipcMain.handle('backup:restaurarNube', async () => restaurarDesdeNube())
@@ -989,6 +1046,8 @@ ipcMain.handle('backup:existeEnNube', async () => {
 ipcMain.handle('licencia:getMachineId', () => getMachineId())
 ipcMain.handle('licencia:verificar',()=>verificarLicencia())
 ipcMain.handle('licencia:cargar',(_,ruta)=>{ try{ const lp=isDev?path.join(__dirname,'../licencia.lic'):path.join(app.getPath('userData'),'licencia.lic'); fs.copyFileSync(ruta,lp); db.prepare("DELETE FROM configuracion WHERE clave='ultima_fecha_uso'").run(); db.prepare("DELETE FROM configuracion WHERE clave='dias_usados'").run(); return verificarLicencia() }catch{return {valida:false,mensaje:'Error al cargar el archivo.'}} })
+ipcMain.handle('licencia:solicitarRemota', (_, datos) => solicitarActivacionRemota(datos, getMachineId()))
+ipcMain.handle('licencia:consultarRemota', () => consultarActivacionRemota(getMachineId()))
 
 // ACTUALIZADOR
 ipcMain.handle('updater:check',async()=>{ try{ const r=await autoUpdater.checkForUpdates(); return {disponible:r.updateInfo.version!==app.getVersion(),version:r.updateInfo.version} }catch(e){return {disponible:false,mensaje:e.message}} })

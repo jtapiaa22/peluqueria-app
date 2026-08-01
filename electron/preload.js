@@ -97,6 +97,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   verificarLicencia:    ()      => ipcRenderer.invoke('licencia:verificar'),
   cargarLicencia:       (ruta)  => ipcRenderer.invoke('licencia:cargar', ruta),
   getMachineId: () => ipcRenderer.invoke('licencia:getMachineId'),
+  solicitarLicenciaRemota: (datos) => ipcRenderer.invoke('licencia:solicitarRemota', datos),
+  consultarLicenciaRemota: ()      => ipcRenderer.invoke('licencia:consultarRemota'),
 
   // Actualizador
   checkUpdate:          ()      => ipcRenderer.invoke('updater:check'),

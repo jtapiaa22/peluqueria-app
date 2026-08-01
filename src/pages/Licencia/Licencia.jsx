@@ -1,5 +1,18 @@
-import { useState, useEffect } from 'react'
-import { ShieldX, Upload, Copy, Check } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { ShieldX, Upload, Copy, Check, Wifi, Loader2 } from 'lucide-react'
+
+const POLL_MS = 6000
+
+const inputStyle = {
+  width: '100%', background: 'var(--bg-main)', border: '1px solid var(--border-soft)',
+  borderRadius: 8, padding: '9px 12px', color: 'var(--text-main)', fontSize: 13,
+  boxSizing: 'border-box',
+}
+
+const labelStyle = {
+  color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, marginBottom: 6,
+  display: 'block',
+}
 
 export default function Licencia({ onActivada }) {
   const [mensaje, setMensaje] = useState('')
@@ -7,8 +20,18 @@ export default function Licencia({ onActivada }) {
   const [machineId, setMachineId] = useState('')
   const [copiado, setCopiado] = useState(false)
 
+  const [modo, setModo] = useState('archivo') // 'archivo' | 'remoto-form' | 'remoto-esperando'
+  const [remoto, setRemoto] = useState({ peluqueria: '', nombreContacto: '', contacto: '', telefono: '' })
+  const [loadingRemoto, setLoadingRemoto] = useState(false)
+  const [errorRemoto, setErrorRemoto] = useState('')
+  const pollRef = useRef(null)
+
   useEffect(() => {
     window.electronAPI.getMachineId().then(setMachineId)
+  }, [])
+
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [])
 
   const copiar = () => {
@@ -41,6 +64,61 @@ export default function Licencia({ onActivada }) {
     }
   }
 
+  const detenerPolling = () => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  const enviarSolicitudRemota = async () => {
+    if (!remoto.peluqueria.trim() || !remoto.contacto.trim()) {
+      setErrorRemoto('Completá al menos el nombre de la peluquería y el correo')
+      return
+    }
+    setLoadingRemoto(true)
+    setErrorRemoto('')
+    try {
+      const resultado = await window.electronAPI.solicitarLicenciaRemota({
+        peluqueria: remoto.peluqueria.trim(),
+        nombreContacto: remoto.nombreContacto.trim() || undefined,
+        contacto: remoto.contacto.trim(),
+        telefono: remoto.telefono.trim() || undefined,
+      })
+      if (!resultado.success) {
+        setErrorRemoto(resultado.error || 'No se pudo enviar la solicitud')
+        return
+      }
+      setModo('remoto-esperando')
+      iniciarPolling()
+    } catch {
+      setErrorRemoto('No se pudo conectar. Revisá tu conexión a internet.')
+    } finally {
+      setLoadingRemoto(false)
+    }
+  }
+
+  const iniciarPolling = () => {
+    detenerPolling()
+    pollRef.current = setInterval(async () => {
+      try {
+        const resultado = await window.electronAPI.consultarLicenciaRemota()
+        if (resultado.valida) {
+          detenerPolling()
+          onActivada()
+        } else if (!resultado.pendiente) {
+          detenerPolling()
+          setErrorRemoto(resultado.mensaje || 'La solicitud fue rechazada.')
+          setModo('remoto-form')
+        }
+      } catch {
+        // Sin conexión momentánea: se reintenta en el próximo tick, no se corta el polling.
+      }
+    }, POLL_MS)
+  }
+
+  const cancelarEspera = () => {
+    detenerPolling()
+    setModo('remoto-form')
+  }
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -66,65 +144,173 @@ export default function Licencia({ onActivada }) {
           <h2 style={{ color: 'var(--text-main)', fontSize: 20, fontWeight: 700, margin: '0 0 8px' }}>
             Licencia no activada
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
-            Enviá tu <strong style={{ color: 'var(--text-main)' }}>ID de máquina</strong> junto
-            al pago para recibir tu archivo de licencia.
-          </p>
+          {modo === 'archivo' && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Enviá tu <strong style={{ color: 'var(--text-main)' }}>ID de máquina</strong> junto
+              al pago para recibir tu archivo de licencia.
+            </p>
+          )}
+          {modo === 'remoto-form' && (
+            <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Completá estos datos y nosotros activamos la licencia de forma remota, sin que tengas
+              que cargar ningún archivo.
+            </p>
+          )}
         </div>
 
         {/* ID de máquina */}
-        <div style={{ width: '100%' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            ID de tu máquina
+        {modo !== 'remoto-esperando' && (
+          <div style={{ width: '100%' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 600, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              ID de tu máquina
+            </div>
+            <div style={{
+              background: 'var(--bg-main)', border: '1px solid var(--border-soft)',
+              borderRadius: 8, padding: '10px 14px',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
+              <code style={{ color: 'var(--accent-bright)', fontSize: 12, flex: 1, wordBreak: 'break-all', lineHeight: 1.5 }}>
+                {machineId || 'Cargando...'}
+              </code>
+              <button
+                onClick={copiar}
+                title={copiado ? 'Copiado' : 'Copiar ID'}
+                style={{
+                  background: copiado ? 'rgba(74,222,128,0.1)' : 'var(--bg-card)',
+                  border: `1px solid ${copiado ? 'rgba(74,222,128,0.3)' : 'var(--border-soft)'}`,
+                  borderRadius: 6, padding: '6px 8px', cursor: 'pointer',
+                  color: copiado ? '#4ade80' : 'var(--text-muted)',
+                  flexShrink: 0, display: 'flex', alignItems: 'center',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {copiado ? <Check size={15} /> : <Copy size={15} />}
+              </button>
+            </div>
           </div>
-          <div style={{
-            background: 'var(--bg-main)', border: '1px solid var(--border-soft)',
-            borderRadius: 8, padding: '10px 14px',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}>
-            <code style={{ color: 'var(--accent-bright)', fontSize: 12, flex: 1, wordBreak: 'break-all', lineHeight: 1.5 }}>
-              {machineId || 'Cargando...'}
-            </code>
+        )}
+
+        {modo === 'archivo' && (
+          <>
             <button
-              onClick={copiar}
-              title={copiado ? 'Copiado' : 'Copiar ID'}
+              onClick={cargarArchivo}
+              disabled={cargando}
               style={{
-                background: copiado ? 'rgba(74,222,128,0.1)' : 'var(--bg-card)',
-                border: `1px solid ${copiado ? 'rgba(74,222,128,0.3)' : 'var(--border-soft)'}`,
-                borderRadius: 6, padding: '6px 8px', cursor: 'pointer',
-                color: copiado ? '#4ade80' : 'var(--text-muted)',
-                flexShrink: 0, display: 'flex', alignItems: 'center',
-                transition: 'all 0.2s',
+                width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
+                borderRadius: 10, padding: '12px 20px', cursor: cargando ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontSize: 14, fontWeight: 600, opacity: cargando ? 0.7 : 1,
+                transition: 'opacity 0.2s',
               }}
             >
-              {copiado ? <Check size={15} /> : <Copy size={15} />}
+              <Upload size={16} />
+              {cargando ? 'Verificando...' : 'Cargar licencia (.lic)'}
+            </button>
+
+            {mensaje && (
+              <div style={{
+                width: '100%', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+                borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13, textAlign: 'center',
+              }}>
+                {mensaje}
+              </div>
+            )}
+
+            <button
+              onClick={() => setModo('remoto-form')}
+              style={{
+                width: '100%', background: 'none', border: 'none', color: 'var(--accent-bright)',
+                fontSize: 13, cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: 6,
+              }}
+            >
+              <Wifi size={14} />
+              ¿Tenés wifi? Activar remotamente
+            </button>
+          </>
+        )}
+
+        {modo === 'remoto-form' && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {errorRemoto && (
+              <div style={{
+                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+                borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13,
+              }}>
+                {errorRemoto}
+              </div>
+            )}
+
+            <div>
+              <label style={labelStyle}>Nombre de la peluquería *</label>
+              <input style={inputStyle} value={remoto.peluqueria} placeholder="Ej: Jofre Barber Shop"
+                onChange={e => setRemoto(r => ({ ...r, peluqueria: e.target.value }))} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Nombre de la persona</label>
+              <input style={inputStyle} value={remoto.nombreContacto} placeholder="Ej: Joaquín Jofre"
+                onChange={e => setRemoto(r => ({ ...r, nombreContacto: e.target.value }))} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Correo *</label>
+              <input style={inputStyle} type="email" value={remoto.contacto} placeholder="jofre@gmail.com"
+                onChange={e => setRemoto(r => ({ ...r, contacto: e.target.value }))} />
+            </div>
+
+            <div>
+              <label style={labelStyle}>Teléfono / WhatsApp</label>
+              <input style={inputStyle} type="tel" value={remoto.telefono} placeholder="+54 9 11 1234-5678"
+                onChange={e => setRemoto(r => ({ ...r, telefono: e.target.value }))} />
+            </div>
+
+            <button
+              onClick={enviarSolicitudRemota}
+              disabled={loadingRemoto}
+              style={{
+                width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
+                borderRadius: 10, padding: '12px 20px', cursor: loadingRemoto ? 'not-allowed' : 'pointer',
+                fontSize: 14, fontWeight: 600, opacity: loadingRemoto ? 0.7 : 1,
+              }}
+            >
+              {loadingRemoto ? 'Enviando...' : 'Enviar solicitud'}
+            </button>
+
+            <button
+              onClick={() => setModo('archivo')}
+              style={{
+                width: '100%', background: 'none', border: 'none', color: 'var(--text-muted)',
+                fontSize: 13, cursor: 'pointer', padding: 4,
+              }}
+            >
+              ← Volver a activar con archivo
             </button>
           </div>
-        </div>
+        )}
 
-        {/* Botón cargar */}
-        <button
-          onClick={cargarArchivo}
-          disabled={cargando}
-          style={{
-            width: '100%', background: 'var(--accent)', color: 'white', border: 'none',
-            borderRadius: 10, padding: '12px 20px', cursor: cargando ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            fontSize: 14, fontWeight: 600, opacity: cargando ? 0.7 : 1,
-            transition: 'opacity 0.2s',
-          }}
-        >
-          <Upload size={16} />
-          {cargando ? 'Verificando...' : 'Cargar licencia (.lic)'}
-        </button>
-
-        {/* Error */}
-        {mensaje && (
-          <div style={{
-            width: '100%', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
-            borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13, textAlign: 'center',
-          }}>
-            {mensaje}
+        {modo === 'remoto-esperando' && (
+          <div style={{ width: '100%', textAlign: 'center', padding: '4px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <Loader2 size={32} color="var(--accent-bright)" style={{ animation: 'spin 1s linear infinite' }} />
+            </div>
+            <p style={{ color: 'var(--text-main)', fontSize: 15, fontWeight: 600, margin: '0 0 8px' }}>
+              Esperando activación remota…
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, margin: '0 0 16px' }}>
+              Ya enviamos tus datos. En cuanto activemos la licencia desde nuestro lado, la app
+              arranca sola — dejá esta pantalla abierta.
+            </p>
+            <button
+              onClick={cancelarEspera}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                fontSize: 13, cursor: 'pointer', padding: 4,
+              }}
+            >
+              Cancelar y volver
+            </button>
+            <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
           </div>
         )}
 
