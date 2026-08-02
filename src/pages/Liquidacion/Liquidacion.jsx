@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle, ChevronDown, ChevronUp, Trash2, Users } from 'lucide-react'
+import { CheckCircle, ChevronDown, ChevronUp, Trash2, Users, Ticket, BarChart2, ClipboardList } from 'lucide-react'
 import { ModalAlert, ModalConfirm } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import EmptyState from '../../components/EmptyState'
@@ -156,8 +156,8 @@ export default function Liquidacion() {
           notas: formPago.notas
         })
         const msgOk = propinasFinal > 0
-          ? `✅ Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${propinasFinal.toLocaleString('es-AR')} = $${(montoFinal + propinasFinal).toLocaleString('es-AR')} total`
-          : `✅ Pago registrado a ${peluquero.nombre}`
+          ? `Pago registrado a ${peluquero.nombre} — comisión $${montoFinal.toLocaleString('es-AR')} + propinas $${propinasFinal.toLocaleString('es-AR')} = $${(montoFinal + propinasFinal).toLocaleString('es-AR')} total`
+          : `Pago registrado a ${peluquero.nombre}`
         alertar(msgOk, 'success')
         await Promise.all([cargarPagosExistentes(peluquero.id), cargarHistorial(peluquero.id)])
       }
@@ -264,7 +264,7 @@ export default function Liquidacion() {
       filas: peluquerosConDatos.map(p => [
         p.nombre,
         String(p.cantidad),
-        p.cantVales > 0 ? `🎫 ${p.cantVales}` : '—',
+        p.cantVales > 0 ? `${p.cantVales} vale${p.cantVales > 1 ? 's' : ''}` : '—',
         `$${p.totalGenerado.toLocaleString('es-AR')}`,
         `${p.comision}%`,
         `$${p.montoComision.toLocaleString('es-AR')}`
@@ -305,17 +305,17 @@ export default function Liquidacion() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total + Propinas</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total a pagar en comisiones</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: '#f87171' }}>${totalComisiones.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--danger)' }}>${totalComisiones.toLocaleString('es-AR')}</div>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -346,29 +346,29 @@ export default function Liquidacion() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <h3 style={{ color: 'var(--text-main)', margin: 0 }}>{p.nombre}</h3>
                       {p.cantVales > 0 && (
-                        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
-                          🎫 {p.cantVales} vale{p.cantVales > 1 ? 's' : ''}
+                        <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Ticket size={11} /> {p.cantVales} vale{p.cantVales > 1 ? 's' : ''}
                         </span>
                       )}
                       {estadoPago === 'pagado' && (
-                        <span style={{ background: 'rgba(74,222,128,0.15)', color: '#4ade80', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
-                          ✓ Pagado
+                        <span style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={11} /> Pagado
                         </span>
                       )}
                       {estadoPago === 'parcial' && (
-                        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
                           Parcial · resta ${(totalDeuda - totalPagadoPeriodo).toLocaleString('es-AR')}
                         </span>
                       )}
                       {estadoPago === 'pendiente' && (
-                        <span style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                        <span style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
                           Pendiente
                         </span>
                       )}
                     </div>
                     {p.usaTramos ? (
-                      <span style={{ background: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                        📊 Tramos configurados
+                      <span style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', color: 'var(--success)', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <BarChart2 size={13} /> Tramos configurados
                       </span>
                     ) : (
                       <span style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', color: 'var(--accent-bright)', padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
@@ -379,56 +379,56 @@ export default function Liquidacion() {
 
                   {/* Stats — solo cortes reales, vales aparte */}
                   <div style={{ display: 'grid', gridTemplateColumns: p.cantVales > 0 ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Cortes</div>
                       <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>{p.cantidad}</div>
                     </div>
                     {p.cantVales > 0 && (
-                      <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Vales 🎫</div>
-                        <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: 20 }}>{p.cantVales}</div>
+                      <div style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Vales</div>
+                        <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 20 }}>{p.cantVales}</div>
                       </div>
                     )}
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total generado</div>
-                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 18 }}>${p.totalGenerado.toLocaleString('es-AR')}</div>
                     </div>
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>
                         {p.usaTramos ? 'Le corresponde (tramo)' : `Le corresponde (${p.comision}%)`}
                       </div>
-                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 18 }}>${p.montoComision.toLocaleString('es-AR')}</div>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Queda para el local</div>
                       <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>${(p.totalGenerado - p.montoComision).toLocaleString('es-AR')}</div>
                     </div>
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>
-                        Propinas {p.porcentajePropina < 100 && <span style={{ color: '#fb923c' }}>({p.porcentajePropina}%)</span>}
+                        Propinas {p.porcentajePropina < 100 && <span style={{ color: 'var(--warning)' }}>({p.porcentajePropina}%)</span>}
                       </div>
-                      <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${p.propinasAPagar.toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 18 }}>${p.propinasAPagar.toLocaleString('es-AR')}</div>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 4, fontSize: 11 }}>
                         {p.totalPropinas !== p.propinasAPagar && (
                           <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>
                         )}
-                        {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                        {p.totalPropinasEfectivo > 0 && <span style={{ color: 'var(--success)' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
                         {p.totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                       </div>
                     </div>
-                    <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total a pagar (con propinas)</div>
-                      <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</div>
+                      <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 18 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</div>
                     </div>
                   </div>
 
                   {/* Desglose por atención (solo con tramos) */}
                   {p.usaTramos && p.desglose && p.desglose.length > 0 && (
                     <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 600, marginBottom: 8 }}>
-                        📋 Desglose por servicio
+                      <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <ClipboardList size={13} /> Desglose por servicio
                       </div>
                       <table className="table" style={{ fontSize: 12 }}>
                         <thead>
@@ -444,14 +444,14 @@ export default function Liquidacion() {
                             <tr key={i}>
                               <td style={{ color: 'var(--text-soft)' }}>{d.servicio}</td>
                               <td style={{ color: 'var(--text-muted)' }}>${d.precio.toLocaleString('es-AR')}</td>
-                              <td style={{ color: '#4ade80', fontWeight: 700 }}>
+                              <td style={{ color: 'var(--success)', fontWeight: 700 }}>
                                 ${d.pago.toLocaleString('es-AR')}
-                                {!d.usóTramo && <span style={{ color: '#facc15', fontSize: 10, marginLeft: 4 }}>(% fallback)</span>}
+                                {!d.usóTramo && <span style={{ color: 'var(--warning)', fontSize: 10, marginLeft: 4 }}>(% fallback)</span>}
                               </td>
                               <td>
-                                <div style={{ color: '#f87171', fontWeight: 700 }}>${d.propina.toLocaleString('es-AR')}</div>
+                                <div style={{ color: 'var(--danger)', fontWeight: 700 }}>${d.propina.toLocaleString('es-AR')}</div>
                                 <div style={{ display: 'flex', gap: 6, fontSize: 10, marginTop: 2 }}>
-                                  {d.propina_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${d.propina_efectivo.toLocaleString('es-AR')}</span>}
+                                  {d.propina_efectivo > 0 && <span style={{ color: 'var(--success)' }}>E: ${d.propina_efectivo.toLocaleString('es-AR')}</span>}
                                   {d.propina_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${d.propina_transferencia.toLocaleString('es-AR')}</span>}
                                 </div>
                               </td>
@@ -459,9 +459,9 @@ export default function Liquidacion() {
                           ))}
                           {/* Vales informativos al final del desglose */}
                           {p.cantVales > 0 && (
-                            <tr style={{ background: 'rgba(251,191,36,0.05)', borderTop: '1px dashed rgba(251,191,36,0.3)' }}>
-                              <td style={{ color: '#fbbf24', fontStyle: 'italic' }}>
-                                🎫 Vale × {p.cantVales} (no genera comisión)
+                            <tr style={{ background: 'color-mix(in srgb, var(--warning) 5%, transparent)', borderTop: '1px dashed color-mix(in srgb, var(--warning) 30%, transparent)' }}>
+                              <td style={{ color: 'var(--warning)', fontStyle: 'italic' }}>
+                                <Ticket size={12} style={{ verticalAlign: -2, marginRight: 3 }} /> Vale × {p.cantVales} (no genera comisión)
                               </td>
                               <td style={{ color: 'var(--text-muted)' }}>—</td>
                               <td style={{ color: 'var(--text-muted)' }}>—</td>
@@ -474,26 +474,26 @@ export default function Liquidacion() {
                       {/* Tabla resumen de totales */}
                       <table style={{ width: '100%', marginTop: 12, borderCollapse: 'separate', borderSpacing: 0, border: '1px solid var(--border-soft)', borderRadius: 10, overflow: 'hidden', fontSize: 13 }}>
                         <tbody>
-                          <tr style={{ background: 'rgba(248, 113, 113, 0.05)' }}>
+                          <tr style={{ background: 'color-mix(in srgb, var(--danger) 5%, transparent)' }}>
                             <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>Total (cortes)</td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--danger)', fontWeight: 700, fontSize: 14 }}>${p.montoComision.toLocaleString('es-AR')}</td>
                           </tr>
-                          <tr style={{ background: 'rgba(74, 222, 128, 0.05)', borderTop: '1px solid var(--border-soft)' }}>
+                          <tr style={{ background: 'color-mix(in srgb, var(--success) 5%, transparent)', borderTop: '1px solid var(--border-soft)' }}>
                             <td style={{ padding: '10px 14px', color: 'var(--text-soft)', fontWeight: 600 }}>
-                              Propinas {p.porcentajePropina < 100 && <span style={{ color: '#fb923c', fontWeight: 400 }}>({p.porcentajePropina}%)</span>}
+                              Propinas {p.porcentajePropina < 100 && <span style={{ color: 'var(--warning)', fontWeight: 400 }}>({p.porcentajePropina}%)</span>}
                             </td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#4ade80', fontWeight: 700, fontSize: 14 }}>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--success)', fontWeight: 700, fontSize: 14 }}>
                               ${p.propinasAPagar.toLocaleString('es-AR')}
                               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 2, fontSize: 11 }}>
                                 {p.totalPropinas !== p.propinasAPagar && <span style={{ color: 'var(--text-muted)' }}>total: ${p.totalPropinas.toLocaleString('es-AR')}</span>}
-                                {p.totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                                {p.totalPropinasEfectivo > 0 && <span style={{ color: 'var(--success)' }}>Ef: ${p.totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
                                 {p.totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${p.totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
                               </div>
                             </td>
                           </tr>
-                          <tr style={{ background: 'rgba(248, 113, 113, 0.10)', borderTop: '1px solid var(--border-soft)' }}>
+                          <tr style={{ background: 'color-mix(in srgb, var(--danger) 10%, transparent)', borderTop: '1px solid var(--border-soft)' }}>
                             <td style={{ padding: '10px 14px', color: 'var(--text-main)', fontWeight: 700 }}>Total con Propinas</td>
-                            <td style={{ padding: '10px 14px', textAlign: 'right', color: '#f87171', fontWeight: 700, fontSize: 16 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</td>
+                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--danger)', fontWeight: 700, fontSize: 16 }}>${(p.montoComision + p.propinasAPagar).toLocaleString('es-AR')}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -502,8 +502,8 @@ export default function Liquidacion() {
 
                   {/* Si usa % simple y tiene vales, mostrar nota */}
                   {!p.usaTramos && p.cantVales > 0 && (
-                    <div style={{ marginBottom: 16, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#fbbf24' }}>
-                      🎫 Este peluquero tiene {p.cantVales} vale{p.cantVales > 1 ? 's' : ''} en el período. Los vales no se incluyen en el total generado ni en la comisión.
+                    <div style={{ marginBottom: 16, background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--warning)' }}>
+                      <Ticket size={13} style={{ verticalAlign: -2, marginRight: 3 }} /> Este peluquero tiene {p.cantVales} vale{p.cantVales > 1 ? 's' : ''} en el período. Los vales no se incluyen en el total generado ni en la comisión.
                     </div>
                   )}
 
@@ -514,7 +514,7 @@ export default function Liquidacion() {
                       onClick={() => abrirPanelPago(p.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}
                     >
-                      <CheckCircle size={15} color="#4ade80" />
+                      <CheckCircle size={15} color="var(--success)" />
                       Registrar pago
                       {panelAbierto ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
@@ -531,7 +531,7 @@ export default function Liquidacion() {
                       transition={{ duration: 0.2 }}
                       style={{ overflow: 'hidden', borderTop: '1px solid var(--border-soft)' }}
                     >
-                      <div style={{ padding: '20px 24px', background: 'rgba(74, 222, 128, 0.03)' }}>
+                      <div style={{ padding: '20px 24px', background: 'color-mix(in srgb, var(--success) 3%, transparent)' }}>
 
                         {/* Formulario de pago */}
                         <div style={{ display: 'grid', gridTemplateColumns: p.propinasRestantes > 0 ? '1fr 1fr 1fr 1fr 1fr auto' : '1fr 1fr 1fr 1fr auto', gap: 12, alignItems: 'flex-end', marginBottom: 16 }}>
@@ -543,8 +543,8 @@ export default function Liquidacion() {
                           </div>
                           <div className="form-group" style={{ margin: 0 }}>
                             <label>Total calculado</label>
-                            <div style={{ background: 'var(--bg-main)', border: '1px solid rgba(248, 113, 113, 0.4)', borderRadius: 10, padding: '8px 14px' }}>
-                              <div style={{ fontSize: 15, fontWeight: 700, color: '#f87171' }}>
+                            <div style={{ background: 'var(--bg-main)', border: '1px solid color-mix(in srgb, var(--danger) 40%, transparent)', borderRadius: 10, padding: '8px 14px' }}>
+                              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--danger)' }}>
                                 ${(Math.max(0, pendiente) + p.propinasRestantes).toLocaleString('es-AR')}
                               </div>
                               {p.propinasRestantes > 0 && (
@@ -566,7 +566,7 @@ export default function Liquidacion() {
                               value={fmtMiles(formPago.montoManual)}
                               onChange={e => setFormPago({ ...formPago, montoManual: parseMiles(e.target.value) })}
                               placeholder={`$${Math.max(0, pendiente).toLocaleString('es-AR')}`}
-                              style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? '#facc15' : undefined }}
+                              style={{ fontSize: 14, fontWeight: formPago.montoManual ? 700 : 400, color: formPago.montoManual ? 'var(--warning)' : undefined }}
                             />
                           </div>
                           {p.propinasRestantes > 0 && (
@@ -582,9 +582,9 @@ export default function Liquidacion() {
                                 value={fmtMiles(formPago.propinasManual)}
                                 onChange={e => setFormPago({ ...formPago, propinasManual: parseMiles(e.target.value) })}
                                 placeholder={`$${p.propinasRestantes.toLocaleString('es-AR')}`}
-                                style={{ fontSize: 14, fontWeight: formPago.propinasManual ? 700 : 400, color: formPago.propinasManual ? '#facc15' : undefined }}
+                                style={{ fontSize: 14, fontWeight: formPago.propinasManual ? 700 : 400, color: formPago.propinasManual ? 'var(--warning)' : undefined }}
                               />
-                              <div style={{ fontSize: 11, color: '#facc15', marginTop: 4 }}>
+                              <div style={{ fontSize: 11, color: 'var(--warning)', marginTop: 4 }}>
                                 total a entregar: ${(
                                   (formPago.montoManual !== '' ? Number(formPago.montoManual) : Math.max(0, pendiente)) +
                                   (formPago.propinasManual !== '' ? Number(formPago.propinasManual) : p.propinasRestantes)
@@ -645,7 +645,7 @@ export default function Liquidacion() {
                                     <tr key={pg.id} style={{ background: esPeriodoActual ? 'rgba(var(--accent-bright-rgb),0.06)' : undefined }}>
                                       <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
                                       <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
-                                      <td style={{ color: '#4ade80', fontWeight: 700 }}>
+                                      <td style={{ color: 'var(--success)', fontWeight: 700 }}>
                                         ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
                                         {Number(pg.propinas_pagadas) > 0 && (
                                           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>

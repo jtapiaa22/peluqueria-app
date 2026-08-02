@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { X, Eye, Scissors, Archive } from 'lucide-react'
+import { X, Eye, Scissors, Archive, Ticket, Calendar } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import Skeleton from '../../components/Skeleton'
@@ -171,7 +171,7 @@ export default function Caja() {
   const BadgePago = ({ a }) => {
     if (a.metodo_pago === 'vale') {
       return (
-        <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+        <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
           Vale
         </span>
       )
@@ -179,7 +179,7 @@ export default function Caja() {
     if (a.metodo_pago === 'mixto') {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+          <span style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
             ef ${Number(a.monto_efectivo).toLocaleString('es-AR')}
           </span>
           <span style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', color: 'var(--accent-2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
@@ -190,8 +190,8 @@ export default function Caja() {
     }
     return (
       <span style={{
-        background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(var(--accent-2-rgb), 0.15)',
-        color: a.metodo_pago === 'efectivo' ? '#4ade80' : 'var(--accent-2)',
+        background: a.metodo_pago === 'efectivo' ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'rgba(var(--accent-2-rgb), 0.15)',
+        color: a.metodo_pago === 'efectivo' ? 'var(--success)' : 'var(--accent-2)',
         padding: '2px 10px', borderRadius: 99, fontSize: 12
       }}>
         {a.metodo_pago}
@@ -232,16 +232,16 @@ export default function Caja() {
 
               {/* Cards apertura / cierre */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 10, padding: '14px 18px' }}>
+                <div style={{ background: 'color-mix(in srgb, var(--success) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)', borderRadius: 10, padding: '14px 18px' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Apertura</div>
-                  <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 22 }}>{detalleCierre.cierre.hora_apertura}hs</div>
-                  <div style={{ color: '#4ade80', fontSize: 13, marginTop: 4 }}>{detalleCierre.cierre.fecha}</div>
+                  <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 22 }}>{detalleCierre.cierre.hora_apertura}hs</div>
+                  <div style={{ color: 'var(--success)', fontSize: 13, marginTop: 4 }}>{detalleCierre.cierre.fecha}</div>
                 </div>
                 <div style={{ background: 'rgba(var(--accent-2-rgb), 0.1)', border: '1px solid rgba(var(--accent-2-rgb), 0.3)', borderRadius: 10, padding: '14px 18px' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Cierre
                     {detalleCierre.cierre.hora_cierre < detalleCierre.cierre.hora_apertura && (
-                      <span style={{ marginLeft: 8, background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 10, padding: '1px 7px', borderRadius: 99 }}>
+                      <span style={{ marginLeft: 8, background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', fontSize: 10, padding: '1px 7px', borderRadius: 99 }}>
                         día siguiente
                       </span>
                     )}
@@ -262,19 +262,19 @@ export default function Caja() {
 
               {/* Totales cierre */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
-                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Efectivo</div>
-                  <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>
+                  <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 18 }}>
                     ${Number(detalleCierre.cierre.total_efectivo).toLocaleString('es-AR')}
                   </div>
                 </div>
-                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Transferencia</div>
                   <div style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 18 }}>
                     ${Number(detalleCierre.cierre.total_transferencia).toLocaleString('es-AR')}
                   </div>
                 </div>
-                <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total</div>
                   <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>
                     ${Number(detalleCierre.cierre.total_general).toLocaleString('es-AR')}
@@ -289,7 +289,7 @@ export default function Caja() {
                   <tr>
                     <th>Peluquero</th>
                     <th>Cortes</th>
-                    <th>Vales 🎫</th>
+                    <th>Vales</th>
                     <th>Total generado</th>
                     <th>Propinas</th>
                   </tr>
@@ -300,14 +300,14 @@ export default function Caja() {
                       <td>{nombre}</td>
                       {/* Cortes = todos los cortes hechos (incluye los pagados con vale) */}
                       <td>{data.atenciones + data.vales}</td>
-                      <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                      <td style={{ color: data.vales > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
                         {data.vales > 0 ? data.vales : '—'}
                       </td>
-                      <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                      <td style={{ color: 'var(--success)', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
                       <td>
-                        <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
+                        <div style={{ color: 'var(--warning)', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                         <div style={{ display: 'flex', gap: 6, marginTop: 2, fontSize: 11 }}>
-                          {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
+                          {data.propinas_efectivo > 0 && <span style={{ color: 'var(--success)' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
                           {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                         </div>
                       </td>
@@ -338,14 +338,14 @@ export default function Caja() {
                       <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : 'var(--text-main)', fontStyle: a.metodo_pago === 'vale' ? 'italic' : 'normal' }}>
                         {a.metodo_pago === 'vale' ? '— vale —' : (a.servicio_nombre || '-')}
                       </td>
-                      <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : '#4ade80', fontWeight: 600 }}>
+                      <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : 'var(--success)', fontWeight: 600 }}>
                         {a.metodo_pago === 'vale' ? '—' : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}
                       </td>
                       <td>
                         {(Number(a.propina_efectivo) || 0) > 0 || (Number(a.propina_transferencia) || 0) > 0 ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {Number(a.propina_efectivo) > 0 && <span style={{ color: '#facc15', fontWeight: 600, fontSize: 13 }}>Ef: ${Number(a.propina_efectivo).toLocaleString('es-AR')}</span>}
-                            {Number(a.propina_transferencia) > 0 && <span style={{ color: '#facc15', fontWeight: 600, fontSize: 13 }}>Tr: ${Number(a.propina_transferencia).toLocaleString('es-AR')}</span>}
+                            {Number(a.propina_efectivo) > 0 && <span style={{ color: 'var(--warning)', fontWeight: 600, fontSize: 13 }}>Ef: ${Number(a.propina_efectivo).toLocaleString('es-AR')}</span>}
+                            {Number(a.propina_transferencia) > 0 && <span style={{ color: 'var(--warning)', fontWeight: 600, fontSize: 13 }}>Tr: ${Number(a.propina_transferencia).toLocaleString('es-AR')}</span>}
                           </div>
                         ) : (
                           <span style={{ color: 'var(--text-muted)' }}>—</span>
@@ -382,17 +382,18 @@ export default function Caja() {
               borderRadius: 8,
               padding: '8px 16px',
               color: 'var(--text-main)',
-              fontSize: 14
+              fontSize: 14,
+              display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              📅 {fechaFiltro}
+              <Calendar size={15} /> {fechaFiltro}
             </div>
 
             {!cajaAbierta
               ? <button className="btn btn-primary" onClick={abrirCaja}>Abrir caja</button>
-              : <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 8, padding: '8px 16px', color: '#4ade80', fontSize: 13 }}>
+              : <div style={{ background: 'color-mix(in srgb, var(--success) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)', borderRadius: 8, padding: '8px 16px', color: 'var(--success)', fontSize: 13 }}>
                 Caja abierta desde las <strong>{cajaAbierta.hora_apertura}hs</strong>
                 {cajaAbierta.fecha !== hoy() && (
-                  <span style={{ marginLeft: 8, background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 13, padding: '1px 8px', borderRadius: 99 }}>
+                  <span style={{ marginLeft: 8, background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', fontSize: 13, padding: '1px 8px', borderRadius: 99 }}>
                     desde el {cajaAbierta.fecha}
                   </span>
                 )}
@@ -401,7 +402,7 @@ export default function Caja() {
           </div>
 
           {!cajaAbierta && (
-            <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: '#fbbf24', fontSize: 14 }}>
+            <div style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: 'var(--warning)', fontSize: 14 }}>
               La caja está cerrada. Abrila para empezar a registrar atenciones.
             </div>
           )}
@@ -410,7 +411,7 @@ export default function Caja() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Efectivo</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#4ade80' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'efectivo' || a.metodo_pago === 'mixto').length} atenciones
               </div>
@@ -429,15 +430,15 @@ export default function Caja() {
                 {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale se muestra aparte como desglose */}
                 {atenciones.length} cortes
                 {valesHoy.length > 0 && (
-                  <span style={{ marginLeft: 6, color: '#fbbf24' }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} 🎫</span>
+                  <span style={{ marginLeft: 6, color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} <Ticket size={11} /></span>
                 )}
               </div>
             </div>
-            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid rgba(250,204,21,0.25)' }}>
+            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Propinas</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: '#facc15' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--warning)' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                {totalPropinasEfectivo > 0 && <span style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                {totalPropinasEfectivo > 0 && <span style={{ color: 'var(--success)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
                 {totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
               </div>
             </div>
@@ -452,7 +453,7 @@ export default function Caja() {
                   <th>Peluquero</th>
                   <th>Total generado</th>
                   <th>Cortes</th>
-                  <th>Vales 🎫</th>
+                  <th>Vales</th>
                   <th>Propinas</th>
                 </tr>
               </thead>
@@ -464,16 +465,16 @@ export default function Caja() {
                     .map(([nombre, data]) => (
                       <tr key={nombre}>
                         <td>{nombre}</td>
-                        <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                        <td style={{ color: 'var(--success)', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
                         {/* Cortes = todos los cortes hechos (incluye los pagados con vale) */}
                         <td>{data.cortes + data.vales}</td>
-                        <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)' }}>
+                        <td style={{ color: data.vales > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
                           {data.vales > 0 ? data.vales : '—'}
                         </td>
                         <td>
-                          <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
+                          <div style={{ color: 'var(--warning)', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                           <div style={{ display: 'flex', gap: 6, marginTop: 2, fontSize: 11 }}>
-                            {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>Ef: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
+                            {data.propinas_efectivo > 0 && <span style={{ color: 'var(--success)' }}>Ef: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
                             {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>Tr: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                           </div>
                         </td>
@@ -492,12 +493,12 @@ export default function Caja() {
               {/* Resumen del turno */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
                 {[
-                  { label: 'Efectivo',      valor: totalEfectivo,      color: '#4ade80' },
+                  { label: 'Efectivo',      valor: totalEfectivo,      color: 'var(--success)' },
                   { label: 'Transferencia', valor: totalTransferencia,  color: 'var(--accent-2)' },
                   { label: 'Total',         valor: totalGeneral,        color: 'var(--accent-bright)' },
-                  { label: 'Propinas',      valor: totalPropinasDia,    color: '#facc15' },
+                  { label: 'Propinas',      valor: totalPropinasDia,    color: 'var(--warning)' },
                 ].map(({ label, valor, color }) => (
-                  <div key={label} style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
+                  <div key={label} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
                     <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>{label}</div>
                     <div style={{ color, fontWeight: 700, fontSize: 18 }}>${valor.toLocaleString('es-AR')}</div>
                   </div>
@@ -615,9 +616,9 @@ export default function Caja() {
                                     </div>
                                   </td>
                                   <td />
-                                  <td style={{ color: '#4ade80', fontWeight: 600 }}>${efectivoDia.toLocaleString('es-AR')}</td>
+                                  <td style={{ color: 'var(--success)', fontWeight: 600 }}>${efectivoDia.toLocaleString('es-AR')}</td>
                                   <td style={{ color: 'var(--accent-2)', fontWeight: 600 }}>${transfDia.toLocaleString('es-AR')}</td>
-                                  <td style={{ color: '#facc15', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</td>
+                                  <td style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</td>
                                   <td colSpan={2} style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total del día</td>
                                 </tr>
                                 <AnimatePresence>
@@ -646,14 +647,14 @@ export default function Caja() {
                                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                             <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{c.hora_cierre}hs</span>
                                             {cierreOtroDia && (
-                                              <span style={{ background: 'rgba(251, 191, 36, 0.15)', color: '#fbbf24', fontSize: 10, padding: '1px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
+                                              <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', fontSize: 10, padding: '1px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
                                                 +1 día
                                               </span>
                                             )}
                                           </div>
                                           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{fechaCierre}</div>
                                         </td>
-                                        <td style={{ color: '#4ade80' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
+                                        <td style={{ color: 'var(--success)' }}>${Number(c.total_efectivo).toLocaleString('es-AR')}</td>
                                         <td style={{ color: 'var(--accent-2)' }}>${Number(c.total_transferencia).toLocaleString('es-AR')}</td>
                                         <td style={{ color: 'var(--accent-bright)', fontWeight: 700 }}>${Number(c.total_general).toLocaleString('es-AR')}</td>
                                         <td style={{ color: 'var(--text-muted)' }}>{c.observaciones || '-'}</td>

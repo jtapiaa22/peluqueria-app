@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { DollarSign, Scissors, Box, TrendingUp, Calendar, Sparkles, Clock, CalendarDays, Award, ArrowUpRight, ArrowDownRight, Target } from 'lucide-react'
+import { DollarSign, Scissors, Box, TrendingUp, Calendar, Sparkles, Clock, CalendarDays, Award, ArrowUpRight, ArrowDownRight, Target, StickyNote } from 'lucide-react'
 import Skeleton from '../../components/Skeleton'
 import EmptyState from '../../components/EmptyState'
 
@@ -37,9 +37,9 @@ const FRANJA_FRASE = { 'mañana': 'la mañana', 'mediodia': 'el mediodía', 'tar
 
 // Paleta de tonos para los insights (usa las variables de la paleta activa)
 const TONOS = {
-  verde:   { c: '#4ade80',              bg: 'rgba(74, 222, 128, 0.15)' },
-  rojo:    { c: '#f87171',              bg: 'rgba(248, 113, 113, 0.15)' },
-  amber:   { c: '#fbbf24',              bg: 'rgba(251, 191, 36, 0.15)' },
+  verde:   { c: 'var(--success)',              bg: 'color-mix(in srgb, var(--success) 15%, transparent)' },
+  rojo:    { c: 'var(--danger)',              bg: 'color-mix(in srgb, var(--danger) 15%, transparent)' },
+  amber:   { c: 'var(--warning)',              bg: 'color-mix(in srgb, var(--warning) 15%, transparent)' },
   accent:  { c: 'var(--accent-bright)', bg: 'rgba(var(--accent-bright-rgb), 0.15)' },
   accent2: { c: 'var(--accent-2)',      bg: 'rgba(var(--accent-2-rgb), 0.15)' },
 }
@@ -211,19 +211,19 @@ export default function Dashboard() {
 
         {/* Total del día */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'rgba(74, 222, 128, 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <DollarSign size={22} color="#4ade80" />
+          <div style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <DollarSign size={22} color="var(--success)" />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total hoy</div>
-            <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 22 }}>
+            <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 22 }}>
               ${data.totalHoy.toLocaleString('es-AR')}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
               Ef: ${data.efectivoHoy.toLocaleString('es-AR')} · Tr: ${data.transferenciaHoy.toLocaleString('es-AR')}
             </div>
             {propinasHoy > 0 && (
-              <div style={{ color: '#fbbf24', fontSize: 11, marginTop: 2 }}>
+              <div style={{ color: 'var(--warning)', fontSize: 11, marginTop: 2 }}>
                 Propinas: ${propinasHoy.toLocaleString('es-AR')}
               </div>
             )}
@@ -248,12 +248,12 @@ export default function Dashboard() {
 
         {/* Estado de caja */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: data.cajaAbierta ? 'rgba(74, 222, 128, 0.15)' : 'rgba(251, 191, 36, 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <Box size={22} color={data.cajaAbierta ? '#4ade80' : '#fbbf24'} />
+          <div style={{ background: data.cajaAbierta ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <Box size={22} color={data.cajaAbierta ? 'var(--success)' : 'var(--warning)'} />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Caja</div>
-            <div style={{ color: data.cajaAbierta ? '#4ade80' : '#fbbf24', fontWeight: 700, fontSize: 16 }}>
+            <div style={{ color: data.cajaAbierta ? 'var(--success)' : 'var(--warning)', fontWeight: 700, fontSize: 16 }}>
               {data.cajaAbierta ? 'Abierta' : 'Cerrada'}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
@@ -292,12 +292,12 @@ export default function Dashboard() {
               ${data.totalMes.toLocaleString('es-AR')}
             </div>
             {variacionMes !== null && (
-              <div style={{ color: variacionMes >= 0 ? '#4ade80' : '#f87171', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
+              <div style={{ color: variacionMes >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
                 {variacionMes >= 0 ? '▲' : '▼'} {Math.abs(variacionMes).toFixed(0)}% vs mes anterior
               </div>
             )}
             {data.propinasMes > 0 && (
-              <div style={{ color: '#fbbf24', fontSize: 11, marginTop: 2 }}>
+              <div style={{ color: 'var(--warning)', fontSize: 11, marginTop: 2 }}>
                 Propinas: ${data.propinasMes.toLocaleString('es-AR')}
               </div>
             )}
@@ -318,7 +318,7 @@ export default function Dashboard() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: i * 0.06 }}
-                style={{ background: 'var(--bg-main)', borderRadius: 10, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}
+                style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}
               >
                 <div style={{ background: TONOS[ins.tono].bg, color: TONOS[ins.tono].c, borderRadius: 8, padding: 8, flexShrink: 0, display: 'flex' }}>
                   {ins.icono}
@@ -346,7 +346,7 @@ export default function Dashboard() {
                 <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ingresos</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#fbbf24' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--warning)' }} />
                 <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Propinas</span>
               </div>
             </div>
@@ -361,7 +361,7 @@ export default function Dashboard() {
               return (
                 <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   {totalBarra > 0 && (
-                    <div style={{ color: esHoy ? '#4ade80' : 'var(--text-muted)', fontSize: 10, whiteSpace: 'nowrap' }}>
+                    <div style={{ color: esHoy ? 'var(--success)' : 'var(--text-muted)', fontSize: 10, whiteSpace: 'nowrap' }}>
                       ${totalBarra.toLocaleString('es-AR')}
                     </div>
                   )}
@@ -375,7 +375,7 @@ export default function Dashboard() {
                       <div style={{
                         width: '100%',
                         height: alturaProp,
-                        background: '#fbbf24',
+                        background: 'var(--warning)',
                         borderRadius: '4px 4px 0 0',
                         minHeight: 3
                       }} />
@@ -385,14 +385,14 @@ export default function Dashboard() {
                         width: '100%',
                         height: alturaIng,
                         background: esHoy
-                          ? 'linear-gradient(to top, #4ade80, #86efac)'
+                          ? 'linear-gradient(to top, var(--success), var(--success-hover))'
                           : 'linear-gradient(to top, var(--accent-hover), var(--accent-bright))',
                         borderRadius: d.propinas > 0 ? '0' : '4px 4px 0 0',
                         minHeight: 4
                       }} />
                     )}
                   </motion.div>
-                  <div style={{ color: esHoy ? '#4ade80' : 'var(--text-muted)', fontSize: 11, fontWeight: esHoy ? 700 : 400 }}>
+                  <div style={{ color: esHoy ? 'var(--success)' : 'var(--text-muted)', fontSize: 11, fontWeight: esHoy ? 700 : 400 }}>
                     {fechaLegible(d.fecha)}
                   </div>
                 </div>
@@ -508,7 +508,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <h3 style={{ color: 'var(--accent-bright)', margin: 0, fontSize: 14 }}>Ritmo de la semana</h3>
             {franjaPico && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#fbbf24', fontSize: 12, fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--warning)', fontSize: 12, fontWeight: 600 }}>
                 <Clock size={13} /> Pico: {FRANJA_LABEL[franjaPico[0]]}
               </div>
             )}
@@ -569,10 +569,10 @@ export default function Dashboard() {
               { label: 'Fecha',         valor: data.ultimoCierre.fecha,                                                     color: 'var(--text-main)' },
               { label: 'Apertura',      valor: `${data.ultimoCierre.hora_apertura}hs`,                                      color: 'var(--text-main)' },
               { label: 'Cierre',        valor: `${data.ultimoCierre.hora_cierre}hs`,                                        color: 'var(--text-main)' },
-              { label: 'Efectivo',      valor: `$${Number(data.ultimoCierre.total_efectivo).toLocaleString('es-AR')}`,      color: '#4ade80'          },
+              { label: 'Efectivo',      valor: `$${Number(data.ultimoCierre.total_efectivo).toLocaleString('es-AR')}`,      color: 'var(--success)'          },
               { label: 'Transferencia', valor: `$${Number(data.ultimoCierre.total_transferencia).toLocaleString('es-AR')}`, color: 'var(--accent-2)'          },
             ].map(({ label, valor, color }) => (
-              <div key={label} style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+              <div key={label} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                 <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6 }}>{label}</div>
                 <div style={{ color, fontWeight: 600, fontSize: 15 }}>{valor}</div>
               </div>
@@ -580,7 +580,7 @@ export default function Dashboard() {
           </div>
           {data.ultimoCierre.observaciones && (
             <div style={{ marginTop: 12, color: 'var(--text-soft)', fontSize: 13 }}>
-              📝 {data.ultimoCierre.observaciones}
+              <StickyNote size={12} style={{ verticalAlign: -2, marginRight: 4 }} /> {data.ultimoCierre.observaciones}
             </div>
           )}
         </div>

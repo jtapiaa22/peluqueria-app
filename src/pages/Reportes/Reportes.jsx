@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TrendingUp, Scissors, User, Clock, Calendar, Award, DollarSign } from 'lucide-react'
+import { TrendingUp, Scissors, User, Clock, Calendar, Award, DollarSign, Ticket } from 'lucide-react'
 import Skeleton from '../../components/Skeleton'
 
 function hoy() {
@@ -215,16 +215,16 @@ export default function Reportes() {
           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atenciones.length} cortes</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>💰 Propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#facc15' }}>${totalPropinas.toLocaleString('es-AR')}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><DollarSign size={12} /> Propinas</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--warning)' }}>${totalPropinas.toLocaleString('es-AR')}</div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-            <div style={{ color: '#4ade80', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
+            <div style={{ color: 'var(--success)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
             <div style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
           </div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>Total + propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--success)' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
         </div>
       </div>
 
@@ -233,8 +233,8 @@ export default function Reportes() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(96, 165, 250, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Calendar size={20} color="#60a5fa" />
+            <div style={{ background: 'color-mix(in srgb, var(--info) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Calendar size={20} color="var(--info)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>DÍA MÁS ACTIVO</div>
@@ -249,8 +249,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(251, 146, 60, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Clock size={20} color="#fb923c" />
+            <div style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Clock size={20} color="var(--warning)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>HORA PICO</div>
@@ -265,8 +265,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(74, 222, 128, 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Award size={20} color="#4ade80" />
+            <div style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Award size={20} color="var(--success)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>PELUQUERO TOP (ingresos)</div>
@@ -281,15 +281,15 @@ export default function Reportes() {
 
           {/* Ranking de propinas */}
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(250,204,21,0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <DollarSign size={20} color="#facc15" />
+            <div style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <DollarSign size={20} color="var(--warning)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>MÁS PROPINAS</div>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {peluqueroTopPropinas ? peluqueroTopPropinas[0] : '-'}
               </div>
-              <div style={{ color: '#facc15', fontSize: 11 }}>
+              <div style={{ color: 'var(--warning)', fontSize: 11 }}>
                 {peluqueroTopPropinas ? `$${peluqueroTopPropinas[1].propinas.toLocaleString('es-AR')}` : ''}
               </div>
             </div>
@@ -327,7 +327,7 @@ export default function Reportes() {
               <tr>
                 <th>Peluquero</th>
                 <th>Cortes</th>
-                <th>Vales 🎫</th>
+                <th>Vales</th>
                 <th>Total Propinas</th>
                 <th>Total</th>
               </tr>
@@ -370,17 +370,17 @@ export default function Reportes() {
                         </td>
                         {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale no suma dinero pero sí es un corte realizado */}
                         <td style={{ textAlign: 'center' }}>{data.atenciones + data.vales}</td>
-                        <td style={{ color: data.vales > 0 ? '#fbbf24' : 'var(--text-muted)', textAlign: 'center' }}>
+                        <td style={{ color: data.vales > 0 ? 'var(--warning)' : 'var(--text-muted)', textAlign: 'center' }}>
                           {data.vales > 0 ? data.vales : '—'}
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <div style={{ color: '#facc15', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
+                          <div style={{ color: 'var(--warning)', fontWeight: 600 }}>${data.propinas.toLocaleString('es-AR')}</div>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 2, fontSize: 11 }}>
-                            {data.propinas_efectivo > 0 && <span style={{ color: '#4ade80' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
+                            {data.propinas_efectivo > 0 && <span style={{ color: 'var(--success)' }}>E: ${data.propinas_efectivo.toLocaleString('es-AR')}</span>}
                             {data.propinas_transferencia > 0 && <span style={{ color: 'var(--accent-2)' }}>T: ${data.propinas_transferencia.toLocaleString('es-AR')}</span>}
                           </div>
                         </td>
-                        <td style={{ color: '#4ade80', fontWeight: 600, textAlign: 'center' }}>${data.total.toLocaleString('es-AR')}</td>
+                        <td style={{ color: 'var(--success)', fontWeight: 600, textAlign: 'center' }}>${data.total.toLocaleString('es-AR')}</td>
                       </tr>
 
                       {/* Filas expandibles: servicios y vales */}
@@ -397,7 +397,7 @@ export default function Reportes() {
                               >
                                 <table className="table" style={{ width: '100%', marginTop: 12, borderCollapse: 'separate', borderSpacing: 0, border: '1px solid var(--border-soft)', borderRadius: 10, overflow: 'hidden', fontSize: 13 }}>
                                   <thead>
-                                    <tr style={{ background: 'rgba(72, 236, 99, 0.05)' }}>
+                                    <tr style={{ background: 'color-mix(in srgb, var(--success) 5%, transparent)' }}>
                                       <th style={{ textAlign: 'center', width: '40%' }}>Servicio</th>
                                       <th style={{ textAlign: 'center' }}>Cantidad</th>
                                       <th style={{ textAlign: 'center' }}>Total</th>
@@ -412,17 +412,17 @@ export default function Reportes() {
                                             {servicio}
                                           </td>
                                           <td style={{ textAlign: 'center' }}>{servData.cantidad}</td>
-                                          <td style={{ color: '#4ade80', fontWeight: 600, textAlign: 'center' }}>
+                                          <td style={{ color: 'var(--success)', fontWeight: 600, textAlign: 'center' }}>
                                             ${servData.total.toLocaleString('es-AR')}
                                           </td>
                                         </tr>
                                       ))}
                                     {valesPeluq > 0 && (
-                                      <tr style={{ background: 'rgba(251,191,36,0.04)' }}>
-                                        <td style={{ paddingLeft: 48, color: '#fbbf24', fontStyle: 'italic' }}>
-                                          🎫 Vale (no genera ingreso)
+                                      <tr style={{ background: 'color-mix(in srgb, var(--warning) 4%, transparent)' }}>
+                                        <td style={{ paddingLeft: 48, color: 'var(--warning)', fontStyle: 'italic' }}>
+                                          <Ticket size={11} style={{ verticalAlign: -2, marginRight: 3 }} /> Vale (no genera ingreso)
                                         </td>
-                                        <td style={{ textAlign: 'center', color: '#fbbf24', fontWeight: 600 }}>{valesPeluq}</td>
+                                        <td style={{ textAlign: 'center', color: 'var(--warning)', fontWeight: 600 }}>{valesPeluq}</td>
                                         <td style={{ textAlign: 'center', color: 'var(--text-muted)' }}>—</td>
 
                                       </tr>
@@ -471,7 +471,7 @@ export default function Reportes() {
                   <tr key={nombre}>
                     <td>{nombre}</td>
                     <td>{data.cantidad}</td>
-                    <td style={{ color: '#4ade80', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
+                    <td style={{ color: 'var(--success)', fontWeight: 600 }}>${data.total.toLocaleString('es-AR')}</td>
                     <td style={{ color: 'var(--text-muted)' }}>
                       {atencionesReales.length > 0
                         ? `${((data.cantidad / atencionesReales.length) * 100).toFixed(1)}%`
@@ -524,10 +524,10 @@ export default function Reportes() {
             <h3 style={{ marginBottom: 20, color: 'var(--accent-bright)' }}>Métodos de pago</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { label: 'Efectivo', cant: cantEfectivo, color: '#4ade80', bg: 'rgba(74, 222, 128, 0.15)' },
+                { label: 'Efectivo', cant: cantEfectivo, color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 15%, transparent)' },
                 { label: 'Transferencia', cant: cantTransferencia, color: 'var(--accent-2)', bg: 'rgba(var(--accent-2-rgb), 0.15)' },
-                { label: 'Mixto', cant: cantMixto, color: '#facc15', bg: 'rgba(250, 204, 21, 0.15)' },
-                { label: 'Vale 🎫', cant: cantVale, color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+                { label: 'Mixto', cant: cantMixto, color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 15%, transparent)' },
+                { label: 'Vale', cant: cantVale, color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 15%, transparent)' },
               ].filter(m => m.cant > 0).map(({ label, cant, color, bg }) => {
                 const pct = ((cant / totalMetodos) * 100).toFixed(1)
                 return (
@@ -581,7 +581,7 @@ export default function Reportes() {
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Ingresos</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#facc15' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--warning)' }} />
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
               </div>
             </div>
@@ -610,7 +610,7 @@ export default function Reportes() {
                       {propina > 0 && (
                         <div title={`Propinas: $${propina.toLocaleString('es-AR')}`} style={{
                           width: '100%', height: alturaProp,
-                          background: '#facc15',
+                          background: 'var(--warning)',
                           borderRadius: '4px 4px 0 0',
                           minHeight: 3,
                           cursor: 'default'

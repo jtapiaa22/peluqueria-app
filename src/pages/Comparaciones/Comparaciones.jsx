@@ -60,7 +60,7 @@ function Delta({ actual, anterior }) {
   const pct = variacion(actual, anterior)
   const subio = pct > 0.05
   const bajo = pct < -0.05
-  const color = subio ? '#4ade80' : bajo ? '#f87171' : 'var(--text-muted)'
+  const color = subio ? 'var(--success)' : bajo ? 'var(--danger)' : 'var(--text-muted)'
   const Icono = subio ? ArrowUp : bajo ? ArrowDown : Minus
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 3, color, fontSize: 12, fontWeight: 600 }}>
@@ -177,9 +177,9 @@ export default function Comparaciones() {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }}>
                   <TarjetaComparativa titulo="Ingresos" valorA={metricasA.ingresos} valorB={metricasB.ingresos} labelA={labelA} labelB={labelB} />
-                  <TarjetaComparativa titulo="Propinas" valorA={metricasA.propinas} valorB={metricasB.propinas} labelA={labelA} labelB={labelB} colorA="#facc15" />
-                  <TarjetaComparativa titulo="Ganancia neta (ingresos + propinas − gastos)" valorA={metricasA.gananciaNeta} valorB={metricasB.gananciaNeta} labelA={labelA} labelB={labelB} colorA="#4ade80" />
-                  <TarjetaComparativa titulo="Gastos" valorA={metricasA.totalGastos} valorB={metricasB.totalGastos} labelA={labelA} labelB={labelB} colorA="#f87171" />
+                  <TarjetaComparativa titulo="Propinas" valorA={metricasA.propinas} valorB={metricasB.propinas} labelA={labelA} labelB={labelB} colorA="var(--warning)" />
+                  <TarjetaComparativa titulo="Ganancia neta (ingresos + propinas − gastos)" valorA={metricasA.gananciaNeta} valorB={metricasB.gananciaNeta} labelA={labelA} labelB={labelB} colorA="var(--success)" />
+                  <TarjetaComparativa titulo="Gastos" valorA={metricasA.totalGastos} valorB={metricasB.totalGastos} labelA={labelA} labelB={labelB} colorA="var(--danger)" />
                   <TarjetaComparativa titulo="Cantidad de atenciones" valorA={metricasA.cantidadAtenciones} valorB={metricasB.cantidadAtenciones} labelA={labelA} labelB={labelB} esMoneda={false} />
                   <TarjetaComparativa titulo="Ticket promedio" valorA={metricasA.ticketPromedio} valorB={metricasB.ticketPromedio} labelA={labelA} labelB={labelB} />
                 </div>

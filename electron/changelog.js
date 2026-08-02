@@ -1,4 +1,12 @@
 module.exports = {
+  '4.1.0': [
+    { titulo: 'Imagen renovada, más profesional', desc: 'Se revisó el uso del color en toda la app para que sea más prolijo y menos cargado, y los emojis se reemplazaron por íconos consistentes en todas las secciones.' },
+    { titulo: 'Nuevos íconos en el menú lateral', desc: 'Cada sección del menú (Dashboard, Agenda, Atenciones, Caja, Peluqueros, Servicios, Reportes, Comparaciones, Liquidación, Gastos y Configuración) tiene ahora su propio ícono distintivo.' },
+    { titulo: 'Texto con más presencia', desc: 'Se aumentó el grosor del texto en toda la aplicación para que sea más fácil de leer de un vistazo.' },
+    { titulo: 'Mejor contraste en modo blanco', desc: 'Se corrigieron varias tarjetas y recuadros (como "Resumen inteligente" del Dashboard y los totales de Atenciones, Caja, Gastos y Liquidación) que costaba distinguir del fondo cuando la app está en modo claro.' },
+    { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños detalles visuales de color e íconos que quedaban sueltos en Peluqueros, Configuración y Reportes.' },
+  ],
+
   '4.0.2': [
     { titulo: 'Ahora puedes poner en pantalla completa la app', desc: 'Apretando F11 podras poner la app en pantalla completa.' },
     { titulo: 'Turnos online funcionando de nuevo', desc: 'Se solucionó un problema que hacía que la app no avisara de turnos nuevos y que impedía ver los pendientes, aceptar, rechazar, proponer otro horario o confirmar señas desde la app de escritorio.' },

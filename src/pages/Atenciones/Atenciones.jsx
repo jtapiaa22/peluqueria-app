@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Eye, Pencil, X } from 'lucide-react'
+import { Plus, Trash2, Eye, Pencil, X, Ticket, CreditCard, TriangleAlert, CircleDot } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import Skeleton from '../../components/Skeleton'
@@ -42,7 +42,7 @@ const formatFechaFormateada = (f) => {
 function BadgePago({ a }) {
   if (a.metodo_pago === 'vale') {
     return (
-      <span style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
+      <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', padding: '2px 10px', borderRadius: 99, fontSize: 12 }}>
         Vale
       </span>
     )
@@ -50,7 +50,7 @@ function BadgePago({ a }) {
   if (a.metodo_pago === 'mixto') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        <span style={{ background: 'rgba(74, 222, 128, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
+        <span style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', color: 'var(--success)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
           Efectivo ${Number(a.monto_efectivo || 0).toLocaleString('es-AR')}
         </span>
         <span style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', color: 'var(--accent-2)', padding: '2px 8px', borderRadius: 99, fontSize: 11 }}>
@@ -61,8 +61,8 @@ function BadgePago({ a }) {
   }
   return (
     <span style={{
-      background: a.metodo_pago === 'efectivo' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(var(--accent-2-rgb), 0.15)',
-      color: a.metodo_pago === 'efectivo' ? '#4ade80' : 'var(--accent-2)',
+      background: a.metodo_pago === 'efectivo' ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'rgba(var(--accent-2-rgb), 0.15)',
+      color: a.metodo_pago === 'efectivo' ? 'var(--success)' : 'var(--accent-2)',
       padding: '2px 10px', borderRadius: 99, fontSize: 12
     }}>
       {a.metodo_pago}
@@ -358,8 +358,8 @@ export default function Atenciones() {
                   <span style={{ color: 'var(--text-main)' }}>{detalle.fecha} {detalle.hora}hs</span>
                 </div>
                 {detalle.metodo_pago === 'vale' && (
-                  <div style={{ marginTop: 8, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
-                    💳 Atención por vale — no impacta en caja ni balances.
+                  <div style={{ marginTop: 8, background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <CreditCard size={13} /> Atención por vale — no impacta en caja ni balances.
                   </div>
                 )}
               </div>
@@ -373,7 +373,7 @@ export default function Atenciones() {
         <h1 className="page-title" style={{ margin: 0 }}>Atenciones</h1>
         <div style={{ display: 'flex', gap: 10 }}>
           <button className="btn btn-secondary" onClick={() => setMostrarVales(v => !v)}>
-            🎫 Control de Vales
+<Ticket size={14} style={{ verticalAlign: -2, marginRight: 4 }} /> Control de Vales
           </button>
           {cajaAbierta && (
             <button className="btn btn-primary" onClick={abrirFormNuevo}>
@@ -385,14 +385,14 @@ export default function Atenciones() {
 
       {/* Aviso caja cerrada */}
       {!cajaAbierta && (
-        <div style={{ background: 'rgba(251, 191, 36, 0.1)', border: '1px solid rgba(251, 191, 36, 0.3)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: '#fbbf24', fontSize: 14 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)', borderRadius: 10, padding: '16px 20px', marginBottom: 24, color: 'var(--warning)', fontSize: 14 }}>
           No hay una caja abierta. Para registrar atenciones, primero abrí la caja desde el módulo <strong>Caja</strong>.
         </div>
       )}
 
       {/* Aviso caja abierta */}
       {cajaAbierta && (
-        <div style={{ background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.3)', borderRadius: 10, padding: '12px 20px', marginBottom: 20, color: '#4ade80', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ background: 'color-mix(in srgb, var(--success) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--success) 30%, transparent)', borderRadius: 10, padding: '12px 20px', marginBottom: 20, color: 'var(--success)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
           Caja abierta {cajaAbierta.fecha !== hoy() ? (
           <>desde el <strong>{cajaAbierta.fecha}</strong></>
         ) : (
@@ -439,10 +439,10 @@ export default function Atenciones() {
                   <label>Método de pago</label>
                   <div style={{ display: 'flex', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-soft)' }}>
                     {[
-                      { value: 'efectivo',      label: 'Efectivo',      color: '#4ade80',  bg: 'rgba(74,222,128,0.18)'   },
+                      { value: 'efectivo',      label: 'Efectivo',      color: 'var(--success)',  bg: 'color-mix(in srgb, var(--success) 18%, transparent)'   },
                       { value: 'transferencia', label: 'Transferencia', color: 'var(--accent-2)',  bg: 'rgba(var(--accent-2-rgb),0.18)'  },
-                      { value: 'mixto',         label: 'Mixto',         color: '#fbbf24',  bg: 'rgba(251,191,36,0.18)'   },
-                      { value: 'vale',          label: 'Vale 🎫',       color: '#fb923c',  bg: 'rgba(251,146,60,0.18)'   },
+                      { value: 'mixto',         label: 'Mixto',         color: 'var(--warning)',  bg: 'color-mix(in srgb, var(--warning) 18%, transparent)'   },
+                      { value: 'vale',          label: 'Vale',       color: 'var(--warning)',  bg: 'color-mix(in srgb, var(--warning) 18%, transparent)'   },
                     ].map((op, i) => (
                       <button
                         key={op.value}
@@ -477,17 +477,17 @@ export default function Atenciones() {
 
                 {form.metodo_pago === 'vale' && (
                   periodoAbierto ? (
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24' }}>
-                      💳 Vale: no suma en caja. Solo se registra el peluquero.
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--warning)' }}>
+                      <CreditCard size={13} /> Vale: no suma en caja. Solo se registra el peluquero.
                       <span style={{ color: 'var(--text-muted)' }}>· Contador abierto desde el {formatFechaFormateada(periodoAbierto.fecha_apertura)} a las {periodoAbierto.hora_apertura}hs</span>
                     </div>
                   ) : (
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: '#f87171' }}>
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 35%, transparent)', borderRadius: 8, padding: '12px 16px', fontSize: 13, color: 'var(--danger)' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 320px' }}>
-                        ⚠️ El contador de vales está <strong>cerrado</strong>. Si registrás un vale ahora, no se va a contabilizar para ningún peluquero.
+                        <TriangleAlert size={14} style={{ flexShrink: 0 }} /> El contador de vales está <strong>cerrado</strong>. Si registrás un vale ahora, no se va a contabilizar para ningún peluquero.
                       </span>
-                      <button type="button" className="btn btn-primary" onClick={abrirPeriodo} style={{ whiteSpace: 'nowrap' }}>
-                        🎫 Abrir contador de vales
+                      <button type="button" className="btn btn-primary" onClick={abrirPeriodo} style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Ticket size={14} /> Abrir contador de vales
                       </button>
                     </div>
                   )
@@ -512,8 +512,8 @@ export default function Atenciones() {
                           onClick={() => setForm({ ...form, propina_tipo: 'efectivo' })}
                           style={{
                             flex: 1, padding: '10px 20px', fontSize: 13, border: 'none', cursor: 'pointer',
-                            background: form.propina_tipo === 'efectivo' ? 'rgba(74, 222, 128, 0.18)' : 'var(--bg-main)',
-                            color: form.propina_tipo === 'efectivo' ? '#4ade80' : 'var(--text-muted)',
+                            background: form.propina_tipo === 'efectivo' ? 'color-mix(in srgb, var(--success) 18%, transparent)' : 'var(--bg-main)',
+                            color: form.propina_tipo === 'efectivo' ? 'var(--success)' : 'var(--text-muted)',
                             fontWeight: form.propina_tipo === 'efectivo' ? 700 : 400,
                           }}
                         >
@@ -572,7 +572,7 @@ export default function Atenciones() {
                           placeholder="Ej: juan.perez" />
                       </div>
                       {(form.monto_efectivo || form.monto_transferencia) && (
-                        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-main)', borderRadius: 8, padding: '0 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '0 16px' }}>
                           <div>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Total calculado</div>
                             <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 18 }}>
@@ -610,22 +610,22 @@ export default function Atenciones() {
           >
             <div className="card" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h3 style={{ color: '#fbbf24', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  🎫 Control de Vales
+                <h3 style={{ color: 'var(--warning)', fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Ticket size={14} style={{ verticalAlign: -2, marginRight: 4 }} /> Control de Vales
                 </h3>
               </div>
 
               {/* Estado Periodo Actual */}
               <div style={{
-                background: periodoAbierto ? 'rgba(74, 222, 128, 0.08)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${periodoAbierto ? 'rgba(74, 222, 128, 0.3)' : 'var(--border)'}`,
+                background: periodoAbierto ? 'color-mix(in srgb, var(--success) 8%, transparent)' : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${periodoAbierto ? 'color-mix(in srgb, var(--success) 30%, transparent)' : 'var(--border)'}`,
                 borderRadius: 12, padding: '20px', marginBottom: 24
               }}>
                 {periodoAbierto ? (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                     <div>
-                      <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>
-                        🟢 PERIODO ABIERTO
+                      <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <CircleDot size={12} /> PERIODO ABIERTO
                       </div>
                       <div style={{ fontSize: 15, color: 'var(--text-main)', marginBottom: 8 }}>
                         {formatFechaFormateada(periodoAbierto.fecha_apertura)} a las {periodoAbierto.hora_apertura}hs
@@ -642,7 +642,7 @@ export default function Atenciones() {
                         )}
                       </div>
                     </div>
-                    <button className="btn btn-secondary" style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }} onClick={cerrarPeriodo}>
+                    <button className="btn btn-secondary" style={{ color: 'var(--danger)', borderColor: 'color-mix(in srgb, var(--danger) 30%, transparent)' }} onClick={cerrarPeriodo}>
                       Cerrar Periodo
                     </button>
                   </div>
@@ -697,7 +697,7 @@ export default function Atenciones() {
                 style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                 <X size={18} />
               </button>
-              <h3 style={{ color: '#fbbf24', marginBottom: 10 }}>Resumen del Periodo</h3>
+              <h3 style={{ color: 'var(--warning)', marginBottom: 10 }}>Resumen del Periodo</h3>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
                 Desde el {formatFechaFormateada(detallePeriodo.fecha_apertura)} a las {detallePeriodo.hora_apertura}hs<br />
                 hasta el {formatFechaFormateada(detallePeriodo.fecha_cierre)} a las {detallePeriodo.hora_cierre}hs
@@ -709,11 +709,11 @@ export default function Atenciones() {
                 ) : (
                   valesDetalle.map(v => (
                     <div key={v.peluquero_nombre} style={{
-                      background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.25)',
+                      background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)',
                       borderRadius: 10, padding: '12px 18px', textAlign: 'center'
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.peluquero_nombre}</div>
-                      <div style={{ fontSize: 28, color: '#fbbf24', fontWeight: 700, lineHeight: 1 }}>{v.cantidad}</div>
+                      <div style={{ fontSize: 28, color: 'var(--warning)', fontWeight: 700, lineHeight: 1 }}>{v.cantidad}</div>
                     </div>
                   ))
                 )}
@@ -741,8 +741,8 @@ export default function Atenciones() {
           <input className="input" type="date" value={fechaFiltro} onChange={e => setFechaFiltro(e.target.value)} style={{ width: 'auto' }} />
         </div>
         {valesHoy > 0 && (
-          <div style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 10, padding: '6px 14px', fontSize: 13, color: '#fbbf24' }}>
-            🎫 {valesHoy} vale{valesHoy > 1 ? 's' : ''} hoy
+          <div style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)', borderRadius: 10, padding: '6px 14px', fontSize: 13, color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Ticket size={13} /> {valesHoy} vale{valesHoy > 1 ? 's' : ''} hoy
           </div>
         )}
       </div>
@@ -755,9 +755,9 @@ export default function Atenciones() {
             <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
           </div>
           {totalEfectivoDia > 0 && (
-            <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'color-mix(in srgb, var(--success) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--success) 20%, transparent)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Efectivo</span>
-              <span style={{ color: '#4ade80', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           {totalTransfDia > 0 && (
@@ -767,9 +767,9 @@ export default function Atenciones() {
             </div>
           )}
           {totalPropinasDia > 0 && (
-            <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 20%, transparent)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
-              <span style={{ color: '#facc15', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -811,13 +811,13 @@ export default function Atenciones() {
                 <tr key={a.id}>
                   <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{a.hora}hs</td>
                   <td style={{ fontWeight: 600 }}>{a.peluquero_nombre}</td>
-                  <td>{a.metodo_pago === 'vale' ? <span style={{ color: '#fbbf24', fontStyle: 'italic', fontSize: 12 }}>🎫 Vale</span> : a.servicio_nombre}</td>
-                  <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : '#4ade80', fontWeight: 600 }}>
+                  <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--warning)', fontStyle: 'italic', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ticket size={11} /> Vale</span> : a.servicio_nombre}</td>
+                  <td style={{ color: a.metodo_pago === 'vale' ? 'var(--text-muted)' : 'var(--success)', fontWeight: 600 }}>
                     {a.metodo_pago === 'vale' ? '—' : `$${Number(a.precio_cobrado).toLocaleString('es-AR')}`}
                   </td>
                   <td>
                     {propTotal > 0
-                      ? <span style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', padding: '2px 9px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>
+                      ? <span style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)', padding: '2px 9px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>
                           ${propTotal.toLocaleString('es-AR')}
                         </span>
                       : <span style={{ color: 'var(--text-muted)' }}>—</span>

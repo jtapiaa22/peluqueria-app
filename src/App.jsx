@@ -1,7 +1,18 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { MotionConfig, motion } from 'framer-motion'
-import { LayoutDashboard, Scissors, Users, ClipboardList, DollarSign, BarChart2, Lock, Settings, TrendingDown, CalendarDays, Bell, X, Globe, Star, GitCompare } from 'lucide-react'
+import { Bell, X, Globe, Star, Sparkles, TriangleAlert, Scissors } from 'lucide-react'
+import iconDashboard from './assets/images/Dashboard.png'
+import iconAgenda from './assets/images/Agenda.png'
+import iconAtenciones from './assets/images/Atenciones.png'
+import iconCaja from './assets/images/Caja.png'
+import iconPeluqueros from './assets/images/Peluqueros.png'
+import iconServicios from './assets/images/Servicios.png'
+import iconReportes from './assets/images/Reportes.png'
+import iconComparaciones from './assets/images/Comparaciones.png'
+import iconLiquidacion from './assets/images/Liquidacion.png'
+import iconGastos from './assets/images/Gastos.png'
+import iconConfiguracion from './assets/images/Configuracion.png'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
@@ -112,9 +123,9 @@ function App() {
     }} />
   )
 
-  const colorDias  = diasRestantes <= 5  ? '#fbbf24' : diasRestantes <= 10 ? '#fb923c' : '#4ade80'
-  const bgDias     = diasRestantes <= 5  ? 'rgba(251, 191, 36, 0.1)'  : diasRestantes <= 10 ? 'rgba(251, 146, 60, 0.1)'  : 'rgba(74, 222, 128, 0.1)'
-  const borderDias = diasRestantes <= 5  ? 'rgba(251, 191, 36, 0.35)' : diasRestantes <= 10 ? 'rgba(251, 146, 60, 0.35)' : 'rgba(74, 222, 128, 0.35)'
+  const colorDias  = diasRestantes <= 5  ? 'var(--warning)' : diasRestantes <= 10 ? 'var(--warning)' : 'var(--success)'
+  const bgDias     = diasRestantes <= 5  ? 'color-mix(in srgb, var(--warning) 10%, transparent)'  : diasRestantes <= 10 ? 'color-mix(in srgb, var(--warning) 10%, transparent)'  : 'color-mix(in srgb, var(--success) 10%, transparent)'
+  const borderDias = diasRestantes <= 5  ? 'color-mix(in srgb, var(--warning) 35%, transparent)' : diasRestantes <= 10 ? 'color-mix(in srgb, var(--warning) 35%, transparent)' : 'color-mix(in srgb, var(--success) 35%, transparent)'
 
   return (
     <MotionConfig reducedMotion="user">
@@ -135,7 +146,7 @@ function App() {
           {/* Header fijo */}
           <div style={{ padding: '28px 28px 16px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ fontSize: 28 }}>🎉</div>
+              <Sparkles size={26} color="var(--accent-bright)" />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 18, color: 'var(--text-main)' }}>
                   ¡Actualización disponible!
@@ -199,48 +210,48 @@ function App() {
 
           <nav className="sidebar-nav">
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <LayoutDashboard size={18} /> Dashboard
+              <img src={iconDashboard} className="nav-icon-img" alt="" /> Dashboard
             </NavLink>
 
             <div className="sidebar-section-label">Operaciones</div>
             <NavLink to="/agenda" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <CalendarDays size={18} /> Agenda
+              <img src={iconAgenda} className="nav-icon-img" alt="" /> Agenda
               {pendientesWeb > 0 && (
-                <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: '#fb923c', flexShrink: 0, boxShadow: '0 0 6px #fb923c' }} />
+                <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, boxShadow: '0 0 6px var(--warning)' }} />
               )}
             </NavLink>
             <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <ClipboardList size={18} /> Atenciones
+              <img src={iconAtenciones} className="nav-icon-img" alt="" /> Atenciones
             </NavLink>
             <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <DollarSign size={18} /> Caja
+              <img src={iconCaja} className="nav-icon-img" alt="" /> Caja
             </NavLink>
 
             <div className="sidebar-section-label">Equipo</div>
             <NavLink to="/peluqueros" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <Users size={18} /> Peluqueros
+              <img src={iconPeluqueros} className="nav-icon-img" alt="" /> Peluqueros
             </NavLink>
             <NavLink to="/servicios" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <Scissors size={18} /> Servicios
+              <img src={iconServicios} className="nav-icon-img" alt="" /> Servicios
             </NavLink>
 
             <div className="sidebar-section-label">Finanzas</div>
             <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <BarChart2 size={18} /> Reportes
+              <img src={iconReportes} className="nav-icon-img" alt="" /> Reportes
             </NavLink>
             <NavLink to="/comparaciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <GitCompare size={18} /> Comparaciones
+              <img src={iconComparaciones} className="nav-icon-img" alt="" /> Comparaciones
             </NavLink>
             <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <Lock size={18} /> Liquidación
+              <img src={iconLiquidacion} className="nav-icon-img" alt="" /> Liquidación
             </NavLink>
             <NavLink to="/gastos" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <TrendingDown size={18} /> Gastos
+              <img src={iconGastos} className="nav-icon-img" alt="" /> Gastos
             </NavLink>
 
             <div className="sidebar-section-label">Sistema</div>
             <NavLink to="/configuracion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <Settings size={18} /> Configuración
+              <img src={iconConfiguracion} className="nav-icon-img" alt="" /> Configuración
             </NavLink>
           </nav>
 
@@ -336,7 +347,7 @@ function App() {
               </div>
               <div className="licencia-vence">Vence: {fechaVence}</div>
               {diasRestantes <= 10 && (
-                <div className="licencia-alerta">⚠️ Renovar pronto</div>
+                <div className="licencia-alerta"><TriangleAlert size={12} /> Renovar pronto</div>
               )}
             </div>
           )}

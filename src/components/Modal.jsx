@@ -1,4 +1,5 @@
 import { motion } from "framer-motion"
+import { CircleCheck, TriangleAlert, CircleX, Info } from 'lucide-react'
 
 const SPRING = { type: 'spring', duration: 0.35, bounce: 0.18 }
 const EASE_OUT = { duration: 0.18, ease: [0.23, 1, 0.32, 1] }
@@ -40,10 +41,10 @@ export function ModalConfirm({ mensaje, onConfirm, onCancel }) {
 
 export function ModalAlert({ mensaje, tipo = 'info', onClose }) {
   const colores = {
-    success: { bg: 'rgba(74, 222, 128, 0.1)',  border: 'rgba(74, 222, 128, 0.35)',  color: '#4ade80', icono: '✅' },
-    warning: { bg: 'rgba(251, 191, 36, 0.1)',  border: 'rgba(251, 191, 36, 0.35)',  color: '#fbbf24', icono: '⚠️' },
-    error:   { bg: 'rgba(248, 113, 113, 0.1)', border: 'rgba(248, 113, 113, 0.35)', color: '#f87171', icono: '❌' },
-    info:    { bg: 'rgba(96, 165, 250, 0.1)',  border: 'rgba(96, 165, 250, 0.35)',  color: '#60a5fa', icono: 'ℹ️' },
+    success: { bg: 'color-mix(in srgb, var(--success) 10%, transparent)',  border: 'color-mix(in srgb, var(--success) 35%, transparent)',  color: 'var(--success)', Icono: CircleCheck },
+    warning: { bg: 'color-mix(in srgb, var(--warning) 10%, transparent)',  border: 'color-mix(in srgb, var(--warning) 35%, transparent)',  color: 'var(--warning)', Icono: TriangleAlert },
+    error:   { bg: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: 'color-mix(in srgb, var(--danger) 35%, transparent)', color: 'var(--danger)', Icono: CircleX },
+    info:    { bg: 'color-mix(in srgb, var(--info) 10%, transparent)',  border: 'color-mix(in srgb, var(--info) 35%, transparent)',  color: 'var(--info)', Icono: Info },
   }
   const c = colores[tipo]
 
@@ -65,8 +66,8 @@ export function ModalAlert({ mensaje, tipo = 'info', onClose }) {
         exit={{    scale: 0.95, opacity: 0, y: 4 }}
         transition={SPRING}
       >
-        <p style={{ color: c.color, fontSize: 15, marginBottom: 24, lineHeight: 1.55 }}>
-          {c.icono} {mensaje}
+        <p style={{ color: c.color, fontSize: 15, marginBottom: 24, lineHeight: 1.55, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <c.Icono size={20} style={{ flexShrink: 0 }} /> {mensaje}
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button className="btn btn-primary" onClick={onClose}>Aceptar</button>

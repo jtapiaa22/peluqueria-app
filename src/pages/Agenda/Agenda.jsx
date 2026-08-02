@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban, DollarSign } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, User, Scissors, CheckCircle, XCircle, AlertCircle, Trash2, X, Globe, RefreshCw, Wifi, WifiOff, Ban, DollarSign, Pencil, StickyNote, MessageCircle, Coins } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import Skeleton from '../../components/Skeleton'
@@ -9,18 +9,18 @@ const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 const ESTADOS = {
-  pendiente:  { label: 'Pendiente',  color: '#fbbf24', bg: 'rgba(251,191,36,0.15)',   icon: AlertCircle },
-  confirmado: { label: 'Confirmado', color: '#4ade80', bg: 'rgba(74,222,128,0.15)',    icon: CheckCircle },
-  cancelado:  { label: 'Cancelado',  color: '#f87171', bg: 'rgba(248,113,113,0.15)',   icon: XCircle     },
+  pendiente:  { label: 'Pendiente',  color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 15%, transparent)',   icon: AlertCircle },
+  confirmado: { label: 'Confirmado', color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 15%, transparent)',    icon: CheckCircle },
+  cancelado:  { label: 'Cancelado',  color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 15%, transparent)',   icon: XCircle     },
 }
 
 const ESTADOS_WEB = {
-  pendiente:      { label: 'Esperando respuesta',  color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.3)',  Icon: Clock       },
-  modificado:     { label: 'Esperando OK cliente', color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  border: 'rgba(96,165,250,0.3)',  Icon: AlertCircle },
-  esperando_sena: { label: 'Esperando seña',       color: '#fb923c', bg: 'rgba(251,146,60,0.08)',  border: 'rgba(251,146,60,0.3)',  Icon: DollarSign  },
-  confirmado:     { label: 'Confirmado',           color: '#4ade80', bg: 'rgba(74,222,128,0.06)',  border: 'rgba(74,222,128,0.2)',  Icon: CheckCircle },
-  rechazado:      { label: 'Rechazado',            color: '#f87171', bg: 'rgba(248,113,113,0.06)', border: 'rgba(248,113,113,0.2)', Icon: XCircle     },
-  cancelado:      { label: 'Cancelado',            color: '#71717a', bg: 'rgba(113,113,122,0.06)', border: 'rgba(113,113,122,0.2)', Icon: XCircle     },
+  pendiente:      { label: 'Esperando respuesta',  color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 8%, transparent)',  border: 'color-mix(in srgb, var(--warning) 30%, transparent)',  Icon: Clock       },
+  modificado:     { label: 'Esperando OK cliente', color: 'var(--info)', bg: 'color-mix(in srgb, var(--info) 8%, transparent)',  border: 'color-mix(in srgb, var(--info) 30%, transparent)',  Icon: AlertCircle },
+  esperando_sena: { label: 'Esperando seña',       color: 'var(--warning)', bg: 'color-mix(in srgb, var(--warning) 8%, transparent)',  border: 'color-mix(in srgb, var(--warning) 30%, transparent)',  Icon: DollarSign  },
+  confirmado:     { label: 'Confirmado',           color: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 6%, transparent)',  border: 'color-mix(in srgb, var(--success) 20%, transparent)',  Icon: CheckCircle },
+  rechazado:      { label: 'Rechazado',            color: 'var(--danger)', bg: 'color-mix(in srgb, var(--danger) 6%, transparent)', border: 'color-mix(in srgb, var(--danger) 20%, transparent)', Icon: XCircle     },
+  cancelado:      { label: 'Cancelado',            color: 'var(--text-muted)', bg: 'rgba(113,113,122,0.06)', border: 'rgba(113,113,122,0.2)', Icon: XCircle     },
 }
 
 function hoy() {
@@ -91,9 +91,9 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
 
         <div style={{ display:'flex', gap:8, marginBottom:20 }}>
           {[
-            { key:'confirmado', label:'✓ Confirmar', color:'#4ade80', bg:'rgba(74,222,128,0.15)'  },
-            { key:'modificado', label:'✏️ Modificar', color:'#60a5fa', bg:'rgba(96,165,250,0.15)' },
-            { key:'rechazado',  label:'✗ Rechazar',  color:'#f87171', bg:'rgba(248,113,113,0.15)' },
+            { key:'confirmado', label:'Confirmar', Icon: CheckCircle, color:'var(--success)', bg:'color-mix(in srgb, var(--success) 15%, transparent)'  },
+            { key:'modificado', label:'Modificar', Icon: Pencil, color:'var(--info)', bg:'color-mix(in srgb, var(--info) 15%, transparent)' },
+            { key:'rechazado',  label:'Rechazar',  Icon: XCircle, color:'var(--danger)', bg:'color-mix(in srgb, var(--danger) 15%, transparent)' },
           ].map(op => (
             <button key={op.key} onClick={() => setAccion(op.key)}
               style={{
@@ -101,8 +101,9 @@ function ModalResponder({ turno, onConfirm, onCancel }) {
                 border:`1.5px solid ${accion === op.key ? op.color : 'var(--border-soft)'}`,
                 background: accion === op.key ? op.bg : 'transparent',
                 color: accion === op.key ? op.color : 'var(--text-muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
               }}>
-              {op.label}
+              <op.Icon size={13} /> {op.label}
             </button>
           ))}
         </div>
@@ -329,9 +330,9 @@ export default function Agenda() {
     if (result?.ok) {
       setTurnoResponder(null)
       if (result.esperandoSena) {
-        alertar(`Seña solicitada ✓. Se le envió al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
+        alertar(`Seña solicitada. Se le envió al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
       } else {
-        const msgs = { confirmado:'confirmado ✓', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
+        const msgs = { confirmado:'confirmado', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
         alertar(`Turno ${msgs[payload.accion]}. WhatsApp enviado al cliente.`, 'success')
       }
       cargarTurnosWeb(); cargarMes(); cargarDia()
@@ -349,7 +350,7 @@ export default function Agenda() {
         const result = await window.electronAPI.confirmarSena(sena.id)
         setConfirmandoSena(null)
         if (result?.ok) {
-          alertar(`✅ Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. WhatsApp enviado.`, 'success')
+          alertar(`Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. WhatsApp enviado.`, 'success')
           cargarTurnosWeb(); cargarMes(); cargarDia()
         } else {
           alertar('Error al confirmar: ' + (result?.error || 'Intentá de nuevo.'), 'error')
@@ -360,7 +361,7 @@ export default function Agenda() {
 
   const dias     = getDiasDelMes(anio, mes)
   const fechaHoy = hoy()
-  const dotColor = (ts) => ts.some(t=>t.estado==='pendiente') ? '#fbbf24' : ts.some(t=>t.estado==='confirmado') ? '#4ade80' : '#f87171'
+  const dotColor = (ts) => ts.some(t=>t.estado==='pendiente') ? 'var(--warning)' : ts.some(t=>t.estado==='confirmado') ? 'var(--success)' : 'var(--danger)'
 
   return (
     <div className="page-animation">
@@ -372,8 +373,8 @@ export default function Agenda() {
       {modalBloqueo && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
           <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
-            style={{ background:'var(--bg-card)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
-            <h3 style={{ color:'#f87171', margin:'0 0 6px', fontSize:17 }}>🚫 Bloquear día</h3>
+            style={{ background:'var(--bg-card)', border:'1px solid color-mix(in srgb, var(--danger) 30%, transparent)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
+            <h3 style={{ color:'var(--danger)', margin:'0 0 6px', fontSize:17, display:'flex', alignItems:'center', gap:8 }}><Ban size={16} /> Bloquear día</h3>
             <p style={{ color:'var(--text-muted)', fontSize:13, margin:'0 0 20px' }}>
               <strong style={{ color:'var(--text-main)' }}>{formatFechaLinda(diaSeleccionado)}</strong><br/>
               Los clientes <strong>no podrán reservar</strong> en este día.
@@ -385,7 +386,7 @@ export default function Agenda() {
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn btn-primary"
-                style={{ flex:1, background:'rgba(248,113,113,0.15)', borderColor:'rgba(248,113,113,0.4)', color:'#f87171' }}
+                style={{ flex:1, background:'color-mix(in srgb, var(--danger) 15%, transparent)', borderColor:'color-mix(in srgb, var(--danger) 40%, transparent)', color:'var(--danger)' }}
                 onClick={bloquearDia}>
                 Confirmar bloqueo
               </button>
@@ -400,8 +401,8 @@ export default function Agenda() {
       {turnoCancelar && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
           <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }}
-            style={{ background:'var(--bg-card)', border:'1px solid rgba(248,113,113,0.3)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
-            <h3 style={{ color:'#f87171', margin:'0 0 6px', fontSize:17 }}>Cancelar turno</h3>
+            style={{ background:'var(--bg-card)', border:'1px solid color-mix(in srgb, var(--danger) 30%, transparent)', borderRadius:16, padding:28, width:'100%', maxWidth:400 }}>
+            <h3 style={{ color:'var(--danger)', margin:'0 0 6px', fontSize:17 }}>Cancelar turno</h3>
             <p style={{ color:'var(--text-muted)', fontSize:13, margin:'0 0 20px' }}>
               <strong style={{ color:'var(--text-main)' }}>{turnoCancelar.cliente_nombre}</strong>
               {' '}— {formatFechaCorta(turnoCancelar.fecha)} a las {turnoCancelar.hora?.substring(0,5)}hs
@@ -414,7 +415,7 @@ export default function Agenda() {
             </div>
             <div style={{ display:'flex', gap:10 }}>
               <button className="btn btn-primary"
-                style={{ flex:1, background:'rgba(248,113,113,0.15)', borderColor:'rgba(248,113,113,0.4)', color:'#f87171' }}
+                style={{ flex:1, background:'color-mix(in srgb, var(--danger) 15%, transparent)', borderColor:'color-mix(in srgb, var(--danger) 40%, transparent)', color:'var(--danger)' }}
                 onClick={async () => {
                   const result = await window.electronAPI.responderTurnoWeb({
                     id: turnoCancelar.turno_web_id || turnoCancelar.id, accion: 'cancelado',
@@ -466,13 +467,13 @@ export default function Agenda() {
               return (
                 <div key={dia} onClick={()=>seleccionarDia(dia)}
                   style={{ borderRadius:8, padding:'8px 4px 6px', textAlign:'center', cursor:'pointer', transition:'all 0.15s ease', minHeight:52, display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-                    background: bloqueado ? 'rgba(248,113,113,0.08)' : sel?'var(--accent-soft)':esH?'rgba(var(--accent-bright-rgb),0.08)':'transparent',
-                    border: bloqueado ? '1px solid rgba(248,113,113,0.3)' : sel?'1px solid var(--accent)':esH?'1px solid rgba(var(--accent-rgb),0.3)':'1px solid transparent',
+                    background: bloqueado ? 'color-mix(in srgb, var(--danger) 8%, transparent)' : sel?'var(--accent-soft)':esH?'rgba(var(--accent-bright-rgb),0.08)':'transparent',
+                    border: bloqueado ? '1px solid color-mix(in srgb, var(--danger) 30%, transparent)' : sel?'1px solid var(--accent)':esH?'1px solid rgba(var(--accent-rgb),0.3)':'1px solid transparent',
                     opacity: bloqueado ? 0.7 : 1,
                   }}>
-                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color: bloqueado?'#f87171':sel?'var(--accent-strong)':esH?'var(--accent-bright)':'var(--text-main)' }}>{dia}</span>
+                  <span style={{ fontSize:13, fontWeight:sel||esH?700:400, color: bloqueado?'var(--danger)':sel?'var(--accent-strong)':esH?'var(--accent-bright)':'var(--text-main)' }}>{dia}</span>
                   {bloqueado
-                    ? <Ban size={10} color="#f87171" />
+                    ? <Ban size={10} color="var(--danger)" />
                     : tdm.length > 0 && (
                       <div style={{ display:'flex', gap:3, flexWrap:'wrap', justifyContent:'center' }}>
                         {tdm.length<=3
@@ -494,7 +495,7 @@ export default function Agenda() {
               </div>
             ))}
             <div style={{ display:'flex', alignItems:'center', gap:5, fontSize:11, color:'var(--text-muted)' }}>
-              <Ban size={9} color="#f87171" /> Bloqueado
+              <Ban size={9} color="var(--danger)" /> Bloqueado
             </div>
           </div>
         </div>
@@ -506,7 +507,7 @@ export default function Agenda() {
               <div style={{ fontSize:13, color:'var(--text-muted)', marginBottom:2 }}>Día seleccionado</div>
               <div style={{ fontWeight:700, fontSize:16, color:'var(--text-main)', textTransform:'capitalize' }}>{formatFechaLinda(diaSeleccionado)}</div>
               {estaBloquado && (
-                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:4, fontSize:12, color:'#f87171' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:4, fontSize:12, color:'var(--danger)' }}>
                   <Ban size={11}/> Bloqueado{infoBloqueado?.motivo ? ` — ${infoBloqueado.motivo}` : ''}
                 </div>
               )}
@@ -515,11 +516,11 @@ export default function Agenda() {
               {peluqueriaId && (
                 estaBloquado
                   ? <button className="btn btn-secondary" onClick={desbloquearDia}
-                      style={{ fontSize:12, color:'#4ade80', borderColor:'rgba(74,222,128,0.3)' }}>
+                      style={{ fontSize:12, color:'var(--success)', borderColor:'color-mix(in srgb, var(--success) 30%, transparent)' }}>
                       <Ban size={13} style={{ marginRight:5 }}/> Desbloquear
                     </button>
                   : <button className="btn btn-secondary" onClick={() => setModalBloqueo(true)}
-                      style={{ fontSize:12, color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                      style={{ fontSize:12, color:'var(--danger)', borderColor:'color-mix(in srgb, var(--danger) 30%, transparent)' }}>
                       <Ban size={13} style={{ marginRight:5 }}/> Bloquear día
                     </button>
               )}
@@ -592,7 +593,7 @@ export default function Agenda() {
               </div>
             ) : turnosDia.length === 0 ? (
               <div style={{ padding:'36px 20px', textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
-                {estaBloquado ? '🚫 Este día está bloqueado para reservas web.' : 'No hay turnos para este día.'}
+                {estaBloquado ? <><Ban size={13} style={{ verticalAlign: -2, marginRight: 4 }} /> Este día está bloqueado para reservas web.</> : 'No hay turnos para este día.'}
               </div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column' }}>
@@ -613,7 +614,7 @@ export default function Agenda() {
                           {turno.peluquero_nombre && <span style={{ display:'flex',alignItems:'center',gap:4 }}><User size={11}/> {turno.peluquero_nombre}</span>}
                           {turno.servicio_nombre  && <span style={{ display:'flex',alignItems:'center',gap:4 }}><Scissors size={11}/> {turno.servicio_nombre}</span>}
                         </div>
-                        {turno.notas && <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, fontStyle:'italic' }}>📝 {turno.notas}</div>}
+                        {turno.notas && <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4, fontStyle:'italic' }}><StickyNote size={11} style={{ verticalAlign: -1, marginRight: 3 }} /> {turno.notas}</div>}
                       </div>
                       <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8, flexShrink:0 }}>
                         <div style={{ display:'flex',alignItems:'center',gap:5,background:est.bg,color:est.color,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600 }}>
@@ -645,13 +646,13 @@ export default function Agenda() {
             <Globe size={20} color="var(--accent-bright)" />
             <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:'var(--text-main)' }}>Reservas Online</h2>
             {pendientesCount > 0 && (
-              <div style={{ background:'#fbbf24', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
+              <div style={{ background:'var(--warning)', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
                 {pendientesCount} pendiente{pendientesCount!==1?'s':''}
               </div>
             )}
             {senasCount > 0 && (
-              <div style={{ background:'#fb923c', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
-                💸 {senasCount} seña{senasCount!==1?'s':''}
+              <div style={{ background:'var(--warning)', color:'#000', borderRadius:20, padding:'2px 10px', fontSize:12, fontWeight:700 }}>
+                {senasCount} seña{senasCount!==1?'s':''}
               </div>
             )}
           </div>
@@ -660,7 +661,7 @@ export default function Agenda() {
               <div style={{ display:'flex', background:'var(--bg-card)', border:'1px solid var(--border-soft)', borderRadius:8, overflow:'hidden' }}>
                 {[
                   { key:'pendientes', label:'Pendientes', badge: pendientesCount },
-                  { key:'senas',      label:'💸 Señas',   badge: senasCount      },
+                  { key:'senas',      label:'Señas',   badge: senasCount      },
                   { key:'todos',      label:MESES[mes],   badge: 0               },
                 ].map(f=>(
                   <button key={f.key} onClick={()=>setFiltroWeb(f.key)}
@@ -670,7 +671,7 @@ export default function Agenda() {
                     }}>
                     {f.label}
                     {f.badge > 0 && filtroWeb !== f.key && (
-                      <span style={{ marginLeft:5, background: f.key==='senas' ? '#fb923c' : '#fbbf24', color:'#000', borderRadius:20, padding:'1px 6px', fontSize:10, fontWeight:700 }}>
+                      <span style={{ marginLeft:5, background: f.key==='senas' ? 'var(--warning)' : 'var(--warning)', color:'#000', borderRadius:20, padding:'1px 6px', fontSize:10, fontWeight:700 }}>
                         {f.badge}
                       </span>
                     )}
@@ -695,9 +696,9 @@ export default function Agenda() {
         )}
 
         {peluqueriaId && sinConexion && (
-          <div className="card" style={{ margin:0, padding:'32px 20px', textAlign:'center', borderColor:'rgba(248,113,113,0.3)', background:'rgba(248,113,113,0.04)' }}>
-            <WifiOff size={32} color="#f87171" style={{ marginBottom:10 }} />
-            <p style={{ color:'#f87171', fontSize:14, margin:'0 0 12px' }}>Sin conexión a internet</p>
+          <div className="card" style={{ margin:0, padding:'32px 20px', textAlign:'center', borderColor:'color-mix(in srgb, var(--danger) 30%, transparent)', background:'color-mix(in srgb, var(--danger) 4%, transparent)' }}>
+            <WifiOff size={32} color="var(--danger)" style={{ marginBottom:10 }} />
+            <p style={{ color:'var(--danger)', fontSize:14, margin:'0 0 12px' }}>Sin conexión a internet</p>
             <button className="btn btn-secondary" onClick={cargarTurnosWeb}>Reintentar</button>
           </div>
         )}
@@ -741,7 +742,7 @@ export default function Agenda() {
                           </span>
                         )}
                         {vencido && (
-                          <span style={{ marginLeft:4, fontSize:10, color:'#f87171', fontWeight:600 }}>· vencida</span>
+                          <span style={{ marginLeft:4, fontSize:10, color:'var(--danger)', fontWeight:600 }}>· vencida</span>
                         )}
                       </div>
                       <span style={{ fontSize:15, color:'var(--text-main)', fontWeight:600 }}>
@@ -772,8 +773,8 @@ export default function Agenda() {
                       </div>
 
                       {turno.estado === 'modificado' && turno.fecha_propuesta && (
-                        <div style={{ background:'rgba(96,165,250,0.1)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontSize:12 }}>
-                          <div style={{ color:'#60a5fa', fontWeight:600, marginBottom:5, fontSize:11 }}>⏳ ESPERANDO OK DEL CLIENTE</div>
+                        <div style={{ background:'color-mix(in srgb, var(--info) 10%, transparent)', border:'1px solid color-mix(in srgb, var(--info) 30%, transparent)', borderRadius:8, padding:'10px 12px', marginBottom:14, fontSize:12 }}>
+                          <div style={{ color:'var(--info)', fontWeight:600, marginBottom:5, fontSize:11 }}>⏳ ESPERANDO OK DEL CLIENTE</div>
                           <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
                             <span style={{ color:'var(--text-muted)' }}>Nueva fecha</span>
                             <span style={{ color:'white', fontWeight:600 }}>{formatFechaCorta(turno.fecha_propuesta)}</span>
@@ -782,18 +783,18 @@ export default function Agenda() {
                             <span style={{ color:'var(--text-muted)' }}>Nueva hora</span>
                             <span style={{ color:'white', fontWeight:600 }}>{turno.hora_propuesta?.substring(0,5)}hs</span>
                           </div>
-                          {turno.motivo && <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:6, fontStyle:'italic' }}>💬 {turno.motivo}</div>}
+                          {turno.motivo && <div style={{ color:'var(--text-muted)', fontSize:11, marginTop:6, fontStyle:'italic' }}><MessageCircle size={11} style={{ verticalAlign: -1, marginRight: 3 }} /> {turno.motivo}</div>}
                         </div>
                       )}
 
                       {/* ── PANEL SEÑA ── */}
                       {esSena && (
                         <div style={{
-                          background: vencido ? 'rgba(248,113,113,0.08)' : 'rgba(251,146,60,0.1)',
-                          border: `1px solid ${vencido ? 'rgba(248,113,113,0.3)' : 'rgba(251,146,60,0.35)'}`,
+                          background: vencido ? 'color-mix(in srgb, var(--danger) 8%, transparent)' : 'color-mix(in srgb, var(--warning) 10%, transparent)',
+                          border: `1px solid ${vencido ? 'color-mix(in srgb, var(--danger) 30%, transparent)' : 'color-mix(in srgb, var(--warning) 35%, transparent)'}`,
                           borderRadius:8, padding:'12px 14px', marginBottom:14, fontSize:12
                         }}>
-                          <div style={{ color: vencido ? '#f87171' : '#fb923c', fontWeight:700, marginBottom:8, fontSize:11, display:'flex', alignItems:'center', gap:5 }}>
+                          <div style={{ color: vencido ? 'var(--danger)' : 'var(--warning)', fontWeight:700, marginBottom:8, fontSize:11, display:'flex', alignItems:'center', gap:5 }}>
                             <DollarSign size={11} />
                             {vencido ? 'SEÑA VENCIDA — NO PAGÓ' : 'ESPERANDO PAGO DE SEÑA'}
                           </div>
@@ -809,7 +810,7 @@ export default function Agenda() {
                               </div>
                               <div style={{ display:'flex', justifyContent:'space-between' }}>
                                 <span style={{ color:'var(--text-muted)' }}>Vence en</span>
-                                <span style={{ color: horas <= 3 ? '#f87171' : '#fb923c', fontWeight:600 }}>{horas}hs</span>
+                                <span style={{ color: horas <= 3 ? 'var(--danger)' : 'var(--warning)', fontWeight:600 }}>{horas}hs</span>
                               </div>
                             </>
                           )}
@@ -822,7 +823,7 @@ export default function Agenda() {
                       )}
 
                       {(turno.estado==='rechazado'||turno.estado==='cancelado') && turno.motivo && (
-                        <div style={{ fontSize:11, color:'var(--text-muted)', fontStyle:'italic', marginBottom:10 }}>💬 {turno.motivo}</div>
+                        <div style={{ fontSize:11, color:'var(--text-muted)', fontStyle:'italic', marginBottom:10 }}><MessageCircle size={11} style={{ verticalAlign: -1, marginRight: 3 }} /> {turno.motivo}</div>
                       )}
 
                       {/* ── ACCIONES ── */}
@@ -838,12 +839,12 @@ export default function Agenda() {
                           <button className="btn btn-primary"
                             onClick={() => confirmarSenaPagada(turno)}
                             disabled={confirmandoSena === turno.id}
-                            style={{ width:'100%', fontSize:13, justifyContent:'center', background:'rgba(74,222,128,0.15)', borderColor:'rgba(74,222,128,0.4)', color:'#4ade80' }}>
-                            {confirmandoSena === turno.id ? 'Confirmando...' : '✓ Recibí la seña — Confirmar turno'}
+                            style={{ width:'100%', fontSize:13, justifyContent:'center', background:'color-mix(in srgb, var(--success) 15%, transparent)', borderColor:'color-mix(in srgb, var(--success) 40%, transparent)', color:'var(--success)' }}>
+                            {confirmandoSena === turno.id ? 'Confirmando...' : 'Recibí la seña — Confirmar turno'}
                           </button>
                           <button className="btn btn-secondary"
                             onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('No se recibió el pago de la seña.') }}
-                            style={{ width:'100%', fontSize:12, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                            style={{ width:'100%', fontSize:12, justifyContent:'center', color:'var(--danger)', borderColor:'color-mix(in srgb, var(--danger) 30%, transparent)' }}>
                             Cancelar (no pagó)
                           </button>
                         </div>
@@ -852,7 +853,7 @@ export default function Agenda() {
                       {esSena && vencido && (
                         <button className="btn btn-secondary"
                           onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('Seña no recibida a tiempo.') }}
-                          style={{ width:'100%', fontSize:12, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.3)' }}>
+                          style={{ width:'100%', fontSize:12, justifyContent:'center', color:'var(--danger)', borderColor:'color-mix(in srgb, var(--danger) 30%, transparent)' }}>
                           Cancelar turno vencido
                         </button>
                       )}
@@ -860,7 +861,7 @@ export default function Agenda() {
                       {turno.estado === 'confirmado' && (
                         <button className="btn btn-secondary"
                           onClick={() => { setTurnoCancelar(turno); setMotivoCancelacion('') }}
-                          style={{ width:'100%', fontSize:13, justifyContent:'center', color:'#f87171', borderColor:'rgba(248,113,113,0.4)' }}>
+                          style={{ width:'100%', fontSize:13, justifyContent:'center', color:'var(--danger)', borderColor:'color-mix(in srgb, var(--danger) 40%, transparent)' }}>
                           Cancelar turno
                         </button>
                       )}

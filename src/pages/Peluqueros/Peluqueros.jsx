@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, DollarSign, Users } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, CalendarOff, ChevronDown, ChevronUp, X, DollarSign, Users, Check, Palmtree, Calendar, MessageCircle } from 'lucide-react'
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import EmptyState from '../../components/EmptyState'
@@ -192,10 +192,10 @@ export default function Peluqueros() {
           {sincState && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12,
-              color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : 'var(--accent-bright)',
+              color: sincState === 'ok' ? 'var(--success)' : sincState === 'error' ? 'var(--danger)' : 'var(--accent-bright)',
             }}>
               <RefreshCw size={13} style={{ animation: sincState === 'syncing' ? 'spin 1s linear infinite' : 'none' }} />
-              {sincState === 'syncing' ? 'Sincronizando...' : sincState === 'ok' ? '✓ Sincronizado' : 'Error al sincronizar'}
+              {sincState === 'syncing' ? 'Sincronizando...' : sincState === 'ok' ? 'Sincronizado' : 'Error al sincronizar'}
             </div>
           )}
           <button className="btn btn-primary" onClick={() => {
@@ -275,10 +275,10 @@ export default function Peluqueros() {
                   {/* Avatar */}
                   <div style={{
                     width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                    background: bloqueoActivo ? 'rgba(251,191,36,0.15)' : 'rgba(var(--accent-rgb),0.15)',
+                    background: bloqueoActivo ? 'color-mix(in srgb, var(--warning) 15%, transparent)' : 'rgba(var(--accent-rgb),0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 17, fontWeight: 700,
-                    color: bloqueoActivo ? '#fbbf24' : 'var(--accent-bright)',
+                    color: bloqueoActivo ? 'var(--warning)' : 'var(--accent-bright)',
                   }}>
                     {p.nombre[0].toUpperCase()}
                   </div>
@@ -288,24 +288,26 @@ export default function Peluqueros() {
                       {bloqueoActivo && (
                         <span style={{
                           fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                          background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)'
+                          background: 'color-mix(in srgb, var(--warning) 12%, transparent)', color: 'var(--warning)', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)',
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
                         }}>
-                          🏖 Ausente · vuelve {formatFecha(bloqueoActivo.hasta)}
+                          <Palmtree size={11} /> Ausente · vuelve {formatFecha(bloqueoActivo.hasta)}
                         </span>
                       )}
                       {tramosP.length > 0 && (
                         <span style={{
                           fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
-                          background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)'
+                          background: 'color-mix(in srgb, var(--success) 10%, transparent)', color: 'var(--success)', border: '1px solid color-mix(in srgb, var(--success) 25%, transparent)',
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
                         }}>
-                          💲 {tramosP.length} rango{tramosP.length !== 1 ? 's' : ''} de pago
+                          <DollarSign size={11} /> {tramosP.length} rango{tramosP.length !== 1 ? 's' : ''} de pago
                         </span>
                       )}
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       Comisión: {p.comision}%
                       {(p.porcentaje_propina != null && Number(p.porcentaje_propina) !== 100) && (
-                        <span style={{ color: '#fb923c', marginLeft: 6 }}>· propina {p.porcentaje_propina}%</span>
+                        <span style={{ color: 'var(--warning)', marginLeft: 6 }}>· propina {p.porcentaje_propina}%</span>
                       )}
                     </span>
                   </div>
@@ -319,8 +321,8 @@ export default function Peluqueros() {
                     title="Configurar pago por servicio"
                     style={{
                       display: 'flex', alignItems: 'center', gap: 6,
-                      color: tramosPanel ? '#4ade80' : undefined,
-                      borderColor: tramosPanel ? 'rgba(74,222,128,0.4)' : undefined
+                      color: tramosPanel ? 'var(--success)' : undefined,
+                      borderColor: tramosPanel ? 'color-mix(in srgb, var(--success) 40%, transparent)' : undefined
                     }}
                   >
                     <DollarSign size={14} />
@@ -341,7 +343,7 @@ export default function Peluqueros() {
                     Ausencias
                     {bloqueosP.length > 0 && (
                       <span style={{
-                        background: bloqueoActivo ? '#fbbf24' : '#52525b',
+                        background: bloqueoActivo ? 'var(--warning)' : 'var(--text-muted)',
                         color: bloqueoActivo ? '#000' : '#fff',
                         borderRadius: 99, fontSize: 10, fontWeight: 700,
                         padding: '1px 5px', minWidth: 16, textAlign: 'center'
@@ -362,9 +364,9 @@ export default function Peluqueros() {
                     exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <div style={{ borderTop: '1px solid var(--border)', background: 'rgba(74,222,128,0.02)', padding: '16px 18px' }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        💲 Pago por servicio
+                    <div style={{ borderTop: '1px solid var(--border)', background: 'color-mix(in srgb, var(--success) 2%, transparent)', padding: '16px 18px' }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--success)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <DollarSign size={12} /> Pago por servicio
                       </p>
                       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
                         Indicá cuánto cobra el peluquero según el precio del servicio.
@@ -404,7 +406,7 @@ export default function Peluqueros() {
                             />
                             <button
                               onClick={() => eliminarFilaTramo(i)}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f87171', padding: 6, borderRadius: 6 }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 6, borderRadius: 6 }}
                             >
                               <X size={14} />
                             </button>
@@ -425,9 +427,9 @@ export default function Peluqueros() {
                           className="btn btn-primary"
                           onClick={() => guardarTramos(p.id)}
                           disabled={guardandoTramos}
-                          style={{ fontSize: 12 }}
+                          style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5 }}
                         >
-                          {guardandoTramos ? 'Guardando...' : '✓ Guardar'}
+                          {guardandoTramos ? 'Guardando...' : <><Check size={13} /> Guardar</>}
                         </button>
                       </div>
                     </div>
@@ -448,8 +450,8 @@ export default function Peluqueros() {
                       background: 'rgba(var(--accent-rgb),0.03)',
                       padding: '16px 18px',
                     }}>
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-bright)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 1 }}>
-                        🏖 Ausencias / Vacaciones
+                      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent-bright)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <Palmtree size={12} /> Ausencias / Vacaciones
                       </p>
 
                       {/* Bloqueos existentes */}
@@ -460,24 +462,24 @@ export default function Peluqueros() {
                             return (
                               <div key={b.id} style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                background: activo ? 'rgba(251,191,36,0.07)' : 'rgba(255,255,255,0.03)',
-                                border: `1px solid ${activo ? 'rgba(251,191,36,0.25)' : 'var(--border)'}`,
+                                background: activo ? 'color-mix(in srgb, var(--warning) 7%, transparent)' : 'rgba(255,255,255,0.03)',
+                                border: `1px solid ${activo ? 'color-mix(in srgb, var(--warning) 25%, transparent)' : 'var(--border)'}`,
                                 borderRadius: 10, padding: '10px 14px'
                               }}>
                                 <div>
-                                  <div style={{ fontSize: 13, fontWeight: 600, color: activo ? '#fbbf24' : 'var(--text-primary)' }}>
-                                    📅 {formatFecha(b.desde)} → {formatFecha(b.hasta)}
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: activo ? 'var(--warning)' : 'var(--text-primary)' }}>
+                                    <Calendar size={12} style={{ verticalAlign: -2, marginRight: 3 }} /> {formatFecha(b.desde)} → {formatFecha(b.hasta)}
                                     {activo && <span style={{ marginLeft: 8, fontSize: 11, opacity: 0.7, fontWeight: 400 }}>● Activo ahora</span>}
                                   </div>
                                   {b.motivo && (
                                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
-                                      💬 {b.motivo}
+                                      <MessageCircle size={11} style={{ verticalAlign: -1, marginRight: 3 }} /> {b.motivo}
                                     </div>
                                   )}
                                 </div>
                                 <button
                                   onClick={() => eliminarBloqueo(b.id)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#52525b', padding: 6, borderRadius: 6 }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, borderRadius: 6 }}
                                   title="Eliminar ausencia"
                                 >
                                   <X size={15} />

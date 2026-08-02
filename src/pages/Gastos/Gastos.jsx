@@ -189,32 +189,32 @@ export default function Gastos() {
       {resumenMensual.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(74, 222, 128, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <DollarSign size={20} color="#4ade80" />
+            <div style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color="var(--success)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total ingresos</div>
-              <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(248, 113, 113, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <TrendingDown size={20} color="#f87171" />
+            <div style={{ background: 'color-mix(in srgb, var(--danger) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <TrendingDown size={20} color="var(--danger)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Gastos operativos</div>
-              <div style={{ color: '#f87171', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(251, 146, 60, 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <Users size={20} color="#fb923c" />
+            <div style={{ background: 'color-mix(in srgb, var(--warning) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <Users size={20} color="var(--warning)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Pagos a peluqueros</div>
-              <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -228,13 +228,13 @@ export default function Gastos() {
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
-          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14, border: `1px solid ${gananciaNeta >= 0 ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}` }}>
-            <div style={{ background: gananciaNeta >= 0 ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <DollarSign size={20} color={gananciaNeta >= 0 ? '#4ade80' : '#f87171'} />
+          <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14, border: `1px solid ${gananciaNeta >= 0 ? 'color-mix(in srgb, var(--success) 25%, transparent)' : 'color-mix(in srgb, var(--danger) 25%, transparent)'}` }}>
+            <div style={{ background: gananciaNeta >= 0 ? 'color-mix(in srgb, var(--success) 12%, transparent)' : 'color-mix(in srgb, var(--danger) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color={gananciaNeta >= 0 ? 'var(--success)' : 'var(--danger)'} />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Ganancia neta</div>
-              <div style={{ color: gananciaNeta >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 20 }}>
+              <div style={{ color: gananciaNeta >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700, fontSize: 20 }}>
                 {gananciaNeta >= 0 ? '' : '-'}${Math.abs(gananciaNeta).toLocaleString('es-AR')}
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>ingresos − egresos</div>
@@ -339,7 +339,7 @@ export default function Gastos() {
                         <span>{item.cantidad_gastos} gasto{item.cantidad_gastos !== 1 ? 's' : ''}</span>
                       )}
                       {item.cantidad_pagos > 0 && (
-                        <span style={{ color: '#fb923c' }}>{item.cantidad_pagos} pago{item.cantidad_pagos !== 1 ? 's' : ''} a peluqueros</span>
+                        <span style={{ color: 'var(--warning)' }}>{item.cantidad_pagos} pago{item.cantidad_pagos !== 1 ? 's' : ''} a peluqueros</span>
                       )}
                     </div>
                   </div>
@@ -347,13 +347,13 @@ export default function Gastos() {
                     {totalG > 0 && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>GASTOS OP.</div>
-                        <div style={{ color: '#f87171', fontWeight: 700, fontSize: 14 }}>${totalG.toLocaleString('es-AR')}</div>
+                        <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 14 }}>${totalG.toLocaleString('es-AR')}</div>
                       </div>
                     )}
                     {totalP > 0 && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>PAGOS PEL.</div>
-                        <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 14 }}>${totalP.toLocaleString('es-AR')}</div>
+                        <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 14 }}>${totalP.toLocaleString('es-AR')}</div>
                       </div>
                     )}
                     <div style={{ textAlign: 'right' }}>
@@ -363,17 +363,17 @@ export default function Gastos() {
                     {ingresos > 0 && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>INGRESOS</div>
-                        <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 16 }}>${ingresos.toLocaleString('es-AR')}</div>
+                        <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 16 }}>${ingresos.toLocaleString('es-AR')}</div>
                       </div>
                     )}
                     {ingresos > 0 && (
                       <div style={{
-                        background: ganancia >= 0 ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
-                        border: `1px solid ${ganancia >= 0 ? 'rgba(74,222,128,0.3)' : 'rgba(248,113,113,0.3)'}`,
+                        background: ganancia >= 0 ? 'color-mix(in srgb, var(--success) 12%, transparent)' : 'color-mix(in srgb, var(--danger) 12%, transparent)',
+                        border: `1px solid ${ganancia >= 0 ? 'color-mix(in srgb, var(--success) 30%, transparent)' : 'color-mix(in srgb, var(--danger) 30%, transparent)'}`,
                         borderRadius: 8, padding: '6px 12px', textAlign: 'right'
                       }}>
                         <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 1 }}>GANANCIA</div>
-                        <div style={{ color: ganancia >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 16 }}>
+                        <div style={{ color: ganancia >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700, fontSize: 16 }}>
                           {ganancia >= 0 ? '' : '-'}${Math.abs(ganancia).toLocaleString('es-AR')}
                         </div>
                       </div>
@@ -396,24 +396,24 @@ export default function Gastos() {
 
                         {/* Resumen financiero del mes */}
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                          <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Ingresos del mes</div>
-                            <div style={{ color: '#4ade80', fontWeight: 700, fontSize: 18 }}>${ingresos.toLocaleString('es-AR')}</div>
+                            <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 18 }}>${ingresos.toLocaleString('es-AR')}</div>
                           </div>
-                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                          <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Gastos operativos</div>
-                            <div style={{ color: '#f87171', fontWeight: 700, fontSize: 18 }}>${totalG.toLocaleString('es-AR')}</div>
+                            <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 18 }}>${totalG.toLocaleString('es-AR')}</div>
                           </div>
-                          <div style={{ background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                          <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Pagos a peluqueros</div>
-                            <div style={{ color: '#fb923c', fontWeight: 700, fontSize: 18 }}>${totalP.toLocaleString('es-AR')}</div>
+                            <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 18 }}>${totalP.toLocaleString('es-AR')}</div>
                           </div>
                           <div style={{
                             background: 'var(--bg-main)', borderRadius: 8, padding: '12px 16px', textAlign: 'center',
-                            border: `1px solid ${ganancia >= 0 ? 'rgba(74, 222, 128, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`
+                            border: `1px solid ${ganancia >= 0 ? 'color-mix(in srgb, var(--success) 30%, transparent)' : 'color-mix(in srgb, var(--danger) 30%, transparent)'}`
                           }}>
                             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 4 }}>Ganancia neta</div>
-                            <div style={{ color: ganancia >= 0 ? '#4ade80' : '#f87171', fontWeight: 700, fontSize: 18 }}>
+                            <div style={{ color: ganancia >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700, fontSize: 18 }}>
                               {ganancia >= 0 ? '' : '-'}${Math.abs(ganancia).toLocaleString('es-AR')}
                             </div>
                           </div>
@@ -422,15 +422,15 @@ export default function Gastos() {
                         {/* ── PAGOS A PELUQUEROS ── agrupados por peluquero */}
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <Users size={15} color="#fb923c" />
-                            <h4 style={{ color: '#fb923c', margin: 0, fontSize: 14 }}>
+                            <Users size={15} color="var(--warning)" />
+                            <h4 style={{ color: 'var(--warning)', margin: 0, fontSize: 14 }}>
                               Pagos confirmados a peluqueros
                             </h4>
                           </div>
 
                           {pagos.length === 0 ? (
                             <div style={{
-                              border: '1px dashed rgba(251, 146, 60, 0.3)',
+                              border: '1px dashed color-mix(in srgb, var(--warning) 30%, transparent)',
                               borderRadius: 8, padding: '14px 20px',
                               color: 'var(--text-muted)', fontSize: 13, textAlign: 'center'
                             }}>
@@ -457,24 +457,24 @@ export default function Gastos() {
                                         style={{
                                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                           padding: '12px 16px', cursor: 'pointer', userSelect: 'none',
-                                          background: expandido ? 'rgba(251, 146, 60, 0.06)' : 'var(--bg-main)',
+                                          background: expandido ? 'color-mix(in srgb, var(--warning) 6%, transparent)' : 'var(--bg-main)',
                                         }}
                                       >
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                           <span style={{
                                             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                             width: 20, height: 20, borderRadius: '50%',
-                                            background: 'rgba(251, 146, 60, 0.15)', color: '#fb923c',
+                                            background: 'color-mix(in srgb, var(--warning) 15%, transparent)', color: 'var(--warning)',
                                             fontSize: 10, flexShrink: 0,
                                             transition: 'transform 0.2s ease',
                                             transform: expandido ? 'rotate(90deg)' : 'rotate(0deg)',
                                           }}>▶</span>
-                                          <span style={{ fontWeight: 700, color: '#fb923c', fontSize: 14 }}>{grupo.nombre}</span>
+                                          <span style={{ fontWeight: 700, color: 'var(--warning)', fontSize: 14 }}>{grupo.nombre}</span>
                                           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                                             {grupo.pagos.length} pago{grupo.pagos.length !== 1 ? 's' : ''}
                                           </span>
                                         </div>
-                                        <span style={{ color: '#fb923c', fontWeight: 700, fontSize: 15 }}>
+                                        <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 15 }}>
                                           ${grupo.total.toLocaleString('es-AR')}
                                         </span>
                                       </div>
@@ -505,7 +505,7 @@ export default function Gastos() {
                                                       {formatFecha(pg.desde)} → {formatFecha(pg.hasta)}
                                                     </td>
                                                     <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
-                                                    <td style={{ color: '#fb923c', fontWeight: 700 }}>
+                                                    <td style={{ color: 'var(--warning)', fontWeight: 700 }}>
                                                       ${(Number(pg.monto) + Number(pg.propinas_pagadas || 0)).toLocaleString('es-AR')}
                                                       {Number(pg.propinas_pagadas) > 0 && (
                                                         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -537,13 +537,13 @@ export default function Gastos() {
                         {/* ── GASTOS OPERATIVOS ── */}
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                            <TrendingDown size={15} color="#f87171" />
-                            <h4 style={{ color: '#f87171', margin: 0, fontSize: 14 }}>Gastos operativos</h4>
+                            <TrendingDown size={15} color="var(--danger)" />
+                            <h4 style={{ color: 'var(--danger)', margin: 0, fontSize: 14 }}>Gastos operativos</h4>
                           </div>
 
                           {detalle.length === 0 ? (
                             <div style={{
-                              border: '1px dashed rgba(248, 113, 113, 0.3)',
+                              border: '1px dashed color-mix(in srgb, var(--danger) 30%, transparent)',
                               borderRadius: 8, padding: '14px 20px',
                               color: 'var(--text-muted)', fontSize: 13, textAlign: 'center'
                             }}>
@@ -571,7 +571,7 @@ export default function Gastos() {
                                         : <span style={{ color: 'var(--text-muted)' }}>—</span>
                                       }
                                     </td>
-                                    <td style={{ color: '#f87171', fontWeight: 600 }}>
+                                    <td style={{ color: 'var(--danger)', fontWeight: 600 }}>
                                       ${Number(g.monto).toLocaleString('es-AR')}
                                     </td>
                                     <td>

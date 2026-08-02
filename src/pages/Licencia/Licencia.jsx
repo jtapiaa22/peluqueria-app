@@ -154,10 +154,10 @@ export default function Licencia({ onActivada }) {
 
         {/* Ícono */}
         <div style={{
-          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)',
+          background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 25%, transparent)',
           borderRadius: 99, padding: 16,
         }}>
-          <ShieldX size={36} color="#ef4444" />
+          <ShieldX size={36} color="var(--danger)" />
         </div>
 
         {/* Título */}
@@ -197,10 +197,10 @@ export default function Licencia({ onActivada }) {
                 onClick={copiar}
                 title={copiado ? 'Copiado' : 'Copiar ID'}
                 style={{
-                  background: copiado ? 'rgba(74,222,128,0.1)' : 'var(--bg-card)',
-                  border: `1px solid ${copiado ? 'rgba(74,222,128,0.3)' : 'var(--border-soft)'}`,
+                  background: copiado ? 'color-mix(in srgb, var(--success) 10%, transparent)' : 'var(--bg-card)',
+                  border: `1px solid ${copiado ? 'color-mix(in srgb, var(--success) 30%, transparent)' : 'var(--border-soft)'}`,
                   borderRadius: 6, padding: '6px 8px', cursor: 'pointer',
-                  color: copiado ? '#4ade80' : 'var(--text-muted)',
+                  color: copiado ? 'var(--success)' : 'var(--text-muted)',
                   flexShrink: 0, display: 'flex', alignItems: 'center',
                   transition: 'all 0.2s',
                 }}
@@ -230,8 +230,8 @@ export default function Licencia({ onActivada }) {
 
             {mensaje && (
               <div style={{
-                width: '100%', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
-                borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13, textAlign: 'center',
+                width: '100%', background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+                borderRadius: 8, padding: '10px 14px', color: 'var(--danger)', fontSize: 13, textAlign: 'center',
               }}>
                 {mensaje}
               </div>
@@ -255,8 +255,8 @@ export default function Licencia({ onActivada }) {
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
             {errorRemoto && (
               <div style={{
-                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
-                borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13,
+                background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
+                borderRadius: 8, padding: '10px 14px', color: 'var(--danger)', fontSize: 13,
               }}>
                 {errorRemoto}
               </div>

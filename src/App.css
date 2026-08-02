@@ -30,6 +30,16 @@ a { -webkit-user-drag: none; }
 
   --danger:       #991b1b;
   --danger-hover: #7f1d1d;
+  --success:      #166534;
+  --success-hover:#14532d;
+  --warning:      #92400e;
+  --warning-hover:#78350f;
+  --info:         #1d4ed8;
+  --info-hover:   #1e40af;
+  --danger-soft:  color-mix(in srgb, var(--danger) 20%, var(--bg-card));
+  --success-soft: color-mix(in srgb, var(--success) 20%, var(--bg-card));
+  --warning-soft: color-mix(in srgb, var(--warning) 20%, var(--bg-card));
+  --info-soft:    color-mix(in srgb, var(--info) 20%, var(--bg-card));
 
   --btn-secondary-bg:       #2a2a2a;
   --btn-secondary-color:    #cccccc;
@@ -88,6 +98,16 @@ a { -webkit-user-drag: none; }
 
   --danger:       #dc2626;
   --danger-hover: #b91c1c;
+  --success:      #16a34a;
+  --success-hover:#15803d;
+  --warning:      #d97706;
+  --warning-hover:#b45309;
+  --info:         #2563eb;
+  --info-hover:   #1d4ed8;
+  --danger-soft:  color-mix(in srgb, var(--danger) 12%, var(--bg-card));
+  --success-soft: color-mix(in srgb, var(--success) 12%, var(--bg-card));
+  --warning-soft: color-mix(in srgb, var(--warning) 12%, var(--bg-card));
+  --info-soft:    color-mix(in srgb, var(--info) 12%, var(--bg-card));
 
   --btn-secondary-bg:       #e4e4e7;
   --btn-secondary-color:    #3f3f46;
@@ -193,6 +213,7 @@ body {
   background: var(--bg-main);
   color: var(--text-main);
   font-size: 18px;
+  font-weight: 600;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -322,6 +343,13 @@ body {
 .nav-item:hover {
   background: var(--nav-item-hover-bg);
   color: var(--text-main);
+}
+
+.nav-icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .nav-item.active {
@@ -854,6 +882,9 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   font-size: clamp(10px, 0.8vw, 11px);
   margin-top: 4px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Actualizador */

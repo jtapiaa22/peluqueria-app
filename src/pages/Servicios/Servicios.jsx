@@ -99,11 +99,11 @@ export default function Servicios() {
         {sincState && (
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontSize: 12, color: sincState === 'ok' ? '#4ade80' : sincState === 'error' ? '#f87171' : 'var(--accent-bright)',
+            fontSize: 12, color: sincState === 'ok' ? 'var(--success)' : sincState === 'error' ? 'var(--danger)' : 'var(--accent-bright)',
             marginBottom: 16
           }}>
             <RefreshCw size={13} style={{ animation: sincState === 'syncing' ? 'spin 1s linear infinite' : 'none' }} />
-            {sincState === 'syncing' ? 'Sincronizando con la web...' : sincState === 'ok' ? '✓ Sincronizado' : 'Error al sincronizar'}
+            {sincState === 'syncing' ? 'Sincronizando con la web...' : sincState === 'ok' ? 'Sincronizado' : 'Error al sincronizar'}
           </div>
         )}
         <button className="btn btn-primary" onClick={() => { setMostrarForm(!mostrarForm); setEditando(null); setForm({ nombre: '', precio: '' }) }}>

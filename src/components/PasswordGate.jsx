@@ -87,9 +87,9 @@ export default function PasswordGate({ configKey, titulo, desbloqueado, onDesblo
           </div>
           {error && (
             <div style={{
-              background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+              background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
               borderRadius: 8, padding: '8px 12px', marginBottom: 12,
-              color: '#f87171', fontSize: 13, textAlign: 'left',
+              color: 'var(--danger)', fontSize: 13, textAlign: 'left',
             }}>
               {error}
             </div>
