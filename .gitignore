@@ -28,6 +28,8 @@ node_modules/
 
 # Base de datos local
 database.sqlite
+database.sqlite-shm
+database.sqlite-wal
 
 # Licencia local
 licencia.lic
