@@ -82,6 +82,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   registrarPeluqueria:  (data)         => ipcRenderer.invoke('peluqueria:registrar', data),
   vincularPeluqueria:   (data)         => ipcRenderer.invoke('peluqueria:vincular', data),
 
+  // Clave del panel de turnos (peluapp-web /admin)
+  estadoClavePanel:     ()             => ipcRenderer.invoke('admin:estadoClave'),
+  setClaveInicialPanel: (clave)        => ipcRenderer.invoke('admin:setClaveInicial', { clave }),
+
   // Turnos web (reservas online)
   getTurnosWebPendientes: ()           => ipcRenderer.invoke('turnosWeb:getPendientes'),
   getTurnosWebSenas:      ()           => ipcRenderer.invoke('turnosWeb:getSenas'),
