@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { MotionConfig, motion } from 'framer-motion'
-import { Bell, X, Globe, Star, Sparkles, TriangleAlert, Scissors } from 'lucide-react'
-import iconDashboard from './assets/images/Dashboard.png'
-import iconAgenda from './assets/images/Agenda.png'
-import iconAtenciones from './assets/images/Atenciones.png'
-import iconCaja from './assets/images/Caja.png'
-import iconPeluqueros from './assets/images/Peluqueros.png'
-import iconServicios from './assets/images/Servicios.png'
-import iconReportes from './assets/images/Reportes.png'
-import iconComparaciones from './assets/images/Comparaciones.png'
-import iconLiquidacion from './assets/images/Liquidacion.png'
-import iconGastos from './assets/images/Gastos.png'
-import iconConfiguracion from './assets/images/Configuracion.png'
+import {
+  Bell, X, Globe, Sparkles, TriangleAlert, Scissors,
+  LayoutDashboard, CalendarDays, Wallet, Users, Tag,
+  BarChart3, GitCompare, HandCoins, Receipt, Settings,
+} from 'lucide-react'
 import Dashboard    from './pages/Dashboard/Dashboard'
 import Peluqueros   from './pages/Peluqueros/Peluqueros'
 import Servicios    from './pages/Servicios/Servicios'
@@ -200,58 +193,52 @@ function App() {
               : <Scissors size={28} />
             }
             <span>{nombreApp}</span>
-            <span className="mundial-estrellas" title="Campeón del Mundo" aria-label="Tres estrellas: campeón del mundo">
-              <Star size={11} />
-              <Star size={11} />
-              <Star size={11} />
-            </span>
           </div>
-          <div className="franja-argentina" aria-hidden="true" />
 
           <nav className="sidebar-nav">
             <NavLink to="/" end className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconDashboard} className="nav-icon-img" alt="" /> Dashboard
+              <LayoutDashboard size={18} className="nav-icon" /> Dashboard
             </NavLink>
 
             <div className="sidebar-section-label">Operaciones</div>
             <NavLink to="/agenda" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconAgenda} className="nav-icon-img" alt="" /> Agenda
+              <CalendarDays size={18} className="nav-icon" /> Agenda
               {pendientesWeb > 0 && (
                 <span style={{ marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%', background: 'var(--warning)', flexShrink: 0, boxShadow: '0 0 6px var(--warning)' }} />
               )}
             </NavLink>
             <NavLink to="/atenciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconAtenciones} className="nav-icon-img" alt="" /> Atenciones
+              <Scissors size={18} className="nav-icon" /> Atenciones
             </NavLink>
             <NavLink to="/caja" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconCaja} className="nav-icon-img" alt="" /> Caja
+              <Wallet size={18} className="nav-icon" /> Caja
             </NavLink>
 
             <div className="sidebar-section-label">Equipo</div>
             <NavLink to="/peluqueros" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconPeluqueros} className="nav-icon-img" alt="" /> Peluqueros
+              <Users size={18} className="nav-icon" /> Peluqueros
             </NavLink>
             <NavLink to="/servicios" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconServicios} className="nav-icon-img" alt="" /> Servicios
+              <Tag size={18} className="nav-icon" /> Servicios
             </NavLink>
 
             <div className="sidebar-section-label">Finanzas</div>
             <NavLink to="/reportes" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconReportes} className="nav-icon-img" alt="" /> Reportes
+              <BarChart3 size={18} className="nav-icon" /> Reportes
             </NavLink>
             <NavLink to="/comparaciones" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconComparaciones} className="nav-icon-img" alt="" /> Comparaciones
+              <GitCompare size={18} className="nav-icon" /> Comparaciones
             </NavLink>
             <NavLink to="/liquidacion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconLiquidacion} className="nav-icon-img" alt="" /> Liquidación
+              <HandCoins size={18} className="nav-icon" /> Liquidación
             </NavLink>
             <NavLink to="/gastos" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconGastos} className="nav-icon-img" alt="" /> Gastos
+              <Receipt size={18} className="nav-icon" /> Gastos
             </NavLink>
 
             <div className="sidebar-section-label">Sistema</div>
             <NavLink to="/configuracion" className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}>
-              <img src={iconConfiguracion} className="nav-icon-img" alt="" /> Configuración
+              <Settings size={18} className="nav-icon" /> Configuración
             </NavLink>
           </nav>
 

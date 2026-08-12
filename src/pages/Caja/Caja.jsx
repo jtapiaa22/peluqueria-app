@@ -411,35 +411,35 @@ export default function Caja() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Efectivo</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'efectivo' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Transferencia</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-2)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'transferencia' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid var(--border-primary)' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total general</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale se muestra aparte como desglose */}
                 {atenciones.length} cortes
                 {valesHoy.length > 0 && (
-                  <span style={{ marginLeft: 6, color: 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} <Ticket size={11} /></span>
+                  <span style={{ marginLeft: 6, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>· {valesHoy.length} vale{valesHoy.length > 1 ? 's' : ''} <Ticket size={11} /></span>
                 )}
               </div>
             </div>
-            <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid color-mix(in srgb, var(--warning) 25%, transparent)' }}>
+            <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Propinas</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--warning)' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-                {totalPropinasEfectivo > 0 && <span style={{ color: 'var(--success)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
-                {totalPropinasTransferencia > 0 && <span style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
+                {totalPropinasEfectivo > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
+                {totalPropinasTransferencia > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
               </div>
             </div>
           </div>

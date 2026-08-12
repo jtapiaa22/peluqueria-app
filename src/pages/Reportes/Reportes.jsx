@@ -202,29 +202,29 @@ export default function Reportes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total efectivo</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#f58f1a' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total transferencias</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-2)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general (cortes)</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--accent-bright)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
           {/* Cortes = todos los cortes hechos (incluye los pagados con vale, que no suman dinero pero sí son cortes realizados) */}
           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atenciones.length} cortes</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><DollarSign size={12} /> Propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--warning)' }}>${totalPropinas.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalPropinas.toLocaleString('es-AR')}</div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
-            <div style={{ color: 'var(--success)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
-            <div style={{ color: 'var(--accent-2)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
           </div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>Total + propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--success)' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
         </div>
       </div>
 
@@ -233,8 +233,8 @@ export default function Reportes() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--info) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Calendar size={20} color="var(--info)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Calendar size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>DÍA MÁS ACTIVO</div>
@@ -249,8 +249,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Clock size={20} color="var(--warning)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Clock size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>HORA PICO</div>
@@ -265,8 +265,8 @@ export default function Reportes() {
           </div>
 
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Award size={20} color="var(--success)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Award size={20} color="var(--accent)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>PELUQUERO TOP (ingresos)</div>
@@ -281,15 +281,15 @@ export default function Reportes() {
 
           {/* Ranking de propinas */}
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <DollarSign size={20} color="var(--warning)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <DollarSign size={20} color="var(--accent)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>MÁS PROPINAS</div>
               <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {peluqueroTopPropinas ? peluqueroTopPropinas[0] : '-'}
               </div>
-              <div style={{ color: 'var(--warning)', fontSize: 11 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>
                 {peluqueroTopPropinas ? `$${peluqueroTopPropinas[1].propinas.toLocaleString('es-AR')}` : ''}
               </div>
             </div>
@@ -297,8 +297,8 @@ export default function Reportes() {
 
           {/* ranking de servicio TOP */}
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
-              <Scissors size={20} color="var(--accent-bright)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 10, flexShrink: 0 }}>
+              <Scissors size={20} color="var(--accent)" />
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 3 }}>SERVICIO TOP</div>

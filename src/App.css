@@ -80,6 +80,10 @@ a { -webkit-user-drag: none; }
   --input-border:     color-mix(in srgb, var(--accent) 55%, var(--bg-card));
   --total-dia-bg:     color-mix(in srgb, var(--accent) 9%,  var(--bg-card));
   --total-dia-border: color-mix(in srgb, var(--accent) 26%, var(--bg-card));
+
+  /* ---- Sombra de cards (da profundidad real en reposo, no solo en hover) ---- */
+  --card-shadow:       0 1px 2px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
 /* ============================= */
@@ -128,6 +132,9 @@ a { -webkit-user-drag: none; }
   --input-border:     color-mix(in srgb, var(--accent) 55%, var(--bg-card));
   --total-dia-bg:     color-mix(in srgb, var(--accent) 8%, var(--bg-card));
   --total-dia-border: color-mix(in srgb, var(--accent) 40%, var(--bg-card));
+
+  --card-shadow:       0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+  --card-shadow-hover: 0 12px 28px rgba(15, 23, 42, 0.10);
 }
 
 /* ============================= */
@@ -213,7 +220,7 @@ body {
   background: var(--bg-main);
   color: var(--text-main);
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -271,34 +278,6 @@ body {
   flex-shrink: 0;
 }
 
-/* ============================= */
-/* DETALLE SELECCIÓN ARGENTINA */
-/* ============================= */
-
-/* 3 estrellas doradas de campeón del mundo junto al nombre */
-.sidebar-header .mundial-estrellas {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: 6px;
-  color: #f5c518;
-}
-
-.sidebar-header .mundial-estrellas svg {
-  fill: currentColor;
-  stroke: currentColor;
-  filter: drop-shadow(0 0 2px rgba(245, 197, 24, 0.45));
-}
-
-/* Franja celeste-blanco-celeste bajo el header */
-.franja-argentina {
-  height: 4px;
-  flex-shrink: 0;
-  background: linear-gradient(90deg, #75AADB 0%, #eaf3fb 50%, #75AADB 100%);
-}
-
-
 .sidebar-nav {
   display: flex;
   flex-direction: column;
@@ -345,10 +324,7 @@ body {
   color: var(--text-main);
 }
 
-.nav-icon-img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
+.nav-icon {
   flex-shrink: 0;
 }
 
@@ -406,25 +382,21 @@ body {
 /* ============================= */
 .card {
   background: var(--bg-card);
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border-soft);
   border-radius: var(--radius);
   padding: 26px;
   margin-bottom: 22px;
   position: relative;
   display: block;
   min-height: 100px;
+  box-shadow: var(--card-shadow);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .card:hover {
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-primary));
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border-soft));
+  box-shadow: var(--card-shadow-hover);
   transform: translateY(-2px);
-}
-
-[data-theme="light"] .card:hover {
-  border-color: var(--accent-soft);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 /* ============================= */

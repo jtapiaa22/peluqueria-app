@@ -189,42 +189,42 @@ export default function Gastos() {
       {resumenMensual.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--success) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <DollarSign size={20} color="var(--success)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <DollarSign size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total ingresos</div>
-              <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--danger) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <TrendingDown size={20} color="var(--danger)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <TrendingDown size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Gastos operativos</div>
-              <div style={{ color: 'var(--danger)', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'color-mix(in srgb, var(--warning) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <Users size={20} color="var(--warning)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <Users size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Pagos a peluqueros</div>
-              <div style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div style={{ background: 'rgba(var(--accent-bright-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-              <TrendingDown size={20} color="var(--accent-bright)" />
+            <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+              <TrendingDown size={20} color="var(--accent)" />
             </div>
             <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total egresos</div>
-              <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>

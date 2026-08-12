@@ -37,11 +37,9 @@ const FRANJA_FRASE = { 'mañana': 'la mañana', 'mediodia': 'el mediodía', 'tar
 
 // Paleta de tonos para los insights (usa las variables de la paleta activa)
 const TONOS = {
-  verde:   { c: 'var(--success)',              bg: 'color-mix(in srgb, var(--success) 15%, transparent)' },
-  rojo:    { c: 'var(--danger)',              bg: 'color-mix(in srgb, var(--danger) 15%, transparent)' },
-  amber:   { c: 'var(--warning)',              bg: 'color-mix(in srgb, var(--warning) 15%, transparent)' },
-  accent:  { c: 'var(--accent-bright)', bg: 'rgba(var(--accent-bright-rgb), 0.15)' },
-  accent2: { c: 'var(--accent-2)',      bg: 'rgba(var(--accent-2-rgb), 0.15)' },
+  verde:  { c: 'var(--success)', bg: 'color-mix(in srgb, var(--success) 15%, transparent)' },
+  rojo:   { c: 'var(--danger)',  bg: 'color-mix(in srgb, var(--danger) 15%, transparent)' },
+  accent: { c: 'var(--accent)',  bg: 'rgba(var(--accent-rgb), 0.12)' },
 }
 
 function DashboardSkeleton() {
@@ -166,7 +164,7 @@ export default function Dashboard() {
   }
   if (mejorDia && mejorDia.promedio > 0) {
     insights.push({
-      tono: 'accent2',
+      tono: 'accent',
       icono: <CalendarDays size={18} />,
       titulo: 'Tu mejor día',
       texto: `Los ${DIAS_SEMANA[mejorDia.dow].toLowerCase()} suelen ser los más fuertes (promedio $${Math.round(mejorDia.promedio).toLocaleString('es-AR')}).`,
@@ -174,7 +172,7 @@ export default function Dashboard() {
   }
   if (franjaPico) {
     insights.push({
-      tono: 'amber',
+      tono: 'accent',
       icono: <Clock size={18} />,
       titulo: 'Franja más activa',
       texto: `La mayor actividad se concentra en ${FRANJA_FRASE[franjaPico[0]]} (${franjaPico[1]} atenciones en tu historial).`,
@@ -190,7 +188,7 @@ export default function Dashboard() {
   }
   if (data.ticketPromedioMes > 0) {
     insights.push({
-      tono: 'verde',
+      tono: 'accent',
       icono: <Target size={18} />,
       titulo: 'Ticket promedio',
       texto: `Cada atención deja en promedio $${Number(data.ticketPromedioMes).toLocaleString('es-AR')} este mes.`,
@@ -211,12 +209,12 @@ export default function Dashboard() {
 
         {/* Total del día */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'color-mix(in srgb, var(--success) 15%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <DollarSign size={22} color="var(--success)" />
+          <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <DollarSign size={22} color="var(--accent)" />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total hoy</div>
-            <div style={{ color: 'var(--success)', fontWeight: 700, fontSize: 22 }}>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
               ${data.totalHoy.toLocaleString('es-AR')}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
@@ -232,12 +230,12 @@ export default function Dashboard() {
 
         {/* Atenciones hoy */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <Scissors size={22} color="var(--accent-2)" />
+          <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <Scissors size={22} color="var(--accent)" />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Atenciones hoy</div>
-            <div style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 22 }}>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
               {data.atencionesHoy.length}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
@@ -269,12 +267,12 @@ export default function Dashboard() {
 
         {/* Promedio 7 días */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'rgba(var(--accent-bright-rgb), 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <TrendingUp size={22} color="var(--accent-bright)" />
+          <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <TrendingUp size={22} color="var(--accent)" />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Promedio 7 días</div>
-            <div style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 22 }}>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
               ${Math.round(data.ingresosPorDia.reduce((acc, d) => acc + d.total, 0) / 7).toLocaleString('es-AR')}
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>por día</div>
@@ -283,12 +281,12 @@ export default function Dashboard() {
 
         {/* Total del mes */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ background: 'rgba(var(--accent-2-rgb), 0.15)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
-            <Calendar size={22} color="var(--accent-2)" />
+          <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+            <Calendar size={22} color="var(--accent)" />
           </div>
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total {mesActual()}</div>
-            <div style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 22 }}>
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
               ${data.totalMes.toLocaleString('es-AR')}
             </div>
             {variacionMes !== null && (
@@ -418,16 +416,17 @@ export default function Dashboard() {
               {data.topPeluqueros.map((p, i) => {
                 const maxTotal = data.topPeluqueros[0].total
                 const pct      = Math.round((p.total / maxTotal) * 100)
-                const colores  = ['#4ade80', 'var(--accent-bright)', 'var(--accent-2)', '#fbbf24', '#fb923c']
+                const opacidades = [0.9, 0.7, 0.55, 0.4, 0.3]
+                const barColor  = `rgba(var(--accent-rgb), ${opacidades[i] ?? 0.3})`
                 return (
                   <div key={p.nombre}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: colores[i], fontWeight: 700, fontSize: 13 }}>#{i + 1}</span>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: 13 }}>#{i + 1}</span>
                         <span style={{ color: 'var(--text-main)', fontSize: 13 }}>{p.nombre}</span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ color: colores[i], fontWeight: 700, fontSize: 13 }}>
+                        <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 13 }}>
                           ${Number(p.total).toLocaleString('es-AR')}
                         </span>
                         <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>
@@ -437,7 +436,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{ background: 'var(--border-soft)', borderRadius: 99, height: 5 }}>
                       <motion.div
-                        style={{ height: '100%', background: colores[i], borderRadius: 99 }}
+                        style={{ height: '100%', background: barColor, borderRadius: 99 }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ type: 'spring', duration: 0.6, bounce: 0.1, delay: i * 0.08 }}
@@ -471,16 +470,17 @@ export default function Dashboard() {
               {topServicios.map((s, i) => {
                 const maxTotal = topServicios[0].total || 1
                 const pct      = Math.round((s.total / maxTotal) * 100)
-                const colores  = ['var(--accent-bright)', 'var(--accent-2)', '#4ade80', '#fbbf24', '#fb923c']
+                const opacidades = [0.9, 0.7, 0.55, 0.4, 0.3]
+                const barColor  = `rgba(var(--accent-rgb), ${opacidades[i] ?? 0.3})`
                 return (
                   <div key={s.nombre + i}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color: colores[i], fontWeight: 700, fontSize: 13 }}>#{i + 1}</span>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: 13 }}>#{i + 1}</span>
                         <span style={{ color: 'var(--text-main)', fontSize: 13 }}>{s.nombre}</span>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ color: colores[i], fontWeight: 700, fontSize: 13 }}>
+                        <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 13 }}>
                           ${Number(s.total).toLocaleString('es-AR')}
                         </span>
                         <span style={{ color: 'var(--text-muted)', fontSize: 11, marginLeft: 6 }}>
@@ -490,7 +490,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{ background: 'var(--border-soft)', borderRadius: 99, height: 5 }}>
                       <motion.div
-                        style={{ height: '100%', background: colores[i], borderRadius: 99 }}
+                        style={{ height: '100%', background: barColor, borderRadius: 99 }}
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ type: 'spring', duration: 0.6, bounce: 0.1, delay: i * 0.08 }}
@@ -569,8 +569,8 @@ export default function Dashboard() {
               { label: 'Fecha',         valor: data.ultimoCierre.fecha,                                                     color: 'var(--text-main)' },
               { label: 'Apertura',      valor: `${data.ultimoCierre.hora_apertura}hs`,                                      color: 'var(--text-main)' },
               { label: 'Cierre',        valor: `${data.ultimoCierre.hora_cierre}hs`,                                        color: 'var(--text-main)' },
-              { label: 'Efectivo',      valor: `$${Number(data.ultimoCierre.total_efectivo).toLocaleString('es-AR')}`,      color: 'var(--success)'          },
-              { label: 'Transferencia', valor: `$${Number(data.ultimoCierre.total_transferencia).toLocaleString('es-AR')}`, color: 'var(--accent-2)'          },
+              { label: 'Efectivo',      valor: `$${Number(data.ultimoCierre.total_efectivo).toLocaleString('es-AR')}`,      color: 'var(--text-main)'          },
+              { label: 'Transferencia', valor: `$${Number(data.ultimoCierre.total_transferencia).toLocaleString('es-AR')}`, color: 'var(--text-main)'          },
             ].map(({ label, valor, color }) => (
               <div key={label} style={{ background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                 <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 6 }}>{label}</div>

@@ -752,24 +752,24 @@ export default function Atenciones() {
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total</span>
-            <span style={{ color: 'var(--accent-bright)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
           </div>
           {totalEfectivoDia > 0 && (
-            <div style={{ background: 'color-mix(in srgb, var(--success) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--success) 20%, transparent)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Efectivo</span>
-              <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           {totalTransfDia > 0 && (
-            <div style={{ background: 'rgba(var(--accent-2-rgb),0.08)', border: '1px solid rgba(var(--accent-2-rgb),0.2)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Transferencia</span>
-              <span style={{ color: 'var(--accent-2)', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           {totalPropinasDia > 0 && (
-            <div style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 20%, transparent)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
-              <span style={{ color: 'var(--warning)', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
             </div>
           )}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
