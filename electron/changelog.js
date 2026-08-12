@@ -1,4 +1,13 @@
 module.exports = {
+  '4.2.0': [
+  { titulo: 'Imagen más prolija y profesional', desc: 'Segunda pasada sobre el rediseño visual: se afinaron los íconos, las tarjetas, la tipografía y los colores en toda la app para que se vea más ordenada y consistente.' },
+  { titulo: 'Íconos del menú renovados', desc: 'Se reemplazaron los íconos ilustrados del menú lateral por íconos de línea, más simples y en sintonía con el resto de la app.' },
+  { titulo: 'Tarjetas con más profundidad', desc: 'Las tarjetas de todas las secciones ahora tienen un borde más sutil y una sombra real, en vez de verse planas con un borde de color fijo.' },
+  { titulo: 'Tipografía corregida', desc: 'Se solucionó un problema por el que la app no cargaba bien su fuente, y se ajustó el peso del texto para que los títulos y montos importantes resalten más sobre las etiquetas secundarias.' },
+  { titulo: 'Colores con más criterio', desc: 'En Dashboard, Reportes, Comparaciones, Gastos, Caja y Atenciones, las tarjetas de datos ahora usan un solo color para la información general. El verde, rojo y amarillo quedan reservados para avisos reales, como si la caja está abierta o cerrada, o si la ganancia es positiva o negativa.' },
+],
+
+
   '4.1.0': [
     { titulo: 'Imagen renovada, más profesional', desc: 'Se revisó el uso del color en toda la app para que sea más prolijo y menos cargado, y los emojis se reemplazaron por íconos consistentes en todas las secciones.' },
     { titulo: 'Nuevos íconos en el menú lateral', desc: 'Cada sección del menú (Dashboard, Agenda, Atenciones, Caja, Peluqueros, Servicios, Reportes, Comparaciones, Liquidación, Gastos y Configuración) tiene ahora su propio ícono distintivo.' },
