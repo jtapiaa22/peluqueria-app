@@ -76,6 +76,9 @@ const fmtMiles = (val) => {
 }
 const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
+
+const capitalizarNombre = (str) => str.toLowerCase().split(' ').map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1)).join(' ')
+
 export default function Atenciones() {
   const [atenciones, setAtenciones] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -543,8 +546,8 @@ export default function Atenciones() {
                       initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
                       <label>Nombre / Alias de quien transfiere</label>
                       <input className="input" value={form.nombre_transferencia}
-                        onChange={e => setForm({ ...form, nombre_transferencia: e.target.value })}
-                        placeholder="Ej: juan.perez" />
+                        onChange={e => setForm({ ...form, nombre_transferencia: capitalizarNombre(e.target.value) })}
+                        placeholder="Ej: Juan Perez" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -568,8 +571,8 @@ export default function Atenciones() {
                       <div className="form-group">
                         <label>Nombre / Alias de quien transfiere</label>
                         <input className="input" value={form.nombre_transferencia}
-                          onChange={e => setForm({ ...form, nombre_transferencia: e.target.value })}
-                          placeholder="Ej: juan.perez" />
+                          onChange={e => setForm({ ...form, nombre_transferencia: capitalizarNombre(e.target.value) })}
+                          placeholder="Ej: Juan Perez" />
                       </div>
                       {(form.monto_efectivo || form.monto_transferencia) && (
                         <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, padding: '0 16px' }}>
