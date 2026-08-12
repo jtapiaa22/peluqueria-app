@@ -179,18 +179,22 @@ async function getDeviceToken() {
 // turnos_web/turnos_manuales_web/turnos_senas ya no son accesibles con la clave
 // anon (ver migraciones/004-lock-turnos-web.sql en peluapp-web): hay que pasar
 // por las rutas /api/admin/* y /api/device/*, autenticadas con este token.
-async function vincularDevice(peluqueriaId) {
+// Si la peluquería ya tiene clave de panel configurada, /api/device/vincular
+// la exige (ver ese archivo en peluapp-web) — sin eso, cualquiera con el
+// peluqueria_id (que viaja en el link público de reservas, no es secreto)
+// podía pedir un token de admin acá sin ninguna clave.
+async function vincularDevice(peluqueriaId, clave) {
   try {
     const r = await fetch(`${WEB_URL}/api/device/vincular`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ peluqueriaId }),
+      body: JSON.stringify({ peluqueriaId, clave }),
     })
     const d = await r.json()
-    if (!r.ok || !d.token) return null
+    if (!r.ok || !d.token) return { ok: false, error: d.error, requiereClave: !!d.requiereClave }
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('device_token',?)").run(d.token)
-    return d.token
-  } catch (e) { console.error('⚠️ Vincular device:', e.message); return null }
+    return { ok: true, token: d.token }
+  } catch (e) { console.error('⚠️ Vincular device:', e.message); return { ok: false, error: e.message } }
 }
 
 async function apiDevice(path, opciones = {}) {
@@ -675,15 +679,23 @@ ipcMain.handle('peluqueria:registrar',async(_,{nombre,email})=>{
     return { ok:true, id, link:`${WEB_URL}/?p=${id}`, yaExistia }
   } catch(e){ return { ok:false, error:e.message } }
 })
-ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId})=>{
+ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId,clave})=>{
   try {
     const sb=await getSupabase()
     const {data,error}=await sb.from('peluquerias').select('*').eq('id',peluqueriaId).maybeSingle()
     if(error||!data) return { ok:false, error:'ID no encontrado.' }
+
+    const device = await vincularDevice(peluqueriaId, clave)
+    if (!device.ok) {
+      // No se guarda nada localmente si la clave falta o es incorrecta —
+      // así la pantalla puede simplemente pedirla de nuevo, sin dejar la
+      // app "medio vinculada" a una peluquería sin el token que necesita.
+      return { ok:false, error: device.error || 'No pudimos vincular.', requiereClave: !!device.requiereClave }
+    }
+
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(peluqueriaId)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(data.email)
-    await vincularDevice(peluqueriaId)
     await syncSupabase()
     return { ok:true, id:peluqueriaId, link:`${WEB_URL}/?p=${peluqueriaId}` }
   } catch(e){ return { ok:false, error:e.message } }

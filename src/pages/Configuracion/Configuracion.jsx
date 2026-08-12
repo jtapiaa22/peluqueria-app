@@ -46,6 +46,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [webPaso, setWebPaso] = useState('cargando')
   const [webForm, setWebForm] = useState({ nombre: '', email: '' })
   const [webVincularId, setWebVincularId] = useState('')
+  const [webVincularClave, setWebVincularClave] = useState('')
   const [webModo, setWebModo] = useState('registrar')
   const [webLoading, setWebLoading] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState(false)
@@ -316,16 +317,20 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const vincularPeluqueria = async () => {
     if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
-    const result = await window.electronAPI.vincularPeluqueria({ peluqueriaId: webVincularId.trim() })
+    const result = await window.electronAPI.vincularPeluqueria({
+      peluqueriaId: webVincularId.trim(),
+      clave: webVincularClave.trim() || undefined,
+    })
     setWebLoading(false)
     if (result?.ok) {
+      setWebVincularClave('')
       await cargarWebConfig()
       setModalAlert({ mensaje: 'Peluquería vinculada correctamente.', tipo: 'success' })
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
     } else {
-      setModalAlert({ mensaje: 'Error: ' + (result?.error || 'ID no encontrado.'), tipo: 'error' })
+      setModalAlert({ mensaje: result?.error || 'ID no encontrado.', tipo: 'error' })
     }
   }
 
@@ -1104,6 +1109,16 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         <label>ID de la peluquería</label>
                         <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
+                      </div>
+                      <div className="form-group">
+                        <label>Clave del panel</label>
+                        <input className="input" type="password" value={webVincularClave} onChange={e => setWebVincularClave(e.target.value)}
+                          placeholder="Si la peluquería ya tiene una configurada"
+                          onKeyDown={e => e.key === 'Enter' && vincularPeluqueria()} />
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                          La misma clave con la que se entra al panel de turnos desde el celular. Si esta peluquería
+                          todavía no tiene una asignada, dejá esto vacío.
+                        </span>
                       </div>
                       <button className="btn btn-primary" onClick={vincularPeluqueria} disabled={webLoading}>
                         {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Vinculando...</> : <><Link size={14} /> Vincular</>}
