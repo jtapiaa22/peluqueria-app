@@ -45,10 +45,18 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [webConfig, setWebConfig] = useState({ id: '', nombre: '', email: '' })
   const [webPaso, setWebPaso] = useState('cargando')
   const [webForm, setWebForm] = useState({ nombre: '', email: '' })
+  const [webFormClave, setWebFormClave] = useState('')
   const [webVincularId, setWebVincularId] = useState('')
+  const [webVincularClave, setWebVincularClave] = useState('')
+  // null = todavía no sabemos / no hay peluquería vinculada, true/false = respuesta real
+  const [tieneClavePanel, setTieneClavePanel] = useState(null)
+  const [cargandoClavePanel, setCargandoClavePanel] = useState(false)
+  const [claveInicial, setClaveInicial] = useState('')
+  const [claveInicialLoading, setClaveInicialLoading] = useState(false)
   const [webModo, setWebModo] = useState('registrar')
   const [webLoading, setWebLoading] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState(false)
+  const [adminLinkCopiado, setAdminLinkCopiado] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResultado, setSyncResultado] = useState(null)
   const [editandoNombre, setEditandoNombre] = useState(false)
@@ -238,6 +246,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   }
 
   const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
+  const adminLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/admin?p=${webConfig.id}` : ''
 
   useEffect(() => {
     window.electronAPI.getNombreApp().then(n => setNombreInput(n))
@@ -261,6 +270,31 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (cfg?.sena_correo) setSenaCorreo(cfg.sena_correo)
     // Chequeo explícito: con `if (cfg?.sena_activa)` un false no entraría nunca.
     if (cfg?.sena_activa !== undefined) setSenaActiva(cfg.sena_activa !== false)
+
+    if (cfg?.id) {
+      setCargandoClavePanel(true)
+      const estado = await window.electronAPI.estadoClavePanel()
+      setTieneClavePanel(estado?.tieneClave ?? null)
+      setCargandoClavePanel(false)
+    } else {
+      setTieneClavePanel(null)
+    }
+  }
+
+  const guardarClaveInicial = async () => {
+    if (!claveInicial.trim() || claveInicial.trim().length < 6) {
+      setModalAlert({ mensaje: 'La clave debe tener al menos 6 caracteres.', tipo: 'warning' }); return
+    }
+    setClaveInicialLoading(true)
+    const result = await window.electronAPI.setClaveInicialPanel(claveInicial.trim())
+    setClaveInicialLoading(false)
+    if (result?.ok) {
+      setClaveInicial('')
+      setTieneClavePanel(true)
+      setModalAlert({ mensaje: 'Clave del panel configurada. Guardala bien.', tipo: 'success' })
+    } else {
+      setModalAlert({ mensaje: result?.error || 'No pudimos guardar la clave.', tipo: 'error' })
+    }
   }
 
   const guardarNombre = async () => {
@@ -299,33 +333,41 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     if (!webForm.nombre.trim() || !webForm.email.trim()) {
       setModalAlert({ mensaje: 'Completá nombre y email.', tipo: 'warning' }); return
     }
+    if (webFormClave.trim() && webFormClave.trim().length < 6) {
+      setModalAlert({ mensaje: 'La clave del panel debe tener al menos 6 caracteres.', tipo: 'warning' }); return
+    }
     setWebLoading(true)
-    const result = await window.electronAPI.registrarPeluqueria(webForm)
+    const result = await window.electronAPI.registrarPeluqueria({ ...webForm, clave: webFormClave.trim() || undefined })
     setWebLoading(false)
     if (result?.ok) {
+      setWebFormClave('')
       await cargarWebConfig()
       setModalAlert({ mensaje: result.yaExistia ? 'ID recuperado. Esta peluquería ya estaba registrada.' : '¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
     } else {
-      setModalAlert({ mensaje: 'Error: ' + (result?.error || 'Intentá de nuevo.'), tipo: 'error' })
+      setModalAlert({ mensaje: result?.error || 'Intentá de nuevo.', tipo: 'error' })
     }
   }
 
   const vincularPeluqueria = async () => {
     if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
-    const result = await window.electronAPI.vincularPeluqueria({ peluqueriaId: webVincularId.trim() })
+    const result = await window.electronAPI.vincularPeluqueria({
+      peluqueriaId: webVincularId.trim(),
+      clave: webVincularClave.trim() || undefined,
+    })
     setWebLoading(false)
     if (result?.ok) {
+      setWebVincularClave('')
       await cargarWebConfig()
       setModalAlert({ mensaje: 'Peluquería vinculada correctamente.', tipo: 'success' })
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
     } else {
-      setModalAlert({ mensaje: 'Error: ' + (result?.error || 'ID no encontrado.'), tipo: 'error' })
+      setModalAlert({ mensaje: result?.error || 'ID no encontrado.', tipo: 'error' })
     }
   }
 
@@ -333,6 +375,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     await navigator.clipboard.writeText(webLink)
     setLinkCopiado(true)
     setTimeout(() => setLinkCopiado(false), 2000)
+  }
+
+  const copiarAdminLink = async () => {
+    await navigator.clipboard.writeText(adminLink)
+    setAdminLinkCopiado(true)
+    setTimeout(() => setAdminLinkCopiado(false), 2000)
   }
 
   const sincronizar = async () => {
@@ -1091,6 +1139,15 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         <label>Email de contacto</label>
                         <input className="input" type="email" value={webForm.email} onChange={e => setWebForm({ ...webForm, email: e.target.value })} placeholder="tu@email.com" />
                       </div>
+                      <div className="form-group">
+                        <label>Clave del panel <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional, podés ponerla después)</span></label>
+                        <input className="input" type="password" value={webFormClave} onChange={e => setWebFormClave(e.target.value)}
+                          placeholder="Para responder turnos desde el celular" />
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                          Con esta clave vas a poder entrar al panel de turnos desde el celular, y también
+                          hace falta para vincular otra PC más adelante.
+                        </span>
+                      </div>
                       <button className="btn btn-primary" onClick={registrarPeluqueria} disabled={webLoading}>
                         {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Registrando...</> : <><Globe size={14} /> Registrar y obtener link</>}
                       </button>
@@ -1104,6 +1161,16 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         <label>ID de la peluquería</label>
                         <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
+                      </div>
+                      <div className="form-group">
+                        <label>Clave del panel</label>
+                        <input className="input" type="password" value={webVincularClave} onChange={e => setWebVincularClave(e.target.value)}
+                          placeholder="Si la peluquería ya tiene una configurada"
+                          onKeyDown={e => e.key === 'Enter' && vincularPeluqueria()} />
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                          La misma clave con la que se entra al panel de turnos desde el celular. Si esta peluquería
+                          todavía no tiene una asignada, dejá esto vacío.
+                        </span>
                       </div>
                       <button className="btn btn-primary" onClick={vincularPeluqueria} disabled={webLoading}>
                         {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Vinculando...</> : <><Link size={14} /> Vincular</>}
@@ -1166,6 +1233,60 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       </div>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Compartí por WhatsApp, Instagram o donde quieras.</span>
                     </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Link del panel (para responder turnos desde el celular)</label>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input className="input" readOnly value={adminLink} style={{ fontSize: 12, color: 'var(--accent-bright)', flex: 1 }} />
+                        <button className="btn btn-secondary" onClick={copiarAdminLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          {adminLinkCopiado ? <><Check size={14} color="var(--success)" /> Copiado</> : <><Copy size={14} /> Copiar</>}
+                        </button>
+                      </div>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                        Este es solo para vos — necesita la clave del panel de acá abajo para entrar.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Clave del panel */}
+                  <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 20 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <KeyRound size={14} /> Clave del panel
+                    </div>
+                    {cargandoClavePanel && (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} /> Consultando...
+                      </div>
+                    )}
+                    {!cargandoClavePanel && tieneClavePanel === true && (
+                      <div style={{ color: 'var(--success)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Check size={14} /> Configurada. Si se te olvidó, pedísela a PeluApp para que te la resetee.
+                      </div>
+                    )}
+                    {!cargandoClavePanel && tieneClavePanel === false && (
+                      <div style={{ maxWidth: 380 }}>
+                        <div style={{ color: 'var(--warning)', fontSize: 12, marginBottom: 10 }}>
+                          Todavía no tenés una clave configurada — sin ella no podés entrar al panel desde el
+                          celular, ni vincular otra PC más adelante.
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input className="input" type="password" value={claveInicial} onChange={e => setClaveInicial(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && guardarClaveInicial()}
+                            placeholder="Elegí una clave (mínimo 6 caracteres)" style={{ flex: 1 }} />
+                          <button className="btn btn-primary" onClick={guardarClaveInicial} disabled={claveInicialLoading}
+                            style={{ flexShrink: 0 }}>
+                            {claveInicialLoading ? '...' : 'Guardar'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!cargandoClavePanel && tieneClavePanel === null && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>No pudimos consultarlo. Revisá tu conexión.</span>
+                        <button className="btn btn-secondary" onClick={cargarWebConfig} style={{ padding: '4px 10px', fontSize: 12 }}>
+                          Reintentar
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sincronizar */}
