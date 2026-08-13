@@ -92,6 +92,7 @@ export default function Atenciones() {
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert] = useState(null)
   const [form, setForm] = useState(formVacio)
+  const [guardando, setGuardando] = useState(false)
   const [mostrarVales, setMostrarVales] = useState(false)
   const [periodoAbierto, setPeriodoAbierto] = useState(null)
   const [periodos, setPeriodos] = useState([])
@@ -204,6 +205,7 @@ export default function Atenciones() {
   }
 
   const guardar = async () => {
+    if (guardando) return
     if (!form.peluquero_id) {
       alertar('Seleccioná el peluquero.', 'warning')
       return
@@ -249,27 +251,32 @@ export default function Atenciones() {
       propina_transferencia: form.propina_tipo === 'transferencia' ? propMonto : 0,
     }
 
-    if (editando) {
-      await window.electronAPI.updateAtencion({
-        ...datosAtencion,
-        id: editando,
-        fecha: atenciones.find(a => a.id === editando)?.fecha || hoy(),
-        hora: atenciones.find(a => a.id === editando)?.hora || horaActual()
-      })
-      alertar('Atención actualizada correctamente.', 'success')
-    } else {
-      await window.electronAPI.createAtencion({
-        ...datosAtencion,
-        fecha: hoy(),
-        hora: horaActual()
-      })
-    }
+    setGuardando(true)
+    try {
+      if (editando) {
+        await window.electronAPI.updateAtencion({
+          ...datosAtencion,
+          id: editando,
+          fecha: atenciones.find(a => a.id === editando)?.fecha || hoy(),
+          hora: atenciones.find(a => a.id === editando)?.hora || horaActual()
+        })
+        alertar('Atención actualizada correctamente.', 'success')
+      } else {
+        await window.electronAPI.createAtencion({
+          ...datosAtencion,
+          fecha: hoy(),
+          hora: horaActual()
+        })
+      }
 
-    setForm(formVacio)
-    setEditando(null)
-    setMostrarForm(false)
-    cargar()
-    cargarPeriodosVales()
+      setForm(formVacio)
+      setEditando(null)
+      setMostrarForm(false)
+      cargar()
+      cargarPeriodosVales()
+    } finally {
+      setGuardando(false)
+    }
   }
 
   const eliminar = (id) => {
@@ -590,10 +597,10 @@ export default function Atenciones() {
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-                <button className="btn btn-primary" onClick={guardar}>
-                  {editando ? 'Guardar cambios' : 'Guardar'}
+                <button className="btn btn-primary" onClick={guardar} disabled={guardando} style={guardando ? { opacity: 0.6 } : undefined}>
+                  {guardando ? 'Guardando...' : (editando ? 'Guardar cambios' : 'Guardar')}
                 </button>
-                <button className="btn btn-secondary" onClick={() => { setMostrarForm(false); setEditando(null); setForm(formVacio) }}>
+                <button className="btn btn-secondary" onClick={() => { setMostrarForm(false); setEditando(null); setForm(formVacio) }} disabled={guardando}>
                   Cancelar
                 </button>
               </div>
