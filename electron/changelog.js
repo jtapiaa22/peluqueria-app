@@ -1,4 +1,11 @@
 module.exports = {
+  '4.4.0': [
+    { titulo: 'Configurá la clave del panel vos mismo', desc: 'Ahora podés poner la clave para entrar al panel de turnos online (el que usás desde el celular para aceptar, rechazar o proponer otro horario) directamente desde Configuración, sin tener que pedírsela a soporte.' },
+    { titulo: 'Todos tus links juntos en Configuración', desc: 'En Configuración ahora ves, uno al lado del otro, el link para que tus clientes reserven turnos y el link del panel de administración para responderlos.' },
+    { titulo: 'Más seguridad en la vinculación con el panel online', desc: 'Se reforzó la forma en que un dispositivo nuevo se vincula a tu peluquería en el panel de turnos, para evitar accesos no autorizados.' },
+    { titulo: 'Correccion de doble click en Vale', desc: 'Se agrego un modo espera para evitar apretar el boton de guardar dos o mas veces y evitar guardar vale o metodos de pagos repetidos.'}
+  ],
+
   '4.3.0': [
     { titulo: 'Configurá la clave del panel vos mismo', desc: 'Ahora podés poner la clave para entrar al panel de turnos online (el que usás desde el celular para aceptar, rechazar o proponer otro horario) directamente desde Configuración, sin tener que pedírsela a soporte.' },
     { titulo: 'Todos tus links juntos en Configuración', desc: 'En Configuración ahora ves, uno al lado del otro, el link para que tus clientes reserven turnos y el link del panel de administración para responderlos.' },

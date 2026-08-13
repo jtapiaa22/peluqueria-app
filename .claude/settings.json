@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:5173\")",
+      "Bash(npx electron *)",
+      "PowerShell(Get-Process | Where-Object { $_.MainWindowTitle -ne \"\" } | Select-Object Id, MainWindowTitle)",
+      "Bash(taskkill //PID 17268 //T //F)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s \"http://localhost:3000/api/device/set-clave?peluqueriaId=dca46332-870e-414f-83a6-7de6376574dd\" -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s http://localhost:3000/api/device/set-clave -X POST -H 'Content-Type: application/json' -d '{\"peluqueriaId\":\"dca46332-870e-414f-83a6-7de6376574dd\",\"clave\":\"nuevaClave123\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:3000/api/device/set-clave?peluqueriaId=3cb00304-57f4-41ac-933e-ed7ba4eba9d1 -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:3000/api/device/set-clave -X POST -H 'Content-Type: application/json' -d '{\"peluqueriaId\":\"3cb00304-57f4-41ac-933e-ed7ba4eba9d1\",\"clave\":\"123\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:3000/api/device/set-clave -X POST -H 'Content-Type: application/json' -d '{\"peluqueriaId\":\"3cb00304-57f4-41ac-933e-ed7ba4eba9d1\",\"clave\":\"clavePrueba1\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:3000/api/device/set-clave -X POST -H 'Content-Type: application/json' -d '{\"peluqueriaId\":\"3cb00304-57f4-41ac-933e-ed7ba4eba9d1\",\"clave\":\"otraClaveDistinta\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Bash(curl -s http://localhost:3000/api/admin/login -X POST -H 'Content-Type: application/json' -d '{\"p\":\"3cb00304-57f4-41ac-933e-ed7ba4eba9d1\",\"clave\":\"clavePrueba1\"}' -w '\\\\nHTTP %{http_code}\\\\n')",
+      "Read(//c/Users/jorge/AppData/Local/Temp/claude/F--Escritorio-cosas-Proyectos-PeluApp-peluqueria-app/b07a53e1-1175-45b7-9e39-9fb2af68c7e9/tasks/**)",
+      "Bash(curl -s \"http://localhost:5173/src/pages/Configuracion/Configuracion.jsx\")",
+      "Bash(node --check electron/preload.js)",
+      "Bash(unset ELECTRON_RUN_AS_NODE)",
+      "PowerShell(Get-Process | Where-Object { $_.MainWindowTitle -eq \"Gestion de Peluqueria\" } | Select-Object Id, MainWindowTitle)",
+      "Bash(curl -s \"http://localhost:3000/api/device/set-clave?peluqueriaId=71c2bee0-7eb1-4ea7-a24d-ce3c36df406e\" -w \"\\\\nHTTP %{http_code}\\\\n\")",
+      "Bash(curl -s \"http://localhost:5173/src/pages/Configuracion/Configuracion.jsx\" -o /dev/null -w \"compile check: %{http_code}\\\\n\")",
+      "Bash(taskkill //PID 11708 //T //F)",
+      "Bash(node -e ' *)",
+      "Bash(node -p \"require\\('./package.json'\\).version\")",
+      "Bash(node -e \"const c = require\\('./electron/changelog.js'\\); console.log\\(Object.keys\\(c\\).slice\\(0,3\\)\\); console.log\\(JSON.stringify\\(c['4.3.0'], null, 2\\)\\)\")"
+    ]
+  }
+}
