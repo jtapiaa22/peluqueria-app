@@ -682,10 +682,23 @@ async function vincularPeluqueriaPorEmail(nombre, email, clave) {
   }
 
   const yaExistia = !nueva
+
+  // Si la peluquería ya existe y tiene una clave de panel configurada, recuperarla
+  // solo por email (sin pedir esa clave) sería el mismo hueco que ya cerramos en
+  // /api/device/vincular — por eso acá SÍ hay que revisar si la vinculación anduvo
+  // de verdad antes de guardar nada localmente o de avisar que "se recuperó".
+  const device = await vincularDevice(data.id)
+  if (!device.ok) {
+    const err = new Error(device.requiereClave
+      ? 'Esta peluquería ya está registrada y tiene una clave de panel configurada. Usá "Ya tengo ID" con el ID o el email, y esa clave.'
+      : (device.error || 'No se pudo vincular el dispositivo.'))
+    err.requiereClave = !!device.requiereClave
+    throw err
+  }
+
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
-  await vincularDevice(data.id)
   // Recién creada (no recuperada por email): si nos pasaron una clave para
   // el panel, la dejamos configurada ya mismo — es el único momento en que
   // nadie más pudo haber visto este id todavía.
@@ -699,7 +712,7 @@ ipcMain.handle('peluqueria:registrar',async(_,{nombre,email,clave})=>{
   try {
     const { id, yaExistia } = await vincularPeluqueriaPorEmail(nombre, email, clave)
     return { ok:true, id, link:`${WEB_URL}/?p=${id}`, yaExistia }
-  } catch(e){ return { ok:false, error:e.message } }
+  } catch(e){ return { ok:false, error:e.message, requiereClave: !!e.requiereClave } }
 })
 ipcMain.handle('admin:estadoClave', async () => {
   try {
@@ -719,11 +732,14 @@ ipcMain.handle('admin:setClaveInicial', async (_, { clave }) => {
 })
 ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId,clave})=>{
   try {
+    const idOrEmail = String(peluqueriaId || '').trim()
     const sb=await getSupabase()
-    const {data,error}=await sb.from('peluquerias').select('*').eq('id',peluqueriaId).maybeSingle()
-    if(error||!data) return { ok:false, error:'ID no encontrado.' }
+    const {data,error}= idOrEmail.includes('@')
+      ? await sb.from('peluquerias').select('*').eq('email',idOrEmail).maybeSingle()
+      : await sb.from('peluquerias').select('*').eq('id',idOrEmail).maybeSingle()
+    if(error||!data) return { ok:false, error:'No encontramos ninguna peluquería con ese ID o email.' }
 
-    const device = await vincularDevice(peluqueriaId, clave)
+    const device = await vincularDevice(data.id, clave)
     if (!device.ok) {
       // No se guarda nada localmente si la clave falta o es incorrecta —
       // así la pantalla puede simplemente pedirla de nuevo, sin dejar la
@@ -731,11 +747,11 @@ ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId,clave})=>{
       return { ok:false, error: device.error || 'No pudimos vincular.', requiereClave: !!device.requiereClave }
     }
 
-    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(peluqueriaId)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(data.email)
     await syncSupabase()
-    return { ok:true, id:peluqueriaId, link:`${WEB_URL}/?p=${peluqueriaId}` }
+    return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}` }
   } catch(e){ return { ok:false, error:e.message } }
 })
 

@@ -346,13 +346,19 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
       // Chequear si hay backup en la nube
       const backup = await window.electronAPI.existeBackupNube()
       if (backup?.existe) setMostrarRestoreModal(true)
+    } else if (result?.requiereClave) {
+      // Esta peluquería ya existe y tiene clave configurada: acá no se puede
+      // "recuperar" sin ella, hay que mandarla a Ya tengo ID con su clave.
+      setWebVincularId(webForm.email.trim())
+      setWebModo('vincular')
+      setModalAlert({ mensaje: result.error, tipo: 'warning' })
     } else {
       setModalAlert({ mensaje: result?.error || 'Intentá de nuevo.', tipo: 'error' })
     }
   }
 
   const vincularPeluqueria = async () => {
-    if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID de tu peluquería.', tipo: 'warning' }); return }
+    if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID o el email de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
     const result = await window.electronAPI.vincularPeluqueria({
       peluqueriaId: webVincularId.trim(),
@@ -1129,7 +1135,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <div style={{ maxWidth: 420 }}>
                       <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
                         Registrá esta peluquería para obtener tu link de reservas.<br />
-                        <strong style={{ color: 'var(--accent-bright)' }}>Si ya registraste con este email, se recuperará el ID existente automáticamente.</strong>
+                        Si ya la registraste antes con este email y le pusiste una clave, usá <strong style={{ color: 'var(--accent-bright)' }}>"Ya tengo ID"</strong> en vez de esto.
                       </p>
                       <div className="form-group">
                         <label>Nombre de la peluquería</label>
@@ -1156,11 +1162,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
                   {webModo === 'vincular' && (
                     <div style={{ maxWidth: 420 }}>
-                      <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px' }}>Si ya registraste esta peluquería en otra PC, pegá el ID para vincular esta instalación.</p>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px' }}>Si ya registraste esta peluquería antes, ingresá el ID o el email con el que la registraste, y tu clave del panel.</p>
                       <div className="form-group">
-                        <label>ID de la peluquería</label>
+                        <label>ID o email de la peluquería</label>
                         <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
-                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style={{ fontFamily: 'monospace', fontSize: 12 }} />
+                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx o tu@email.com" style={{ fontFamily: 'monospace', fontSize: 12 }} />
                       </div>
                       <div className="form-group">
                         <label>Clave del panel</label>
