@@ -1,4 +1,9 @@
 module.exports = {
+  '4.5.0': [
+    { titulo: 'Evitamos duplicados por doble clic al guardar', desc: 'Además de en Atenciones, ahora los botones de guardar en Gastos, Peluqueros, Servicios y los turnos manuales de Agenda también esperan a terminar de guardar antes de dejarte hacer clic de nuevo, para que un doble clic no duplique el registro.' },
+    { titulo: 'Más seguridad al recuperar tu peluquería por email', desc: 'Si ya le habías puesto una clave al panel de turnos, ahora hace falta esa clave para recuperar el acceso desde otra PC — antes alcanzaba con volver a escribir el mismo email. En "Ya tengo ID" ahora también podés identificarte con tu email en vez del ID.' },
+  ],
+
   '4.4.0': [
     { titulo: 'Configurá la clave del panel vos mismo', desc: 'Ahora podés poner la clave para entrar al panel de turnos online (el que usás desde el celular para aceptar, rechazar o proponer otro horario) directamente desde Configuración, sin tener que pedírsela a soporte.' },
     { titulo: 'Todos tus links juntos en Configuración', desc: 'En Configuración ahora ves, uno al lado del otro, el link para que tus clientes reserven turnos y el link del panel de administración para responderlos.' },
