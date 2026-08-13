@@ -154,6 +154,7 @@ export default function Agenda() {
   const [servicios, setServicios]   = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
   const [form, setForm]             = useState({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'pendiente' })
+  const [guardandoTurno, setGuardandoTurno] = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
 
@@ -303,13 +304,19 @@ export default function Agenda() {
   // ─────────────────────────────────────────────────────────────
 
   const guardarTurno = async () => {
+    if (guardandoTurno) return
     if (!form.cliente_nombre.trim()) { alertar('Ingresá el nombre del cliente.','warning'); return }
     if (!form.hora)                  { alertar('Ingresá la hora del turno.','warning');     return }
     if (!form.peluquero_id)          { alertar('Seleccioná un peluquero.','warning');       return }
-    await window.electronAPI.createTurno({ ...form, fecha:diaSeleccionado, peluquero_id:Number(form.peluquero_id), servicio_id:form.servicio_id?Number(form.servicio_id):null })
-    setForm({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'pendiente' })
-    setMostrarForm(false)
-    await cargarMes(); await cargarDia()
+    setGuardandoTurno(true)
+    try {
+      await window.electronAPI.createTurno({ ...form, fecha:diaSeleccionado, peluquero_id:Number(form.peluquero_id), servicio_id:form.servicio_id?Number(form.servicio_id):null })
+      setForm({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'pendiente' })
+      setMostrarForm(false)
+      await cargarMes(); await cargarDia()
+    } finally {
+      setGuardandoTurno(false)
+    }
   }
 
   const cambiarEstado = async (turno, nuevoEstado) => {
@@ -566,8 +573,8 @@ export default function Agenda() {
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:10, marginTop:14 }}>
-                  <button className="btn btn-primary" onClick={guardarTurno}>Guardar turno</button>
-                  <button className="btn btn-secondary" onClick={()=>setMostrarForm(false)}>Cancelar</button>
+                  <button className="btn btn-primary" onClick={guardarTurno} disabled={guardandoTurno}>{guardandoTurno ? 'Guardando...' : 'Guardar turno'}</button>
+                  <button className="btn btn-secondary" onClick={()=>setMostrarForm(false)} disabled={guardandoTurno}>Cancelar</button>
                 </div>
               </motion.div>
             )}

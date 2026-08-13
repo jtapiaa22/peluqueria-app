@@ -22,6 +22,7 @@ export default function Servicios() {
   const [modalAlert, setModalAlert]     = useState(null)
   const [sincState, setSincState] = useState(null)
   const [cargando, setCargando] = useState(true)
+  const [guardando, setGuardando] = useState(false)
 
   const confirmar = (mensaje, onConfirm) => setModalConfirm({ mensaje, onConfirm })
   const toast = useToast()
@@ -41,22 +42,28 @@ export default function Servicios() {
   }, [])
 
   const guardar = async () => {
+    if (guardando) return
     if (!form.nombre.trim() || !form.precio) {
       alertar('Por favor completá el nombre y el precio del servicio.', 'warning')
       return
     }
+    setGuardando(true)
     setSincState('syncing')
-    if (editando) {
-      await window.electronAPI.updateServicio({ ...form, id: editando })
-    } else {
-      await window.electronAPI.createServicio(form)
+    try {
+      if (editando) {
+        await window.electronAPI.updateServicio({ ...form, id: editando })
+      } else {
+        await window.electronAPI.createServicio(form)
+      }
+      setForm({ nombre: '', precio: '' })
+      setEditando(null)
+      setMostrarForm(false)
+      cargar()
+      setSincState('ok')
+      setTimeout(() => setSincState(null), 3000)
+    } finally {
+      setGuardando(false)
     }
-    setForm({ nombre: '', precio: '' })
-    setEditando(null)
-    setMostrarForm(false)
-    cargar()
-    setSincState('ok')
-    setTimeout(() => setSincState(null), 3000)
   }
 
 
@@ -131,8 +138,8 @@ export default function Servicios() {
               <input className="input" type="text" inputMode="numeric" value={fmtMiles(form.precio)} onChange={e => setForm({ ...form, precio: parseMiles(e.target.value) })} placeholder="Ej: 2.000" />
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-              <button className="btn btn-primary" onClick={guardar}>Guardar</button>
-              <button className="btn btn-secondary" onClick={() => setMostrarForm(false)}>Cancelar</button>
+              <button className="btn btn-primary" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando...' : 'Guardar'}</button>
+              <button className="btn btn-secondary" onClick={() => setMostrarForm(false)} disabled={guardando}>Cancelar</button>
             </div>
           </motion.div>
         )}
