@@ -1,4 +1,10 @@
 module.exports = {
+  '4.3.0': [
+    { titulo: 'Configurá la clave del panel vos mismo', desc: 'Ahora podés poner la clave para entrar al panel de turnos online (el que usás desde el celular para aceptar, rechazar o proponer otro horario) directamente desde Configuración, sin tener que pedírsela a soporte.' },
+    { titulo: 'Todos tus links juntos en Configuración', desc: 'En Configuración ahora ves, uno al lado del otro, el link para que tus clientes reserven turnos y el link del panel de administración para responderlos.' },
+    { titulo: 'Más seguridad en la vinculación con el panel online', desc: 'Se reforzó la forma en que un dispositivo nuevo se vincula a tu peluquería en el panel de turnos, para evitar accesos no autorizados.' },
+  ],
+
   '4.2.0': [
   { titulo: 'Imagen más prolija y profesional', desc: 'Segunda pasada sobre el rediseño visual: se afinaron los íconos, las tarjetas, la tipografía y los colores en toda la app para que se vea más ordenada y consistente.' },
   { titulo: 'Íconos del menú renovados', desc: 'Se reemplazaron los íconos ilustrados del menú lateral por íconos de línea, más simples y en sintonía con el resto de la app.' },
