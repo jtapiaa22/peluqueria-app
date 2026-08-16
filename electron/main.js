@@ -20,7 +20,7 @@ const SECRET_KEY = _sk[0]+_sk[1]+_sk[2]+_sk[3]+_sk[4]+_sk[5]+_sk[6]+_sk[7]
 
 const SUPABASE_URL = 'https://xsalearfdfjuyjwugick.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_9NvWXl8HHIhde1l8lt8apw_-bCNWwUz'
-const WEB_URL = 'https://servicio-turno-web-peluapp.xyz'
+const WEB_URL = 'https://www.peluapp-turnos.xyz'
 let supabase = null
 async function getSupabase() {
   if (supabase) return supabase

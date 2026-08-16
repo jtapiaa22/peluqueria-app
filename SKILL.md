@@ -99,7 +99,7 @@ Los **vales** NO suman a totales de caja, NO generan comisión. Solo registran p
 ```js
 const SUPABASE_URL = 'https://xsalearfdfjuyjwugick.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_9NvWXl8HHIhde1l8lt8apw_-bCNWwUz'
-const WEB_URL = 'https://servicio-turno-web-peluapp.xyz'
+const WEB_URL = 'https://www.peluapp-turnos.xyz'
 ```
 
 ## IPC API (electronAPI expuesta al renderer)

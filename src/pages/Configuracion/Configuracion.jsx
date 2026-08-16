@@ -245,8 +245,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     await cargarPasswordsSecciones()
   }
 
-  const webLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/?p=${webConfig.id}` : ''
-  const adminLink = webConfig.id ? `https://servicio-turno-web-peluapp.xyz/admin?p=${webConfig.id}` : ''
+  const webLink = webConfig.id ? `https://www.peluapp-turnos.xyz/?p=${webConfig.id}` : ''
+  const adminLink = webConfig.id ? `https://www.peluapp-turnos.xyz/admin?p=${webConfig.id}` : ''
 
   useEffect(() => {
     window.electronAPI.getNombreApp().then(n => setNombreInput(n))
