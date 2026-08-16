@@ -23,7 +23,10 @@
       "Bash(taskkill //PID 11708 //T //F)",
       "Bash(node -e ' *)",
       "Bash(node -p \"require\\('./package.json'\\).version\")",
-      "Bash(node -e \"const c = require\\('./electron/changelog.js'\\); console.log\\(Object.keys\\(c\\).slice\\(0,3\\)\\); console.log\\(JSON.stringify\\(c['4.3.0'], null, 2\\)\\)\")"
+      "Bash(node -e \"const c = require\\('./electron/changelog.js'\\); console.log\\(Object.keys\\(c\\).slice\\(0,3\\)\\); console.log\\(JSON.stringify\\(c['4.3.0'], null, 2\\)\\)\")",
+      "Read(//f/Escritorio/cosas/Proyectos/PeluApp/peluapp-web/src/pages/api/device/**)",
+      "Bash(node -c electron/main.js)",
+      "Bash(node -e \"const c=require\\('./electron/changelog.js'\\); console.log\\(JSON.stringify\\(c['4.5.0'],null,2\\)\\)\")"
     ]
   }
 }
