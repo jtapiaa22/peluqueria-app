@@ -79,7 +79,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Peluquería web (Supabase)
   getPeluqueriaConfig:  ()             => ipcRenderer.invoke('peluqueria:getConfig'),
-  registrarPeluqueria:  (data)         => ipcRenderer.invoke('peluqueria:registrar', data),
   vincularPeluqueria:   (data)         => ipcRenderer.invoke('peluqueria:vincular', data),
 
   // Clave del panel de turnos (peluapp-web /admin)

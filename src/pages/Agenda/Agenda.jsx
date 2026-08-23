@@ -336,11 +336,15 @@ export default function Agenda() {
     const result = await window.electronAPI.responderTurnoWeb(payload)
     if (result?.ok) {
       setTurnoResponder(null)
-      if (result.esperandoSena) {
-        alertar(`Seña solicitada. Se le envió al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
+      // El turno se actualizó igual, pero si la notificación push no salió
+      // hay que decirlo: el cliente no se entera de nada si no.
+      if (result.push?.ok === false) {
+        alertar('El turno se actualizó, pero no le pudimos avisar al cliente. Escribile por otro medio.', 'warning')
+      } else if (result.esperandoSena) {
+        alertar(`Seña solicitada. Se le avisó al cliente los datos para pagar $${senaConfig.monto.toLocaleString('es-AR')} al alias ${senaConfig.alias}. El turno pasó a "Señas".`, 'success')
       } else {
         const msgs = { confirmado:'confirmado', modificado:'modificado — el cliente será notificado', rechazado:'rechazado' }
-        alertar(`Turno ${msgs[payload.accion]}. WhatsApp enviado al cliente.`, 'success')
+        alertar(`Turno ${msgs[payload.accion]}. Le avisamos al cliente.`, 'success')
       }
       cargarTurnosWeb(); cargarMes(); cargarDia()
     } else {
@@ -357,7 +361,11 @@ export default function Agenda() {
         const result = await window.electronAPI.confirmarSena(sena.id)
         setConfirmandoSena(null)
         if (result?.ok) {
-          alertar(`Seña confirmada. Turno de ${sena.cliente_nombre} confirmado. WhatsApp enviado.`, 'success')
+          if (result.push?.ok === false) {
+            alertar(`Seña confirmada y turno de ${sena.cliente_nombre} agendado, pero no le pudimos avisar al cliente. Escribile por otro medio.`, 'warning')
+          } else {
+            alertar(`Seña confirmada. Turno de ${sena.cliente_nombre} confirmado y avisado.`, 'success')
+          }
           cargarTurnosWeb(); cargarMes(); cargarDia()
         } else {
           alertar('Error al confirmar: ' + (result?.error || 'Intentá de nuevo.'), 'error')

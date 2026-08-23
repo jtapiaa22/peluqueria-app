@@ -606,10 +606,24 @@ ipcMain.handle('turnos:updateEstado',(_,{id,estado})=>{ db.prepare('UPDATE turno
 ipcMain.handle('turnos:delete',async(_,id)=>{ const t=db.prepare('SELECT * FROM turnos WHERE id=?').get(id); db.prepare('DELETE FROM turnos WHERE id=?').run(id); if(t) await syncTurnoManual(t,true); return true })
 
 // PELUQUERÍA WEB
-ipcMain.handle('peluqueria:getConfig',()=>{
+ipcMain.handle('peluqueria:getConfig',async()=>{
   const id     = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_id'").get()
   const nombre = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_nombre'").get()
   const email  = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_email'").get()
+  let codigo   = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_codigo'").get()
+  // Instalaciones vinculadas antes de que existiera el código corto (ver
+  // migración 011) no lo tienen guardado local todavía — se completa solo
+  // acá la primera vez, sin que el peluquero tenga que re-vincular nada.
+  if (!codigo?.valor && id?.valor) {
+    try {
+      const sb = await getSupabase()
+      const { data } = await sb.from('peluquerias').select('codigo').eq('id', id.valor).maybeSingle()
+      if (data?.codigo) {
+        db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_codigo',?)").run(data.codigo)
+        codigo = { valor: data.codigo }
+      }
+    } catch {}
+  }
   const horarioRaw = db.prepare("SELECT valor FROM configuracion WHERE clave='peluqueria_horario'").get()
   const senaMonto  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_monto'").get()
   const senaAlias  = db.prepare("SELECT valor FROM configuracion WHERE clave='sena_alias'").get()
@@ -619,7 +633,7 @@ ipcMain.handle('peluqueria:getConfig',()=>{
   let horario = null
   try { horario = horarioRaw ? JSON.parse(horarioRaw.valor) : null } catch {}
   return {
-    id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'', horario,
+    id:id?.valor||'', nombre:nombre?.valor||'', email:email?.valor||'', codigo:codigo?.valor||'', horario,
     sena_monto: senaMonto?.valor || '',
     sena_alias: senaAlias?.valor || '',
     sena_horas_vencimiento: senaHoras?.valor || '24',
@@ -659,8 +673,12 @@ ipcMain.handle('peluqueria:guardarSena', async (_, { sena_monto, sena_alias, sen
   }
 })
 // Registra (o recupera, si el email ya existe) la fila en `peluquerias` y deja esta instalación
-// vinculada localmente — usado tanto por el botón manual "Registrar nueva" como por la activación
-// remota de licencia, que ya conoce el email del cliente y puede vincular sin pedirle nada de nuevo.
+// vinculada localmente. Se llama únicamente desde la activación remota de licencia (ver
+// consultarActivacionRemota) — ya conoce el email del cliente y vincula sola, sin pedirle nada. La
+// activación manual (.lic por mail) no crea la cuenta acá: el cliente vincula con "Ya tengo ID"
+// usando el ID/email que el vendedor ya generó junto con la licencia (ver generar-licencia.js en
+// peluapp-admin). No hay ningún camino para que alguien se autorregistre una peluquería nueva desde
+// la app sin pasar por la licencia.
 async function vincularPeluqueriaPorEmail(nombre, email, clave) {
   const sb = await getSupabase()
 
@@ -699,6 +717,7 @@ async function vincularPeluqueriaPorEmail(nombre, email, clave) {
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
   db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(email)
+  db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_codigo',?)").run(data.codigo || '')
   // Recién creada (no recuperada por email): si nos pasaron una clave para
   // el panel, la dejamos configurada ya mismo — es el único momento en que
   // nadie más pudo haber visto este id todavía.
@@ -708,12 +727,6 @@ async function vincularPeluqueriaPorEmail(nombre, email, clave) {
   await syncSupabase()
   return { id: data.id, yaExistia }
 }
-ipcMain.handle('peluqueria:registrar',async(_,{nombre,email,clave})=>{
-  try {
-    const { id, yaExistia } = await vincularPeluqueriaPorEmail(nombre, email, clave)
-    return { ok:true, id, link:`${WEB_URL}/?p=${id}`, yaExistia }
-  } catch(e){ return { ok:false, error:e.message, requiereClave: !!e.requiereClave } }
-})
 ipcMain.handle('admin:estadoClave', async () => {
   try {
     const pid = await getPid()
@@ -750,6 +763,7 @@ ipcMain.handle('peluqueria:vincular',async(_,{peluqueriaId,clave})=>{
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_id',?)").run(data.id)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_nombre',?)").run(data.nombre)
     db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_email',?)").run(data.email)
+    db.prepare("INSERT OR REPLACE INTO configuracion(clave,valor) VALUES('peluqueria_codigo',?)").run(data.codigo || '')
     await syncSupabase()
     return { ok:true, id:data.id, link:`${WEB_URL}/?p=${data.id}` }
   } catch(e){ return { ok:false, error:e.message } }
@@ -809,7 +823,7 @@ ipcMain.handle('turnosWeb:getTodos',async(_,mes)=>{
 ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, hora_propuesta, motivo }) => {
   try {
     // /api/admin/responder hace el update en Supabase, inserta/borra turnos_senas
-    // y manda el WhatsApp al cliente (mismo endpoint que usa el panel web).
+    // y manda la notificación push al cliente (mismo endpoint que usa el panel web).
     const d = await apiDevice('/api/admin/responder', {
       method: 'POST',
       body: JSON.stringify({ id, accion, fecha_propuesta, hora_propuesta, motivo }),
@@ -839,7 +853,7 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
       }
     }
 
-    return { ok: true, esperandoSena: d.esperandoSena }
+    return { ok: true, esperandoSena: d.esperandoSena, push: d.push }
   } catch (e) {
     return { ok: false, error: e.message }
   }
@@ -848,8 +862,8 @@ ipcMain.handle('turnosWeb:responder', async (_, { id, accion, fecha_propuesta, h
 ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoSenaId) => {
   try {
     // /api/admin/senas (POST) marca la seña pagada, confirma el turno_web y
-    // manda el WhatsApp de confirmación al cliente.
-    const { sena } = await apiDevice('/api/admin/senas', {
+    // manda la notificación push de confirmación al cliente.
+    const { sena, push } = await apiDevice('/api/admin/senas', {
       method: 'POST',
       body: JSON.stringify({ id: turnoSenaId }),
     })
@@ -873,7 +887,7 @@ ipcMain.handle('turnosWeb:confirmarSena', async (_, turnoSenaId) => {
       await syncTurnoManual({ id: yaExiste.id, peluquero_id: sena.peluquero_id, fecha: sena.fecha, hora: sena.hora })
     }
 
-    return { ok: true }
+    return { ok: true, push }
   } catch (e) {
     return { ok: false, error: e.message }
   }

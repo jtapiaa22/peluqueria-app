@@ -13,6 +13,11 @@ const fmtMiles = (val) => {
 }
 const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
+// "corte" -> "Corte"
+function capitalizar(str) {
+  return str.trim().toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase())
+}
+
 export default function Servicios() {
   const [servicios, setServicios]       = useState([])
   const [form, setForm]                 = useState({ nombre: '', precio: '' })
@@ -47,13 +52,14 @@ export default function Servicios() {
       alertar('Por favor completá el nombre y el precio del servicio.', 'warning')
       return
     }
+    const nombre = capitalizar(form.nombre)
     setGuardando(true)
     setSincState('syncing')
     try {
       if (editando) {
-        await window.electronAPI.updateServicio({ ...form, id: editando })
+        await window.electronAPI.updateServicio({ ...form, nombre, id: editando })
       } else {
-        await window.electronAPI.createServicio(form)
+        await window.electronAPI.createServicio({ ...form, nombre })
       }
       setForm({ nombre: '', precio: '' })
       setEditando(null)

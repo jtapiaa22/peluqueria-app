@@ -44,8 +44,6 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [backups, setBackups] = useState([])
   const [webConfig, setWebConfig] = useState({ id: '', nombre: '', email: '' })
   const [webPaso, setWebPaso] = useState('cargando')
-  const [webForm, setWebForm] = useState({ nombre: '', email: '' })
-  const [webFormClave, setWebFormClave] = useState('')
   const [webVincularId, setWebVincularId] = useState('')
   const [webVincularClave, setWebVincularClave] = useState('')
   // null = todavía no sabemos / no hay peluquería vinculada, true/false = respuesta real
@@ -53,10 +51,10 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [cargandoClavePanel, setCargandoClavePanel] = useState(false)
   const [claveInicial, setClaveInicial] = useState('')
   const [claveInicialLoading, setClaveInicialLoading] = useState(false)
-  const [webModo, setWebModo] = useState('registrar')
   const [webLoading, setWebLoading] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState(false)
   const [adminLinkCopiado, setAdminLinkCopiado] = useState(false)
+  const [codigoCopiado, setCodigoCopiado] = useState(false)
   const [syncLoading, setSyncLoading] = useState(false)
   const [syncResultado, setSyncResultado] = useState(null)
   const [editandoNombre, setEditandoNombre] = useState(false)
@@ -329,34 +327,6 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     toast('Logo eliminado', 'success')
   }
 
-  const registrarPeluqueria = async () => {
-    if (!webForm.nombre.trim() || !webForm.email.trim()) {
-      setModalAlert({ mensaje: 'Completá nombre y email.', tipo: 'warning' }); return
-    }
-    if (webFormClave.trim() && webFormClave.trim().length < 6) {
-      setModalAlert({ mensaje: 'La clave del panel debe tener al menos 6 caracteres.', tipo: 'warning' }); return
-    }
-    setWebLoading(true)
-    const result = await window.electronAPI.registrarPeluqueria({ ...webForm, clave: webFormClave.trim() || undefined })
-    setWebLoading(false)
-    if (result?.ok) {
-      setWebFormClave('')
-      await cargarWebConfig()
-      setModalAlert({ mensaje: result.yaExistia ? 'ID recuperado. Esta peluquería ya estaba registrada.' : '¡Peluquería registrada! Ya podés compartir tu link.', tipo: 'success' })
-      // Chequear si hay backup en la nube
-      const backup = await window.electronAPI.existeBackupNube()
-      if (backup?.existe) setMostrarRestoreModal(true)
-    } else if (result?.requiereClave) {
-      // Esta peluquería ya existe y tiene clave configurada: acá no se puede
-      // "recuperar" sin ella, hay que mandarla a Ya tengo ID con su clave.
-      setWebVincularId(webForm.email.trim())
-      setWebModo('vincular')
-      setModalAlert({ mensaje: result.error, tipo: 'warning' })
-    } else {
-      setModalAlert({ mensaje: result?.error || 'Intentá de nuevo.', tipo: 'error' })
-    }
-  }
-
   const vincularPeluqueria = async () => {
     if (!webVincularId.trim()) { setModalAlert({ mensaje: 'Pegá el ID o el email de tu peluquería.', tipo: 'warning' }); return }
     setWebLoading(true)
@@ -375,6 +345,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     } else {
       setModalAlert({ mensaje: result?.error || 'ID no encontrado.', tipo: 'error' })
     }
+  }
+
+  const copiarCodigo = async () => {
+    await navigator.clipboard.writeText(webConfig.codigo)
+    setCodigoCopiado(true)
+    setTimeout(() => setCodigoCopiado(false), 2000)
   }
 
   const copiarLink = async () => {
@@ -1118,71 +1094,30 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
 
               {webPaso === 'sin_config' && (
                 <div>
-                  <div style={{ display: 'flex', background: 'var(--bg-main)', border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', marginBottom: 24, maxWidth: 280 }}>
-                    {[{ key: 'registrar', label: 'Registrar nueva' }, { key: 'vincular', label: 'Ya tengo ID' }].map(op => (
-                      <button key={op.key} onClick={() => setWebModo(op.key)}
-                        style={{
-                          flex: 1, padding: '9px 12px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-                          background: webModo === op.key ? 'var(--accent)' : 'transparent',
-                          color: webModo === op.key ? 'white' : 'var(--text-muted)'
-                        }}>
-                        {op.label}
-                      </button>
-                    ))}
+                  <div style={{ maxWidth: 420 }}>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
+                      Ingresá el ID o el email con el que se activó esta peluquería (te lo dio tu proveedor
+                      al activar la licencia) y su clave del panel para vincular esta instalación.
+                    </p>
+                    <div className="form-group">
+                      <label>ID o email de la peluquería</label>
+                      <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx o tu@email.com" style={{ fontFamily: 'monospace', fontSize: 12 }} />
+                    </div>
+                    <div className="form-group">
+                      <label>Clave del panel</label>
+                      <input className="input" type="password" value={webVincularClave} onChange={e => setWebVincularClave(e.target.value)}
+                        placeholder="Si la peluquería ya tiene una configurada"
+                        onKeyDown={e => e.key === 'Enter' && vincularPeluqueria()} />
+                      <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                        La misma clave con la que se entra al panel de turnos desde el celular. Si esta peluquería
+                        todavía no tiene una asignada, dejá esto vacío.
+                      </span>
+                    </div>
+                    <button className="btn btn-primary" onClick={vincularPeluqueria} disabled={webLoading}>
+                      {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Vinculando...</> : <><Link size={14} /> Vincular</>}
+                    </button>
                   </div>
-
-                  {webModo === 'registrar' && (
-                    <div style={{ maxWidth: 420 }}>
-                      <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px', lineHeight: 1.6 }}>
-                        Registrá esta peluquería para obtener tu link de reservas.<br />
-                        Si ya la registraste antes con este email y le pusiste una clave, usá <strong style={{ color: 'var(--accent-bright)' }}>"Ya tengo ID"</strong> en vez de esto.
-                      </p>
-                      <div className="form-group">
-                        <label>Nombre de la peluquería</label>
-                        <input className="input" value={webForm.nombre} onChange={e => setWebForm({ ...webForm, nombre: e.target.value })} placeholder="Ej: Barbería El Jefe" />
-                      </div>
-                      <div className="form-group">
-                        <label>Email de contacto</label>
-                        <input className="input" type="email" value={webForm.email} onChange={e => setWebForm({ ...webForm, email: e.target.value })} placeholder="tu@email.com" />
-                      </div>
-                      <div className="form-group">
-                        <label>Clave del panel <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(opcional, podés ponerla después)</span></label>
-                        <input className="input" type="password" value={webFormClave} onChange={e => setWebFormClave(e.target.value)}
-                          placeholder="Para responder turnos desde el celular" />
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                          Con esta clave vas a poder entrar al panel de turnos desde el celular, y también
-                          hace falta para vincular otra PC más adelante.
-                        </span>
-                      </div>
-                      <button className="btn btn-primary" onClick={registrarPeluqueria} disabled={webLoading}>
-                        {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Registrando...</> : <><Globe size={14} /> Registrar y obtener link</>}
-                      </button>
-                    </div>
-                  )}
-
-                  {webModo === 'vincular' && (
-                    <div style={{ maxWidth: 420 }}>
-                      <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '0 0 20px' }}>Si ya registraste esta peluquería antes, ingresá el ID o el email con el que la registraste, y tu clave del panel.</p>
-                      <div className="form-group">
-                        <label>ID o email de la peluquería</label>
-                        <input className="input" value={webVincularId} onChange={e => setWebVincularId(e.target.value)}
-                          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx o tu@email.com" style={{ fontFamily: 'monospace', fontSize: 12 }} />
-                      </div>
-                      <div className="form-group">
-                        <label>Clave del panel</label>
-                        <input className="input" type="password" value={webVincularClave} onChange={e => setWebVincularClave(e.target.value)}
-                          placeholder="Si la peluquería ya tiene una configurada"
-                          onKeyDown={e => e.key === 'Enter' && vincularPeluqueria()} />
-                        <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                          La misma clave con la que se entra al panel de turnos desde el celular. Si esta peluquería
-                          todavía no tiene una asignada, dejá esto vacío.
-                        </span>
-                      </div>
-                      <button className="btn btn-primary" onClick={vincularPeluqueria} disabled={webLoading}>
-                        {webLoading ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Vinculando...</> : <><Link size={14} /> Vincular</>}
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -1229,6 +1164,21 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }} />
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Guardá este ID para vincular otras PCs.</span>
                     </div>
+                    {webConfig.codigo && (
+                      <div className="form-group" style={{ margin: 0 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><KeyRound size={13} /> Código para tus clientes</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input className="input" readOnly value={webConfig.codigo}
+                            style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, letterSpacing: '0.15em', textAlign: 'center', color: 'var(--accent-bright)', flex: 1 }} />
+                          <button className="btn btn-secondary" onClick={copiarCodigo} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {codigoCopiado ? <><Check size={14} color="var(--success)" /> Copiado</> : <><Copy size={14} /> Copiar</>}
+                          </button>
+                        </div>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                          Pasáselo a tus clientes para que entren a reservar — es más fácil de escribir que el link completo.
+                        </span>
+                      </div>
+                    )}
                     <div className="form-group" style={{ margin: 0 }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={13} /> Link para compartir</label>
                       <div style={{ display: 'flex', gap: 8 }}>
@@ -1319,10 +1269,11 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     </p>
                     <button className="btn btn-secondary"
                       onClick={() => {
-                        setWebConfig({ id: '', nombre: '', email: '' }); setWebPaso('sin_config'); setWebModo('vincular')
+                        setWebConfig({ id: '', nombre: '', email: '', codigo: '' }); setWebPaso('sin_config')
                         window.electronAPI.setConfig({ clave: 'peluqueria_id', valor: '' })
                         window.electronAPI.setConfig({ clave: 'peluqueria_nombre', valor: '' })
                         window.electronAPI.setConfig({ clave: 'peluqueria_email', valor: '' })
+                        window.electronAPI.setConfig({ clave: 'peluqueria_codigo', valor: '' })
                       }}
                       style={{ fontSize: 13 }}>
                       Desvincular esta peluquería
