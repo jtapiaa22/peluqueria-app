@@ -1,4 +1,10 @@
 module.exports = {
+  '5.0.0': [
+    { titulo: 'Cambios grandes en Configuracion', desc: 'Ahora el registro es distinto, solo podras iniciar sesion teniendo ya la cuenta, esta la haces registrandote la primera vez que activas la app o contactate con Jorge.' },
+    { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'cada vez que agregues un peluquero o un servicio se normalizara a la primera letra en mayuscula y la demas en minusculas. Ej: juan --> Juan.' },
+  ],
+
+
   '4.5.0': [
     { titulo: 'Evitamos duplicados por doble clic al guardar', desc: 'Además de en Atenciones, ahora los botones de guardar en Gastos, Peluqueros, Servicios y los turnos manuales de Agenda también esperan a terminar de guardar antes de dejarte hacer clic de nuevo, para que un doble clic no duplique el registro.' },
     { titulo: 'Más seguridad al recuperar tu peluquería por email', desc: 'Si ya le habías puesto una clave al panel de turnos, ahora hace falta esa clave para recuperar el acceso desde otra PC — antes alcanzaba con volver a escribir el mismo email. En "Ya tengo ID" ahora también podés identificarte con tu email en vez del ID.' },

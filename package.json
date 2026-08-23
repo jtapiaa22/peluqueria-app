@@ -1,6 +1,6 @@
 {
   "name": "tadevstudio-peluapp",
-  "version": "4.6.0",
+  "version": "5.0.0",
   "description": "Sistema de gestión para peluquería",
   "author": "TADevStudio",
   "main": "electron/main.js",

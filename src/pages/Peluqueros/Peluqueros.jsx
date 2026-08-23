@@ -20,6 +20,11 @@ const fmtMiles = (val) => {
 }
 const parseMiles = (val) => String(val).replace(/\./g, '').replace(/[^0-9]/g, '')
 
+// "jorge tapia" -> "Jorge Tapia"
+function capitalizar(str) {
+  return str.trim().toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase())
+}
+
 function estaActivo(desde, hasta) {
   const hoy = new Date().toISOString().substring(0, 10)
   return desde <= hoy && hoy <= hasta
@@ -80,13 +85,14 @@ export default function Peluqueros() {
   const guardar = async () => {
     if (guardando) return
     if (!form.nombre.trim()) { alertar('Por favor ingresá el nombre del peluquero.', 'warning'); return }
+    const nombre = capitalizar(form.nombre)
     setGuardando(true)
     setSincState('syncing')
     try {
       if (editando) {
-        await window.electronAPI.updatePeluquero({ ...form, id: editando })
+        await window.electronAPI.updatePeluquero({ ...form, nombre, id: editando })
       } else {
-        await window.electronAPI.createPeluquero(form)
+        await window.electronAPI.createPeluquero({ ...form, nombre })
       }
       setForm({ nombre: '', comision: '', porcentaje_propina: '100' })
       setEditando(null)
