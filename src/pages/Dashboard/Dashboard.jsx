@@ -340,7 +340,7 @@ export default function Dashboard() {
             <h3 style={{ color: 'var(--accent-bright)', margin: 0, fontSize: 14 }}>Ingresos — últimos 7 días</h3>
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#6b21a8' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'linear-gradient(to top, var(--accent-hover), var(--accent-bright))' }} />
                 <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ingresos</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -382,9 +382,7 @@ export default function Dashboard() {
                       <div style={{
                         width: '100%',
                         height: alturaIng,
-                        background: esHoy
-                          ? 'linear-gradient(to top, var(--success), var(--success-hover))'
-                          : 'linear-gradient(to top, var(--accent-hover), var(--accent-bright))',
+                        background: 'linear-gradient(to top, var(--accent-hover), var(--accent-bright))',
                         borderRadius: d.propinas > 0 ? '0' : '4px 4px 0 0',
                         minHeight: 4
                       }} />

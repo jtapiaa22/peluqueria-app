@@ -1,4 +1,13 @@
+const { desc } = require("framer-motion/client");
+
 module.exports = {
+  '5.0.1': [
+    { titulo: 'Cambios grandes en Configuracion', desc: 'Ahora el registro es distinto, solo podras iniciar sesion teniendo ya la cuenta, esta la haces registrandote la primera vez que activas la app o contactate con Jorge.' },
+    { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'cada vez que agregues un peluquero o un servicio se normalizara a la primera letra en mayuscula y la demas en minusculas. Ej: juan --> Juan.' },
+    {titulo: "Mejoras de colores", desc: 'mejoras de colores en graficos'}
+  ],
+
+
   '5.0.0': [
     { titulo: 'Cambios grandes en Configuracion', desc: 'Ahora el registro es distinto, solo podras iniciar sesion teniendo ya la cuenta, esta la haces registrandote la primera vez que activas la app o contactate con Jorge.' },
     { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'cada vez que agregues un peluquero o un servicio se normalizara a la primera letra en mayuscula y la demas en minusculas. Ej: juan --> Juan.' },
