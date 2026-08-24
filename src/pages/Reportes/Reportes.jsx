@@ -577,7 +577,7 @@ export default function Reportes() {
             </h3>
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <div style={{ width: 10, height: 10, borderRadius: 2, background: '#6b21a8' }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--accent-bright)' }} />
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Ingresos</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
