@@ -48,7 +48,8 @@
       "language": "3082",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PeluApp"
+      "shortcutName": "PeluApp",
+      "license": "build/license.txt"
     },
     "linux": {
       "target": "AppImage",
