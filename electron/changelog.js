@@ -1,18 +1,21 @@
-const { desc } = require("framer-motion/client");
-
 module.exports = {
-  '5.0.1': [
-    { titulo: 'Cambios grandes en Configuracion', desc: 'Ahora el registro es distinto, solo podras iniciar sesion teniendo ya la cuenta, esta la haces registrandote la primera vez que activas la app o contactate con Jorge.' },
-    { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'cada vez que agregues un peluquero o un servicio se normalizara a la primera letra en mayuscula y la demas en minusculas. Ej: juan --> Juan.' },
-    {titulo: "Mejoras de colores", desc: 'mejoras de colores en graficos'}
+  '5.1.0': [
+    { titulo: 'La app te avisa cuando hay una actualización', desc: 'Ya no hace falta que te escriban para avisarte — apenas hay una versión nueva disponible, en la barra lateral aparece un aviso destacado en rojo para que la actualices cuando quieras.' },
+    { titulo: 'Animaciones más prolijas en toda la app', desc: 'Los menús desplegables, los modales de confirmación y aviso, y los cambios entre secciones ahora tienen transiciones suaves en vez de aparecer o desaparecer de golpe.' },
+    { titulo: 'Los totales ahora "cuentan" en vez de saltar', desc: 'En Dashboard, Caja, Reportes, Comparaciones, Liquidación, Gastos y Atenciones, los montos y totales suman en pantalla cada vez que cambian, en vez de reemplazarse en seco.' },
+    { titulo: 'Más feedback al escribir mal una contraseña', desc: 'Si te equivocás al ingresar la contraseña de una sección protegida o la contraseña maestra, el cuadro se sacude para que sea evidente al toque que no era esa.' },
+    { titulo: 'Nueva sección "Novedades" en Configuración', desc: 'Ahora podés releer las novedades de cualquier versión anterior desde Configuración, sin depender de que el aviso te aparezca justo cuando actualizás.' },
+    { titulo: 'Atajo de teclado al cargar una atención', desc: 'En el formulario de "Nueva atención", ahora podés apretar Enter para guardarla directamente, sin tener que ir a tocar el botón "Guardar".' },
   ],
 
+  '5.0.1': [
+    { titulo: 'Mejoras de colores', desc: 'Mejoras de colores en gráficos.' },
+  ],
 
   '5.0.0': [
-    { titulo: 'Cambios grandes en Configuracion', desc: 'Ahora el registro es distinto, solo podras iniciar sesion teniendo ya la cuenta, esta la haces registrandote la primera vez que activas la app o contactate con Jorge.' },
-    { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'cada vez que agregues un peluquero o un servicio se normalizara a la primera letra en mayuscula y la demas en minusculas. Ej: juan --> Juan.' },
+    { titulo: 'Cambios grandes en Configuración', desc: 'Ahora el registro es distinto, solo podrás iniciar sesión teniendo ya la cuenta, esta la haces registrándote la primera vez que activás la app o contactate con Jorge.' },
+    { titulo: 'Nombres de peluqueros y servicios normalizados', desc: 'Cada vez que agregues un peluquero o un servicio se normalizará a la primera letra en mayúscula y la demás en minúsculas. Ej: juan --> Juan.' },
   ],
-
 
   '4.5.0': [
     { titulo: 'Evitamos duplicados por doble clic al guardar', desc: 'Además de en Atenciones, ahora los botones de guardar en Gastos, Peluqueros, Servicios y los turnos manuales de Agenda también esperan a terminar de guardar antes de dejarte hacer clic de nuevo, para que un doble clic no duplique el registro.' },
@@ -23,7 +26,7 @@ module.exports = {
     { titulo: 'Configurá la clave del panel vos mismo', desc: 'Ahora podés poner la clave para entrar al panel de turnos online (el que usás desde el celular para aceptar, rechazar o proponer otro horario) directamente desde Configuración, sin tener que pedírsela a soporte.' },
     { titulo: 'Todos tus links juntos en Configuración', desc: 'En Configuración ahora ves, uno al lado del otro, el link para que tus clientes reserven turnos y el link del panel de administración para responderlos.' },
     { titulo: 'Más seguridad en la vinculación con el panel online', desc: 'Se reforzó la forma en que un dispositivo nuevo se vincula a tu peluquería en el panel de turnos, para evitar accesos no autorizados.' },
-    { titulo: 'Correccion de doble click en Vale', desc: 'Se agrego un modo espera para evitar apretar el boton de guardar dos o mas veces y evitar guardar vale o metodos de pagos repetidos.'}
+    { titulo: 'Corrección de doble click en Vale', desc: 'Se agregó un modo espera para evitar apretar el botón de guardar dos o más veces y evitar guardar vale o métodos de pagos repetidos.' },
   ],
 
   '4.3.0': [
@@ -33,13 +36,12 @@ module.exports = {
   ],
 
   '4.2.0': [
-  { titulo: 'Imagen más prolija y profesional', desc: 'Segunda pasada sobre el rediseño visual: se afinaron los íconos, las tarjetas, la tipografía y los colores en toda la app para que se vea más ordenada y consistente.' },
-  { titulo: 'Íconos del menú renovados', desc: 'Se reemplazaron los íconos ilustrados del menú lateral por íconos de línea, más simples y en sintonía con el resto de la app.' },
-  { titulo: 'Tarjetas con más profundidad', desc: 'Las tarjetas de todas las secciones ahora tienen un borde más sutil y una sombra real, en vez de verse planas con un borde de color fijo.' },
-  { titulo: 'Tipografía corregida', desc: 'Se solucionó un problema por el que la app no cargaba bien su fuente, y se ajustó el peso del texto para que los títulos y montos importantes resalten más sobre las etiquetas secundarias.' },
-  { titulo: 'Colores con más criterio', desc: 'En Dashboard, Reportes, Comparaciones, Gastos, Caja y Atenciones, las tarjetas de datos ahora usan un solo color para la información general. El verde, rojo y amarillo quedan reservados para avisos reales, como si la caja está abierta o cerrada, o si la ganancia es positiva o negativa.' },
-],
-
+    { titulo: 'Imagen más prolija y profesional', desc: 'Segunda pasada sobre el rediseño visual: se afinaron los íconos, las tarjetas, la tipografía y los colores en toda la app para que se vea más ordenada y consistente.' },
+    { titulo: 'Íconos del menú renovados', desc: 'Se reemplazaron los íconos ilustrados del menú lateral por íconos de línea, más simples y en sintonía con el resto de la app.' },
+    { titulo: 'Tarjetas con más profundidad', desc: 'Las tarjetas de todas las secciones ahora tienen un borde más sutil y una sombra real, en vez de verse planas con un borde de color fijo.' },
+    { titulo: 'Tipografía corregida', desc: 'Se solucionó un problema por el que la app no cargaba bien su fuente, y se ajustó el peso del texto para que los títulos y montos importantes resalten más sobre las etiquetas secundarias.' },
+    { titulo: 'Colores con más criterio', desc: 'En Dashboard, Reportes, Comparaciones, Gastos, Caja y Atenciones, las tarjetas de datos ahora usan un solo color para la información general. El verde, rojo y amarillo quedan reservados para avisos reales, como si la caja está abierta o cerrada, o si la ganancia es positiva o negativa.' },
+  ],
 
   '4.1.0': [
     { titulo: 'Imagen renovada, más profesional', desc: 'Se revisó el uso del color en toda la app para que sea más prolijo y menos cargado, y los emojis se reemplazaron por íconos consistentes en todas las secciones.' },
@@ -50,13 +52,11 @@ module.exports = {
   ],
 
   '4.0.2': [
-    { titulo: 'Ahora puedes poner en pantalla completa la app', desc: 'Apretando F11 podras poner la app en pantalla completa.' },
+    { titulo: 'Ahora podés poner en pantalla completa la app', desc: 'Apretando F11 podrás poner la app en pantalla completa.' },
     { titulo: 'Turnos online funcionando de nuevo', desc: 'Se solucionó un problema que hacía que la app no avisara de turnos nuevos y que impedía ver los pendientes, aceptar, rechazar, proponer otro horario o confirmar señas desde la app de escritorio.' },
     { titulo: 'WhatsApp al cliente restablecido', desc: 'El aviso automático por WhatsApp al responder un turno (confirmado, rechazado, propuesta de horario o cancelación) vuelve a enviarse correctamente.' },
     { titulo: 'Menos riesgo de doble reserva', desc: 'Los turnos que cargás manualmente en la Agenda vuelven a reflejarse en el calendario de reservas online, para que un cliente no pueda tomar un horario que ya está ocupado en el local.' },
   ],
-
-
 
   '4.0.1': [
     { titulo: 'Turnos online funcionando de nuevo', desc: 'Se solucionó un problema que hacía que la app no avisara de turnos nuevos y que impedía ver los pendientes, aceptar, rechazar, proponer otro horario o confirmar señas desde la app de escritorio.' },
@@ -66,13 +66,12 @@ module.exports = {
 
   '4.0.0': [
     { titulo: 'Mejoras de seguridad', desc: 'Mejoras de seguridad y funcionalidades.' },
-
   ],
 
   '3.6.0': [
     { titulo: 'Nueva sección: Comparaciones Mensuales', desc: 'Elegí cualquier par de meses y compará ingresos, propinas, gastos, ganancia neta, cantidad de atenciones, ticket promedio y el rendimiento de cada peluquero, con la variación en % entre ambos períodos. Se protege con contraseña igual que el resto de las secciones, configurable desde Configuración → Seguridad.' },
     { titulo: 'Más seguridad para tu backup en la nube', desc: 'Además del backup automático de siempre, ahora se guarda una copia fechada por día durante 30 días. Si algo llegara a corromper el backup más reciente, siempre queda un punto anterior al que volver.' },
-    {titulo: 'Cambios importantes en la seccion Liquidacion.', desc: 'Se agregaron nuevas funcionalidades y mejoras en la sección de Liquidación, incluyendo un resumen más detallado de los pagos.'},
+    { titulo: 'Cambios importantes en la sección Liquidación', desc: 'Se agregaron nuevas funcionalidades y mejoras en la sección de Liquidación, incluyendo un resumen más detallado de los pagos.' },
   ],
 
   '3.5.0': [
@@ -101,7 +100,6 @@ module.exports = {
     { titulo: 'Correcciones y mejoras menores', desc: 'Se corrigieron detalles de visualización y se mejoró la estabilidad general de la aplicación.' },
   ],
 
-
   '3.1.0': [
     { titulo: 'Dashboard inteligente', desc: 'El panel principal ahora incluye un "Resumen inteligente" con los datos clave de un vistazo: proyección de cierre del mes, tu mejor día de la semana, la franja horaria más activa, tu servicio estrella y el ticket promedio por atención.' },
     { titulo: 'Top servicios y ritmo de la semana', desc: 'Nuevas tarjetas en el Dashboard: el ranking de los servicios que más facturan y un gráfico con los días de la semana que más rinden.' },
@@ -111,15 +109,8 @@ module.exports = {
     { titulo: 'Correcciones y mejoras menores', desc: 'Se corrigieron detalles de visualización y se mejoró la estabilidad general de la aplicación.' },
   ],
 
-  '3.0.1': [
-    { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizo el diseño de todas las secciones, dividiendola a cada una por su categoria para proporcionar una mejor experiencia de usuario.' },
-    { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación.' },
-    { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
-    { titulo: 'SE ACERCAN NOVEDADES SOBRE TURNOS ONLINE', desc: 'Estamos trabajando en una nueva funcionalidad de turnos online que permitirá a los clientes reservar sus citas directamente desde la aplicación. ¡Pronto más detalles!' },
-  ],
-
   '3.0.0': [
-    { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizo el diseño de todas las secciones, dividiendola a cada una por su categoria para proporcionar una mejor experiencia de usuario.' },
+    { titulo: 'Nuevo diseño en las Secciones', desc: 'Se actualizó el diseño de todas las secciones, dividiéndolas a cada una por su categoría para proporcionar una mejor experiencia de usuario.' },
     { titulo: 'Mejoras en el rendimiento', desc: 'Se optimizó el rendimiento general de la aplicación.' },
     { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
     { titulo: 'SE ACERCAN NOVEDADES SOBRE TURNOS ONLINE', desc: 'Estamos trabajando en una nueva funcionalidad de turnos online que permitirá a los clientes reservar sus citas directamente desde la aplicación. ¡Pronto más detalles!' },
@@ -141,6 +132,7 @@ module.exports = {
     { titulo: 'Corrección de emojis duplicados', desc: 'Se eliminaron los íconos dobles (✅) que aparecían en los mensajes de confirmación de Peluqueros y Configuración.' },
     { titulo: 'Corrección de errores menores', desc: 'Se corrigieron pequeños errores de visualización y funcionamiento para mejorar la experiencia general de la aplicación.' },
   ],
+
   '2.6.0': [
     { titulo: 'Formato de montos más legible', desc: 'Los campos de precio en Atenciones, Gastos, Liquidación y Servicios ahora muestran puntos como separador de miles mientras escribís (por ejemplo: 10.000 en lugar de 10000).' },
     { titulo: 'Filtros siempre visibles en Reportes y Liquidación', desc: 'El filtro de fechas queda fijo en la parte superior al hacer scroll, sin necesidad de volver a subir para cambiar el período.' },
@@ -149,6 +141,7 @@ module.exports = {
     { titulo: 'Gastos se actualiza al instante', desc: 'Al agregar o editar un gasto, la lista del mes abierto se refresca inmediatamente sin necesidad de cerrar y volver a abrir la sección.' },
     { titulo: 'Corrección de emojis duplicados', desc: 'Se eliminaron los íconos dobles (✅) que aparecían en los mensajes de confirmación de Peluqueros y Configuración.' },
   ],
+
   '2.5.0': [
     { titulo: 'Aviso de cambios realizados', desc: 'Ahora, al abrir la aplicación después de una actualización, se muestra un aviso con los cambios realizados en la nueva versión.' },
     { titulo: 'Atenciones, Liquidacion y Gastos Mejoradas', desc: 'Mejoras visuales, Vistas y resumenes mas limpios, con un nuevo diseño de tarjetas y gráficos.' },
@@ -159,6 +152,7 @@ module.exports = {
     { titulo: 'Propinas en Gastos', desc: 'Las propinas cobradas aparecen como ingreso y las pagadas como egreso, reflejando correctamente la ganancia neta del local.' },
     { titulo: 'Registro de propinas simplificado', desc: 'En Atenciones, ahora ingresás el monto de la propina y elegís si fue en Efectivo o Transferencia con un selector visual.' },
   ],
+
   '2.3.0': [
     { titulo: 'Propinas por peluquero', desc: 'Cada peluquero tiene su propio porcentaje de propina configurable (por defecto 100%). Podés ajustarlo desde la sección Peluqueros.' },
     { titulo: 'Liquidación con propinas', desc: 'El panel de pago ahora muestra automáticamente comisión + propinas. El desglose queda visible al registrar el pago.' },

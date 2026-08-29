@@ -30,6 +30,7 @@ a { -webkit-user-drag: none; }
 
   --danger:       #991b1b;
   --danger-hover: #7f1d1d;
+  --danger-rgb:   153, 27, 27;
   --success:      #166534;
   --success-hover:#14532d;
   --warning:      #92400e;
@@ -102,6 +103,7 @@ a { -webkit-user-drag: none; }
 
   --danger:       #dc2626;
   --danger-hover: #b91c1c;
+  --danger-rgb:   220, 38, 38;
   --success:      #16a34a;
   --success-hover:#15803d;
   --warning:      #d97706;

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { DollarSign, Scissors, Box, TrendingUp, Calendar, Sparkles, Clock, CalendarDays, Award, ArrowUpRight, ArrowDownRight, Target, StickyNote } from 'lucide-react'
 import Skeleton from '../../components/Skeleton'
 import EmptyState from '../../components/EmptyState'
+import NumeroAnimado from '../../components/NumeroAnimado'
 
 function fechaLegible(fecha) {
   const [, mes, dia] = fecha.split('-')
@@ -205,17 +206,21 @@ export default function Dashboard() {
       </div>
 
       {/* ── CARDS SUPERIORES ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
+      {/* minmax(0, 1fr) en vez de 1fr: sin el mínimo en 0, una columna cuyo
+          contenido pide más ancho (el número animándose) empuja a las 5 a
+          crecer juntas, aunque el hijo tenga minWidth:0 — hay que cortarlo
+          también en el propio grid. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 16, marginBottom: 28 }}>
 
         {/* Total del día */}
         <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
             <DollarSign size={22} color="var(--accent)" />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total hoy</div>
-            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
-              ${data.totalHoy.toLocaleString('es-AR')}
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
+              $<NumeroAnimado valor={data.totalHoy} />
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
               Ef: ${data.efectivoHoy.toLocaleString('es-AR')} · Tr: ${data.transferenciaHoy.toLocaleString('es-AR')}
@@ -233,10 +238,10 @@ export default function Dashboard() {
           <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
             <Scissors size={22} color="var(--accent)" />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Atenciones hoy</div>
-            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
-              {data.atencionesHoy.length}
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
+              <NumeroAnimado valor={data.atencionesHoy.length} formatear={n => n} />
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
               {data.atencionesHoy.filter(a => a.metodo_pago === 'efectivo').length} ef · {data.atencionesHoy.filter(a => a.metodo_pago === 'transferencia').length} tr
@@ -249,7 +254,7 @@ export default function Dashboard() {
           <div style={{ background: data.cajaAbierta ? 'color-mix(in srgb, var(--success) 15%, transparent)' : 'color-mix(in srgb, var(--warning) 15%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
             <Box size={22} color={data.cajaAbierta ? 'var(--success)' : 'var(--warning)'} />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Caja</div>
             <div style={{ color: data.cajaAbierta ? 'var(--success)' : 'var(--warning)', fontWeight: 700, fontSize: 16 }}>
               {data.cajaAbierta ? 'Abierta' : 'Cerrada'}
@@ -270,10 +275,10 @@ export default function Dashboard() {
           <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
             <TrendingUp size={22} color="var(--accent)" />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Promedio 7 días</div>
-            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
-              ${Math.round(data.ingresosPorDia.reduce((acc, d) => acc + d.total, 0) / 7).toLocaleString('es-AR')}
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
+              $<NumeroAnimado valor={Math.round(data.ingresosPorDia.reduce((acc, d) => acc + d.total, 0) / 7)} />
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>por día</div>
           </div>
@@ -284,10 +289,10 @@ export default function Dashboard() {
           <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
             <Calendar size={22} color="var(--accent)" />
           </div>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 4 }}>Total {mesActual()}</div>
-            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22 }}>
-              ${data.totalMes.toLocaleString('es-AR')}
+            <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 22, whiteSpace: 'nowrap' }}>
+              $<NumeroAnimado valor={data.totalMes} />
             </div>
             {variacionMes !== null && (
               <div style={{ color: variacionMes >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>

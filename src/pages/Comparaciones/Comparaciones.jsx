@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { ArrowUp, ArrowDown, Minus, GitCompare, User } from 'lucide-react'
 import Skeleton from '../../components/Skeleton'
 import EmptyState from '../../components/EmptyState'
+import NumeroAnimado from '../../components/NumeroAnimado'
 
 function mesActual() {
   const d = new Date()
@@ -63,32 +65,40 @@ function Delta({ actual, anterior }) {
   const color = subio ? 'var(--success)' : bajo ? 'var(--danger)' : 'var(--text-muted)'
   const Icono = subio ? ArrowUp : bajo ? ArrowDown : Minus
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 3, color, fontSize: 12, fontWeight: 600 }}>
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: 'spring', duration: 0.3, bounce: 0.3 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 3, color, fontSize: 12, fontWeight: 600 }}>
       <Icono size={12} />
       {Math.abs(pct).toFixed(1)}%
-    </div>
+    </motion.div>
   )
 }
 
-function TarjetaComparativa({ titulo, valorA, valorB, labelA, labelB, esMoneda = true, colorA = 'var(--text-main)', colorB = 'var(--text-soft)' }) {
-  const fmt = v => esMoneda ? `$${Math.round(v).toLocaleString('es-AR')}` : Math.round(v).toLocaleString('es-AR')
+function TarjetaComparativa({ titulo, valorA, valorB, labelA, labelB, esMoneda = true, colorA = 'var(--text-main)', colorB = 'var(--text-soft)', delay = 0 }) {
+  const formatear = v => esMoneda ? `$${Math.round(v).toLocaleString('es-AR')}` : Math.round(v).toLocaleString('es-AR')
   return (
-    <div className="card" style={{ margin: 0 }}>
+    <motion.div
+      className="card" style={{ margin: 0 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay }}>
       <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 10 }}>{titulo}</div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 10 }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{labelA}</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: colorA }}>{fmt(valorA)}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: colorA, whiteSpace: 'nowrap' }}><NumeroAnimado valor={valorA} formatear={formatear} /></div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', minWidth: 0 }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>{labelB}</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: colorB }}>{fmt(valorB)}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: colorB, whiteSpace: 'nowrap' }}><NumeroAnimado valor={valorB} formatear={formatear} /></div>
         </div>
       </div>
       <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
         <Delta actual={valorA} anterior={valorB} />
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -175,13 +185,13 @@ export default function Comparaciones() {
 
             {!sinDatos && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16 }}>
-                  <TarjetaComparativa titulo="Ingresos" valorA={metricasA.ingresos} valorB={metricasB.ingresos} labelA={labelA} labelB={labelB} />
-                  <TarjetaComparativa titulo="Propinas" valorA={metricasA.propinas} valorB={metricasB.propinas} labelA={labelA} labelB={labelB} />
-                  <TarjetaComparativa titulo="Ganancia neta (ingresos + propinas − gastos)" valorA={metricasA.gananciaNeta} valorB={metricasB.gananciaNeta} labelA={labelA} labelB={labelB} />
-                  <TarjetaComparativa titulo="Gastos" valorA={metricasA.totalGastos} valorB={metricasB.totalGastos} labelA={labelA} labelB={labelB} />
-                  <TarjetaComparativa titulo="Cantidad de atenciones" valorA={metricasA.cantidadAtenciones} valorB={metricasB.cantidadAtenciones} labelA={labelA} labelB={labelB} esMoneda={false} />
-                  <TarjetaComparativa titulo="Ticket promedio" valorA={metricasA.ticketPromedio} valorB={metricasB.ticketPromedio} labelA={labelA} labelB={labelB} />
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14, marginBottom: 16 }}>
+                  <TarjetaComparativa titulo="Ingresos" valorA={metricasA.ingresos} valorB={metricasB.ingresos} labelA={labelA} labelB={labelB} delay={0 * 0.05} />
+                  <TarjetaComparativa titulo="Propinas" valorA={metricasA.propinas} valorB={metricasB.propinas} labelA={labelA} labelB={labelB} delay={1 * 0.05} />
+                  <TarjetaComparativa titulo="Ganancia neta (ingresos + propinas − gastos)" valorA={metricasA.gananciaNeta} valorB={metricasB.gananciaNeta} labelA={labelA} labelB={labelB} delay={2 * 0.05} />
+                  <TarjetaComparativa titulo="Gastos" valorA={metricasA.totalGastos} valorB={metricasB.totalGastos} labelA={labelA} labelB={labelB} delay={3 * 0.05} />
+                  <TarjetaComparativa titulo="Cantidad de atenciones" valorA={metricasA.cantidadAtenciones} valorB={metricasB.cantidadAtenciones} labelA={labelA} labelB={labelB} esMoneda={false} delay={4 * 0.05} />
+                  <TarjetaComparativa titulo="Ticket promedio" valorA={metricasA.ticketPromedio} valorB={metricasB.ticketPromedio} labelA={labelA} labelB={labelB} delay={5 * 0.05} />
                 </div>
 
                 <div className="card" style={{ marginBottom: 16 }}>
@@ -198,16 +208,19 @@ export default function Comparaciones() {
                       </tr>
                     </thead>
                     <tbody>
-                      {peluquerosTodos.map(nombre => {
+                      {peluquerosTodos.map((nombre, i) => {
                         const valA = metricasA.porPeluquero[nombre] || 0
                         const valB = metricasB.porPeluquero[nombre] || 0
                         return (
-                          <tr key={nombre}>
+                          <motion.tr key={nombre}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: i * 0.04 }}>
                             <td style={{ color: 'var(--accent-bright)', fontWeight: 600 }}>{nombre}</td>
-                            <td>${valA.toLocaleString('es-AR')}</td>
-                            <td style={{ color: 'var(--text-muted)' }}>${valB.toLocaleString('es-AR')}</td>
+                            <td style={{ whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={valA} /></td>
+                            <td style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={valB} /></td>
                             <td><Delta actual={valA} anterior={valB} /></td>
-                          </tr>
+                          </motion.tr>
                         )
                       })}
                       {peluquerosTodos.length === 0 && (

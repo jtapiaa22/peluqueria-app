@@ -168,8 +168,13 @@ export default function Servicios() {
                 <td><Skeleton width={80} height={28} radius={8} /></td>
               </tr>
             ))}
-            {!cargando && servicios.map(s => (
-              <tr key={s.id}>
+            <AnimatePresence>
+            {!cargando && servicios.map((s, i) => (
+              <motion.tr key={s.id}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18, delay: i * 0.02 }}>
                 <td>{s.nombre}</td>
                 <td>${Number(s.precio).toLocaleString('es-AR')}</td>
                 <td>
@@ -178,8 +183,9 @@ export default function Servicios() {
                     <button className="btn btn-danger" onClick={() => eliminar(s.id)}><Trash2 size={14} /></button>
                   </div>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
+            </AnimatePresence>
             {!cargando && servicios.length === 0 && (
               <tr>
                 <td colSpan={3}>

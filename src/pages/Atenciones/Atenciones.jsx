@@ -3,6 +3,7 @@ import { Plus, Trash2, Eye, Pencil, X, Ticket, CreditCard, TriangleAlert, Circle
 import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import Skeleton from '../../components/Skeleton'
+import NumeroAnimado from '../../components/NumeroAnimado'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function hoy() {
@@ -420,7 +421,16 @@ export default function Atenciones() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
           >
-            <div className="card">
+            <div className="card"
+              onKeyDown={e => {
+                // Enter guarda, igual que en cualquier formulario nativo — pero no si el
+                // foco está en un botón (ahí Enter ya activa ESE botón, sea Guardar o
+                // Cancelar, y guardar() de nuevo encima sería doble acción).
+                if (e.key !== 'Enter' || e.target.tagName === 'BUTTON') return
+                e.preventDefault()
+                guardar()
+              }}
+            >
               <h3 style={{ marginBottom: 16, color: 'var(--accent-bright)' }}>
                 {editando ? 'Editar atención' : 'Nueva atención'}
               </h3>
@@ -762,29 +772,29 @@ export default function Atenciones() {
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Total</span>
-            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalDia.toLocaleString('es-AR')}</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalDia} /></span>
           </div>
           {totalEfectivoDia > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Efectivo</span>
-              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalEfectivoDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalEfectivoDia} /></span>
             </div>
           )}
           {totalTransfDia > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Transferencia</span>
-              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalTransfDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalTransfDia} /></span>
             </div>
           )}
           {totalPropinasDia > 0 && (
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Propinas</span>
-              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>${totalPropinasDia.toLocaleString('es-AR')}</span>
+              <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalPropinasDia} /></span>
             </div>
           )}
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Atenciones</span>
-            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15 }}>{atenciones.length}</span>
+            <span style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 15, whiteSpace: 'nowrap' }}><NumeroAnimado valor={atenciones.length} formatear={n => n} /></span>
           </div>
         </div>
       )}
@@ -815,10 +825,15 @@ export default function Atenciones() {
                 <td><Skeleton width={90} height={28} radius={8} /></td>
               </tr>
             ))}
-            {!cargando && atenciones.map(a => {
+            <AnimatePresence>
+            {!cargando && atenciones.map((a, i) => {
               const propTotal = Number(a.propina_efectivo || 0) + Number(a.propina_transferencia || 0)
               return (
-                <tr key={a.id}>
+                <motion.tr key={a.id}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.18, delay: i * 0.02 }}>
                   <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{a.hora}hs</td>
                   <td style={{ fontWeight: 600 }}>{a.peluquero_nombre}</td>
                   <td>{a.metodo_pago === 'vale' ? <span style={{ color: 'var(--warning)', fontStyle: 'italic', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Ticket size={11} /> Vale</span> : a.servicio_nombre}</td>
@@ -849,9 +864,10 @@ export default function Atenciones() {
                       </button>
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               )
             })}
+            </AnimatePresence>
             {!cargando && atenciones.length === 0 && (
               <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 30 }}>No hay atenciones registradas para este día</td></tr>
             )}

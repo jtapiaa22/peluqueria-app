@@ -8,7 +8,7 @@ export function ModalConfirm({ mensaje, onConfirm, onCancel }) {
   return (
     <motion.div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
       }}
       initial={{ opacity: 0 }}
@@ -51,7 +51,7 @@ export function ModalAlert({ mensaje, tipo = 'info', onClose }) {
   return (
     <motion.div
       style={{
-        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
       }}
       initial={{ opacity: 0 }}
