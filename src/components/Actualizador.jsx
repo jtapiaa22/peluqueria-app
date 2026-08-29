@@ -28,6 +28,17 @@ export default function Actualizador() {
       })
     })
 
+    // Antes, si la descarga fallaba (404, hash que no matchea, etc.) esto se
+    // quedaba mostrando "Descargando... 0%" para siempre, sin decir nada.
+    window.electronAPI.onDownloadError((data) => {
+      setDescargando(false)
+      setProgreso(0)
+      setModalAlert({
+        mensaje: `No se pudo descargar la actualización: ${data.mensaje}`,
+        tipo: 'error'
+      })
+    })
+
     // Chequeo silencioso al abrir la app: si falla (sin internet, etc.) no
     // molesta con un error — el botón de abajo sigue disponible para
     // verificar a mano cuando quiera.

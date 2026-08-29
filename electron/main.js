@@ -1158,6 +1158,11 @@ autoUpdater.on('download-progress',(p)=>{ if(mainWindow) mainWindow.webContents.
 // se veía un blanco (la ventana cerrándose). Este delay le da tiempo real al
 // mensaje "la app se reiniciará automáticamente" de cumplir lo que promete.
 autoUpdater.on('update-downloaded',()=>{ if(mainWindow) mainWindow.webContents.send('updater:download-complete'); setTimeout(()=>autoUpdater.quitAndInstall(), 3500) })
+// Sin esto, si la descarga falla (404 por un nombre de archivo que no
+// coincide, un hash que no matchea, etc.) la ventana se queda mostrando
+// "Descargando... 0%" para siempre, porque nunca llega ni download-progress
+// ni update-downloaded — y no había forma de saber por qué.
+autoUpdater.on('error',(err)=>{ if(mainWindow) mainWindow.webContents.send('updater:download-error',{mensaje:err?.message||String(err)}) })
 
 // LOGO Y NOMBRE
 function getLogoBasePath(){ const b=isDev?path.join(app.getPath('userData'),'dev'):app.getPath('userData'); if(!fs.existsSync(b))fs.mkdirSync(b,{recursive:true}); return b }
