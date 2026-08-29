@@ -32,7 +32,7 @@
     "publish": {
       "provider": "github",
       "owner": "jtapiaa22",
-      "repo": "peluqueria-app",
+      "repo": "peluqueria-app-releases",
       "releaseType": "release"
     },
     "win": {
