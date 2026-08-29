@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { ModalAlert, ModalConfirm } from './Modal'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Sparkles } from 'lucide-react'
 
 export default function Actualizador() {
   const [verificando, setVerificando] = useState(false)
@@ -8,6 +9,10 @@ export default function Actualizador() {
   const [progreso, setProgreso]       = useState(0)
   const [modalAlert, setModalAlert]   = useState(null)
   const [modalConfirm, setModalConfirm] = useState(null)
+  // Versión detectada en el chequeo automático de arranque — antes había que
+  // acordarse de tocar "Buscar actualizaciones" vos mismo (o que Jorge te
+  // avise por WhatsApp) para enterarte de que hay una nueva.
+  const [updateDisponible, setUpdateDisponible] = useState(null)
 
   useEffect(() => {
     window.electronAPI.onDownloadProgress((data) => {
@@ -22,6 +27,13 @@ export default function Actualizador() {
         tipo: 'info'
       })
     })
+
+    // Chequeo silencioso al abrir la app: si falla (sin internet, etc.) no
+    // molesta con un error — el botón de abajo sigue disponible para
+    // verificar a mano cuando quiera.
+    window.electronAPI.checkUpdate()
+      .then(result => { if (result?.disponible) setUpdateDisponible({ version: result.version }) })
+      .catch(() => {})
   }, [])
 
   const verificar = async () => {
@@ -101,34 +113,65 @@ export default function Actualizador() {
           </div>
         )}
 
-        <button
-          onClick={verificar}
-          disabled={activo}
-          style={{
-            width: '100%',
-            padding: '5px 12px',
-            borderRadius: 20,
-            border: '1px solid var(--border-primary)',
-            background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
-            color: activo ? 'var(--text-muted)' : 'var(--accent-strong)',
-            fontSize: 12,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            cursor: activo ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-        >
-          {activo && <Loader2 size={16} className="spin" />}
-          {descargando
-            ? `Descargando... ${progreso}%`
-            : verificando
-              ? 'Verificando actualizaciones...'
-              : 'Buscar actualizaciones'
-          }
-        </button>
+        {updateDisponible && !activo ? (
+          <motion.button
+            onClick={verificar}
+            animate={{
+              boxShadow: [
+                '0 0 0 0 rgba(var(--danger-rgb), 0.45)',
+                '0 0 0 6px rgba(var(--danger-rgb), 0)',
+              ],
+            }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
+            style={{
+              width: '100%',
+              padding: '6px 12px',
+              borderRadius: 20,
+              border: '1px solid var(--danger)',
+              background: 'color-mix(in srgb, var(--danger) 14%, transparent)',
+              color: 'var(--danger)',
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              cursor: 'pointer',
+            }}
+          >
+            <Sparkles size={14} />
+            Actualización disponible (v{updateDisponible.version})
+          </motion.button>
+        ) : (
+          <button
+            onClick={verificar}
+            disabled={activo}
+            style={{
+              width: '100%',
+              padding: '5px 12px',
+              borderRadius: 20,
+              border: '1px solid var(--border-primary)',
+              background: activo ? 'var(--bg-main)' : 'var(--accent-soft)',
+              color: activo ? 'var(--text-muted)' : 'var(--accent-strong)',
+              fontSize: 12,
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              cursor: activo ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {activo && <Loader2 size={16} className="spin" />}
+            {descargando
+              ? `Descargando... ${progreso}%`
+              : verificando
+                ? 'Verificando actualizaciones...'
+                : 'Buscar actualizaciones'
+            }
+          </button>
+        )}
       </div>
     </>
   )

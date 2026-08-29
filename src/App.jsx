@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { MotionConfig, motion } from 'framer-motion'
+import { MotionConfig, motion, AnimatePresence } from 'framer-motion'
 import {
   Bell, X, Globe, Sparkles, TriangleAlert, Scissors,
   LayoutDashboard, CalendarDays, Wallet, Users, Tag,
@@ -24,6 +24,10 @@ import { ToastProvider } from './components/Toast'
 import EmptyState from './components/EmptyState'
 import './App.css'
 import { useTheme } from './hooks/useTheme'
+
+// Mismo spring que Modal.jsx — para que los overlays (changelog, bandeja de
+// notificaciones) entren y salgan con el mismo lenguaje que ModalConfirm/ModalAlert.
+const SPRING = { type: 'spring', duration: 0.35, bounce: 0.18 }
 
 // Transición suave al cambiar de sección (se remonta al cambiar la ruta)
 function RouteFade({ children }) {
@@ -123,13 +127,18 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
     <ToastProvider>
+    <AnimatePresence>
     {changelog && (
-      <div style={{
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}
+        style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 24
       }}>
-        <div style={{
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 4 }} transition={SPRING}
+          style={{
           background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
           borderRadius: 16, maxWidth: 500, width: '100%',
           maxHeight: 'calc(100vh - 48px)',
@@ -180,9 +189,10 @@ function App() {
               Entendido
             </button>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     )}
+    </AnimatePresence>
     <Router>
       <div className="app-container">
         <aside className="sidebar">
@@ -268,12 +278,19 @@ function App() {
               )}
             </button>
 
+            <AnimatePresence>
             {bandejaAbierta && (
-              <div style={{
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 4 }}
+                transition={SPRING}
+                style={{
                 position: 'absolute', bottom: '100%', left: 12, right: 12, marginBottom: 6,
-                background: 'var(--bg-card)', border: '1px solid var(--border-soft)',
+                background: 'color-mix(in srgb, var(--bg-card) 85%, transparent)',
+                backdropFilter: 'blur(16px) saturate(180%)',
+                border: '1px solid var(--border-soft)',
                 borderRadius: 12, overflow: 'hidden', boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
-                zIndex: 1000, maxHeight: 360, display: 'flex', flexDirection: 'column'
+                zIndex: 1000, maxHeight: 360, display: 'flex', flexDirection: 'column',
+                transformOrigin: 'bottom'
               }}>
                 <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                   <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-main)' }}>Turnos recibidos</span>
@@ -321,8 +338,9 @@ function App() {
                     ))
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
 
           {/* Badge licencia */}

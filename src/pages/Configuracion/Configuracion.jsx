@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { motion, useAnimationControls } from 'framer-motion'
 import { ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, X, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2, LayoutDashboard, Users, Scissors, ClipboardList, BarChart2, GitCompare, TrendingDown, CloudUpload, CloudDownload, KeyRound, TriangleAlert, CircleCheck, CalendarClock, Sunrise, Sunset, Save, Banknote } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, X, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2, LayoutDashboard, Users, Scissors, ClipboardList, BarChart2, GitCompare, TrendingDown, CloudUpload, CloudDownload, KeyRound, TriangleAlert, CircleCheck, CalendarClock, Sunrise, Sunset, Save, Banknote, Sparkles } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
   '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -26,6 +27,22 @@ const HORARIO_DEFAULT = {
   modo: 'normal',
   fecha_unica: null,
 }
+
+// Descendente: la versión más nueva primero. No alcanza con ordenar los
+// strings tal cual porque "5.0.0" queda antes que "4.9.0" en orden alfabético
+// pero también quedaría "5.10.0" antes que "5.9.0", que es al revés de lo real.
+function compararVersiones(a, b) {
+  const pa = a.split('.').map(Number)
+  const pb = b.split('.').map(Number)
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const diff = (pb[i] || 0) - (pa[i] || 0)
+    if (diff) return diff
+  }
+  return 0
+}
+
+// Mismo shake que PasswordGate.jsx al rechazar la contraseña maestra.
+const shake = (controls) => controls.start({ x: [0, -10, 10, -8, 8, -4, 4, 0], transition: { duration: 0.4, ease: 'easeInOut' } })
 
 const PALETAS = [
   { id: 'turquesa',  label: 'Turquesa',  color: '#14b8a6' },
@@ -63,6 +80,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [horario, setHorario] = useState(HORARIO_DEFAULT)
   const [horarioLoading, setHorarioLoading] = useState(false)
   const [horarioGuardado, setHorarioGuardado] = useState(false)
+  const [versionApp, setVersionApp] = useState(null)
+  const [changelogCompleto, setChangelogCompleto] = useState(null)
   const [backupNubeLoading, setBackupNubeLoading] = useState(false)
   const [restoreNubeLoading, setRestoreNubeLoading] = useState(false)
   const [ultimoBackupNube, setUltimoBackupNube] = useState(null)
@@ -112,6 +131,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [maestraInput, setMaestraInput] = useState('')
   const [maestraError, setMaestraError] = useState('')
   const [showMaestraInput, setShowMaestraInput] = useState(false)
+  const maestraShakeControls = useAnimationControls()
 
   // Setup master password (first time)
   const [setupMaestra, setSetupMaestra] = useState({ pass: '', repetir: '', pregunta: '', respuesta: '' })
@@ -153,6 +173,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     } else {
       setMaestraError('Contraseña maestra incorrecta.')
       setMaestraInput('')
+      shake(maestraShakeControls)
     }
   }
 
@@ -251,6 +272,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     window.electronAPI.listarBackups().then(setBackups)
     window.electronAPI.getLogo().then(logo => { if (logo) setLogoPreview(logo) })
     window.electronAPI.getUltimoBackupNube().then(ts => setUltimoBackupNube(ts))
+    window.electronAPI.getVersion().then(setVersionApp)
+    window.electronAPI.getChangelogCompleto().then(setChangelogCompleto)
     cargarWebConfig()
     cargarPasswordsSecciones()
     cargarEstadoMaestra()
@@ -451,6 +474,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
       { id: 'horario', label: 'Horario web', icono: <Clock size={16} /> },
       { id: 'sena', label: 'Seña', icono: <DollarSign size={16} /> },
     ] : []),
+    { id: 'novedades', label: 'Novedades', icono: <Sparkles size={16} /> },
   ]
 
   return (
@@ -754,7 +778,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               {/* ── LOCK: pedir contraseña maestra para entrar ── */}
               {!maestraCargando && tieneMaestra && !seguridadDesbloqueada && !modoRecuperacion && (
                 <div style={{ maxWidth: 380, margin: '30px auto' }}>
-                  <div className="card" style={{ textAlign: 'center' }}>
+                  <motion.div className="card" style={{ textAlign: 'center' }} animate={maestraShakeControls}>
                     <Lock size={40} style={{ color: 'var(--accent-bright)', marginBottom: 16 }} />
                     <h3 style={{ color: 'var(--text-main)', marginBottom: 8 }}>Contraseña maestra</h3>
                     <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
@@ -785,7 +809,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-bright)', fontSize: 12, marginTop: 16, textDecoration: 'underline' }}>
                       Olvidé mi contraseña maestra
                     </button>
-                  </div>
+                  </motion.div>
                 </div>
               )}
 
@@ -1624,6 +1648,60 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                   : senaGuardada ? <><Check size={14} color="var(--success)" /> ¡Guardado!</>
                     : <><Save size={14} /> Guardar configuración de seña</>}
               </button>
+            </div>
+          )}
+
+          {/* ── NOVEDADES ── */}
+          {seccion === 'novedades' && (
+            <div>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>Novedades</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 28 }}>
+                Todo lo que fue cambiando en la app, versión por versión.
+              </p>
+
+              {!changelogCompleto ? (
+                <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)', fontSize: 13 }}>
+                  <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite', marginBottom: 10, display: 'block', margin: '0 auto 10px' }} />
+                  Cargando...
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {Object.keys(changelogCompleto).sort(compararVersiones).map((v, idx, arr) => (
+                    <div key={v} style={{
+                      borderBottom: idx < arr.length - 1 ? '1px solid var(--border-soft)' : 'none',
+                      padding: '20px 0',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                        <Sparkles size={15} style={{ color: 'var(--accent-bright)' }} />
+                        <span style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: 14 }}>Versión {v}</span>
+                        {v === versionApp && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, color: 'var(--accent-bright)',
+                            background: 'rgba(var(--accent-bright-rgb),0.12)', borderRadius: 20, padding: '2px 8px',
+                          }}>
+                            ACTUAL
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {changelogCompleto[v].map((item, i) => (
+                          <div key={i} style={{
+                            background: 'var(--bg-main)', borderRadius: 10, padding: '12px 16px',
+                            borderLeft: '3px solid var(--accent-bright)',
+                          }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-main)', marginBottom: 4 }}>
+                              {item.titulo}
+                            </div>
+                            <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                              {item.desc}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

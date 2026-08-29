@@ -4,6 +4,7 @@ import { ModalAlert, ModalConfirm } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import EmptyState from '../../components/EmptyState'
 import Skeleton from '../../components/Skeleton'
+import NumeroAnimado from '../../components/NumeroAnimado'
 import { usePDF } from '../../hooks/usePDF'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -305,17 +306,17 @@ export default function Liquidacion() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total generado en el período</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${totalGeneralPeriodo.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGeneralPeriodo} /></div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total + Propinas</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)' }}>${(totalGeneralPeriodo + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--success)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGeneralPeriodo + totalPropinas} /></div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>no incluye vales</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total a pagar en comisiones</div>
-          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--danger)' }}>${totalComisiones.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--danger)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalComisiones} /></div>
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -639,10 +640,16 @@ export default function Liquidacion() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {historialPagos.map(pg => {
+                                <AnimatePresence>
+                                {historialPagos.map((pg, i) => {
                                   const esPeriodoActual = pagadoEste.some(p => p.id === pg.id)
                                   return (
-                                    <tr key={pg.id} style={{ background: esPeriodoActual ? 'rgba(var(--accent-bright-rgb),0.06)' : undefined }}>
+                                    <motion.tr key={pg.id}
+                                      initial={{ opacity: 0, y: -8 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -8 }}
+                                      transition={{ duration: 0.18, delay: i * 0.02 }}
+                                      style={{ background: esPeriodoActual ? 'rgba(var(--accent-bright-rgb),0.06)' : undefined }}>
                                       <td style={{ color: 'var(--text-muted)' }}>{formatFecha(pg.fecha_pago)}</td>
                                       <td style={{ color: 'var(--text-soft)', fontSize: 12 }}>{formatFecha(pg.desde)} → {formatFecha(pg.hasta)}</td>
                                       <td style={{ color: 'var(--success)', fontWeight: 700 }}>
@@ -659,9 +666,10 @@ export default function Liquidacion() {
                                           <Trash2 size={13} />
                                         </button>
                                       </td>
-                                    </tr>
+                                    </motion.tr>
                                   )
                                 })}
+                                </AnimatePresence>
                               </tbody>
                             </table>
                             {totalPagadoPeriodo > 0 && (

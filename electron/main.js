@@ -1152,7 +1152,12 @@ ipcMain.handle('licencia:consultarRemota', () => consultarActivacionRemota(getMa
 ipcMain.handle('updater:check',async()=>{ try{ const r=await autoUpdater.checkForUpdates(); return {disponible:r.updateInfo.version!==app.getVersion(),version:r.updateInfo.version} }catch(e){return {disponible:false,mensaje:e.message}} })
 ipcMain.handle('updater:download',()=>{ autoUpdater.downloadUpdate(); return true })
 autoUpdater.on('download-progress',(p)=>{ if(mainWindow) mainWindow.webContents.send('updater:download-progress',{percent:Math.floor(p.percent),transferred:p.transferred,total:p.total}) })
-autoUpdater.on('update-downloaded',()=>{ if(mainWindow) mainWindow.webContents.send('updater:download-complete'); autoUpdater.quitAndInstall() })
+// Antes se llamaba a quitAndInstall() en el mismo instante que se avisaba al
+// renderer — la ventana se cerraba para reiniciar antes de que el modal de
+// "Descarga completa" llegara a pintarse, así que en vez del diseño con blur
+// se veía un blanco (la ventana cerrándose). Este delay le da tiempo real al
+// mensaje "la app se reiniciará automáticamente" de cumplir lo que promete.
+autoUpdater.on('update-downloaded',()=>{ if(mainWindow) mainWindow.webContents.send('updater:download-complete'); setTimeout(()=>autoUpdater.quitAndInstall(), 3500) })
 
 // LOGO Y NOMBRE
 function getLogoBasePath(){ const b=isDev?path.join(app.getPath('userData'),'dev'):app.getPath('userData'); if(!fs.existsSync(b))fs.mkdirSync(b,{recursive:true}); return b }
@@ -1173,6 +1178,10 @@ ipcMain.handle('app:checkChangelog', () => {
   fs.writeFileSync(archivoVisto, JSON.stringify({ version: versionActual }), 'utf8')
   return { version: versionActual, items: CHANGELOG[versionActual] || [] }
 })
+
+// Historial completo, para poder releer las novedades desde Configuración
+// (a diferencia de app:checkChangelog, esto no marca nada como "visto").
+ipcMain.handle('app:getChangelogCompleto', () => CHANGELOG)
 
 // PDF
 ipcMain.handle('pdf:guardar',async(_,{buffer,nombreSugerido})=>{ const {filePath,canceled}=await dialog.showSaveDialog(mainWindow,{title:'Guardar PDF',defaultPath:nombreSugerido,filters:[{name:'PDF',extensions:['pdf']}]}); if(canceled||!filePath) return {ok:false}; fs.writeFileSync(filePath,Buffer.from(buffer)); return {ok:true,filePath} })

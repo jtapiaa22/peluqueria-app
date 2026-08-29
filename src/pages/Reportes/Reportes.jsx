@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TrendingUp, Scissors, User, Clock, Calendar, Award, DollarSign, Ticket } from 'lucide-react'
 import Skeleton from '../../components/Skeleton'
+import NumeroAnimado from '../../components/NumeroAnimado'
 
 function hoy() {
   const d = new Date()
@@ -202,21 +203,21 @@ export default function Reportes() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total efectivo</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalEfectivo} /></div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total transferencias</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalTransferencia} /></div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Total general (cortes)</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGeneral} /></div>
           {/* Cortes = todos los cortes hechos (incluye los pagados con vale, que no suman dinero pero sí son cortes realizados) */}
           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>{atenciones.length} cortes</div>
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}><DollarSign size={12} /> Propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${totalPropinas.toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalPropinas} /></div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</div>
@@ -224,7 +225,7 @@ export default function Reportes() {
         </div>
         <div className="card" style={{ textAlign: 'center', margin: 0 }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 6 }}>Total + propinas</div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)' }}>${(totalGeneral + totalPropinas).toLocaleString('es-AR')}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGeneral + totalPropinas} /></div>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import EmptyState from '../../components/EmptyState'
 import Skeleton from '../../components/Skeleton'
+import NumeroAnimado from '../../components/NumeroAnimado'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function mesLegible(mes) {
@@ -192,16 +193,18 @@ export default function Gastos() {
         </button>
       </div>
 
-      {/* Resumen global */}
+      {/* Resumen global — minmax(0, 1fr): sin el mínimo en 0, el número
+          creciendo mientras cuenta empuja a las 5 columnas a agrandarse
+          juntas (el mismo bug que hubo en Dashboard). */}
       {resumenMensual.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14, marginBottom: 24 }}>
           <div className="card" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <DollarSign size={20} color="var(--accent)" />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total ingresos</div>
-              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalIngresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalIngresosGlobal} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -209,9 +212,9 @@ export default function Gastos() {
             <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <TrendingDown size={20} color="var(--accent)" />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Gastos operativos</div>
-              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalGastosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGastosGlobal} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -219,9 +222,9 @@ export default function Gastos() {
             <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <Users size={20} color="var(--accent)" />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Pagos a peluqueros</div>
-              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalPagosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalPagosGlobal} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -229,9 +232,9 @@ export default function Gastos() {
             <div style={{ background: 'rgba(var(--accent-rgb), 0.12)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <TrendingDown size={20} color="var(--accent)" />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Total egresos</div>
-              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20 }}>${totalEgresosGlobal.toLocaleString('es-AR')}</div>
+              <div style={{ color: 'var(--text-main)', fontWeight: 700, fontSize: 20, whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalEgresosGlobal} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>total acumulado</div>
             </div>
           </div>
@@ -239,10 +242,10 @@ export default function Gastos() {
             <div style={{ background: gananciaNeta >= 0 ? 'color-mix(in srgb, var(--success) 12%, transparent)' : 'color-mix(in srgb, var(--danger) 12%, transparent)', borderRadius: 10, padding: 12, flexShrink: 0 }}>
               <DollarSign size={20} color={gananciaNeta >= 0 ? 'var(--success)' : 'var(--danger)'} />
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 3 }}>Ganancia neta</div>
-              <div style={{ color: gananciaNeta >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700, fontSize: 20 }}>
-                {gananciaNeta >= 0 ? '' : '-'}${Math.abs(gananciaNeta).toLocaleString('es-AR')}
+              <div style={{ color: gananciaNeta >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 700, fontSize: 20, whiteSpace: 'nowrap' }}>
+                {gananciaNeta >= 0 ? '' : '-'}$<NumeroAnimado valor={Math.abs(gananciaNeta)} />
               </div>
               <div style={{ color: 'var(--text-muted)', fontSize: 11 }}>ingresos − egresos</div>
             </div>
@@ -568,8 +571,13 @@ export default function Gastos() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {detalle.map(g => (
-                                  <tr key={g.id}>
+                                <AnimatePresence>
+                                {detalle.map((g, i) => (
+                                  <motion.tr key={g.id}
+                                    initial={{ opacity: 0, y: -8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -8 }}
+                                    transition={{ duration: 0.18, delay: i * 0.02 }}>
                                     <td style={{ color: 'var(--text-muted)' }}>{formatFecha(g.fecha)}</td>
                                     <td>{g.descripcion}</td>
                                     <td>
@@ -587,8 +595,9 @@ export default function Gastos() {
                                         <button className="btn btn-danger"    onClick={() => eliminar(g.id)}><Trash2 size={14} /></button>
                                       </div>
                                     </td>
-                                  </tr>
+                                  </motion.tr>
                                 ))}
+                                </AnimatePresence>
                               </tbody>
                             </table>
                           )}

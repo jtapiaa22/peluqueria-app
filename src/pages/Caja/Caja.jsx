@@ -4,6 +4,7 @@ import { ModalConfirm, ModalAlert } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
 import Skeleton from '../../components/Skeleton'
 import EmptyState from '../../components/EmptyState'
+import NumeroAnimado from '../../components/NumeroAnimado'
 import { motion, AnimatePresence } from 'framer-motion'
 
 function hoy() {
@@ -411,21 +412,21 @@ export default function Caja() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 14, marginBottom: 24 }}>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Efectivo</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalEfectivo.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalEfectivo} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'efectivo' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Transferencia</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalTransferencia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalTransferencia} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {atencionesReales.filter(a => a.metodo_pago === 'transferencia' || a.metodo_pago === 'mixto').length} atenciones
               </div>
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0, border: '1px solid var(--border-primary)' }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Total general</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalGeneral.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalGeneral} /></div>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>
                 {/* Cortes = todos los cortes hechos (incluye los pagados con vale); el vale se muestra aparte como desglose */}
                 {atenciones.length} cortes
@@ -436,7 +437,7 @@ export default function Caja() {
             </div>
             <div className="card" style={{ textAlign: 'center', margin: 0 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 8 }}>Propinas</div>
-              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)' }}>${totalPropinasDia.toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>$<NumeroAnimado valor={totalPropinasDia} /></div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 4 }}>
                 {totalPropinasEfectivo > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Ef: ${totalPropinasEfectivo.toLocaleString('es-AR')}</span>}
                 {totalPropinasTransferencia > 0 && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Tr: ${totalPropinasTransferencia.toLocaleString('es-AR')}</span>}
