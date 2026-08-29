@@ -1,6 +1,6 @@
 {
   "name": "tadevstudio-peluapp",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "description": "Sistema de gestión para peluquería",
   "author": "TADevStudio",
   "main": "electron/main.js",
@@ -48,7 +48,8 @@
       "language": "3082",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PeluApp"
+      "shortcutName": "PeluApp",
+      "license": "build/license.txt"
     },
     "linux": {
       "target": "AppImage",

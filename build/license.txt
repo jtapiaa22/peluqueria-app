@@ -1,0 +1,64 @@
+TERMINOS Y CONDICIONES DE USO - PELUAPP
+Contrato de Licencia de Uso de Software
+Ultima actualizacion: 29 de agosto de 2026
+
+IMPORTANTE - LEA ATENTAMENTE ANTES DE INSTALAR
+
+Este es un contrato legal entre usted ("el Usuario" o "el Licenciatario") y TADevStudio / Jorge Alejandro Tapia Ahumada ("el Licenciante" o "el Proveedor"), relativo al uso del software PeluApp ("el Software").
+
+AL HACER CLIC EN "ACEPTO", INSTALAR, COPIAR O UTILIZAR DE CUALQUIER FORMA EL SOFTWARE, EL USUARIO MANIFIESTA HABER LEIDO, ENTENDIDO Y ACEPTADO ESTOS TERMINOS EN SU TOTALIDAD. SI NO ESTA DE ACUERDO, NO INSTALE NI UTILICE EL SOFTWARE.
+
+1. OBJETO
+PeluApp es un software de gestion para peluquerias y barberias (agenda, reserva de turnos online, caja, atenciones, comisiones, liquidacion de sueldos y reportes) desarrollado y comercializado por el Licenciante. Este contrato regula el uso que el Licenciatario podra darle.
+
+2. LICENCIA DE USO
+2.1. El Licenciante otorga al Licenciatario una licencia de uso limitada, no exclusiva, intransferible y revocable, para instalar y utilizar el Software exclusivamente en el/los equipo(s) informatico(s) identificados y autorizados mediante su identificador unico de maquina ("machineId"), y unicamente durante el periodo de vigencia efectivamente abonado.
+2.2. Esta licencia NO implica la venta del Software ni la cesion de ningun derecho de propiedad intelectual sobre el. El Licenciante conserva la titularidad exclusiva del Software en todo momento.
+2.3. El uso del Software fuera del equipo autorizado, o una vez vencido el periodo de licencia sin renovacion, no esta permitido.
+2.4. El Licenciatario es responsable de mantener la confidencialidad de su archivo o clave de licencia. El Licenciante no se responsabiliza por el uso indebido derivado de la divulgacion de la licencia por parte del Licenciatario.
+
+3. PROPIEDAD INTELECTUAL
+3.1. El Software, su codigo fuente, su codigo objeto, su diseno, su interfaz, su documentacion, su marca "PeluApp" y todo material asociado son propiedad exclusiva del Licenciante y estan protegidos por la Ley N. 11.723 de Propiedad Intelectual de la Republica Argentina, sus modificatorias, y los tratados internacionales aplicables.
+3.2. Ninguna disposicion de este contrato transfiere derecho alguno de propiedad intelectual al Licenciatario. Todos los derechos no concedidos expresamente aqui quedan reservados al Licenciante.
+
+4. RESTRICCIONES DE USO
+El Licenciatario NO podra, bajo ninguna circunstancia:
+a) Descompilar, desensamblar, aplicar ingenieria inversa, o intentar de cualquier otro modo derivar el codigo fuente del Software, salvo en la minima medida en que ello resulte expresamente permitido por una norma legal imperativa que no pueda ser excluida contractualmente;
+b) Eludir, desactivar, alterar o intentar sortear el sistema de licencias, activacion, validacion o cualquier mecanismo de proteccion del Software;
+c) Copiar, reproducir, modificar, traducir o crear obras derivadas del Software;
+d) Redistribuir, alquilar, prestar, sublicenciar, vender o transferir el Software o el acceso a el a terceros, total o parcialmente, con o sin fines de lucro;
+e) Utilizar el Software, su codigo, su interfaz o su documentacion, en todo o en parte, como base para desarrollar un producto o servicio competidor;
+f) Eliminar, ocultar o alterar avisos de copyright, marcas o menciones de titularidad del Licenciante presentes en el Software;
+g) Utilizar el Software en mas equipos que los autorizados por su licencia, o compartir una misma licencia entre distintas peluquerias, barberias o usuarios no autorizados.
+
+El incumplimiento de cualquiera de estos puntos habilita al Licenciante a suspender o revocar la licencia de forma inmediata y sin necesidad de aviso previo, sin perjuicio de las acciones legales que correspondan y de la reparacion de los danos y perjuicios ocasionados.
+
+5. DATOS Y PRIVACIDAD
+5.1. El Software realiza copias de seguridad automaticas de la base de datos del comercio en un servicio de almacenamiento en la nube, con el unico fin de permitir la continuidad del servicio ante perdida o rotura del equipo del Licenciatario.
+5.2. Los datos cargados en el Software (turnos, atenciones, peluqueros, servicios, clientes, ingresos, etc.) son y seguiran siendo propiedad del Licenciatario. El Licenciante no accede, utiliza ni comercializa esos datos, salvo para la prestacion del propio servicio o cuando asi lo exija la normativa vigente.
+5.3. Si el Licenciatario utiliza la funcionalidad de reserva de turnos online, el Software procesara los datos que los propios clientes del Licenciatario carguen (nombre y telefono) con el unico fin de gestionar el turno y enviar notificaciones automaticas por WhatsApp. El Licenciatario, en su calidad de titular del comercio, es responsable de cumplir con la normativa de proteccion de datos personales aplicable respecto de sus propios clientes.
+5.4. Se recomienda al Licenciatario mantener sus propias copias de seguridad adicionales. El Licenciante no garantiza la integridad absoluta ni la disponibilidad permanente del servicio de backup en la nube.
+
+6. GARANTIAS Y LIMITACION DE RESPONSABILIDAD
+6.1. El Software se provee "tal cual" ("as is"), sin garantias de ningun tipo, expresas o implicitas, incluyendo -sin limitarse a ello- garantias de comerciabilidad, aptitud para un fin determinado o ausencia de errores.
+6.2. El Licenciante no garantiza que el Software funcionara sin interrupciones ni estara libre de errores, y no sera responsable por perdida de datos, lucro cesante, dano emergente ni ningun otro perjuicio indirecto derivado del uso o la imposibilidad de uso del Software.
+6.3. En ningun caso la responsabilidad total del Licenciante frente al Licenciatario, por cualquier causa relacionada con este contrato, podra exceder el monto efectivamente abonado por la licencia en los ultimos doce (12) meses.
+
+7. VIGENCIA, SUSPENSION Y TERMINACION
+7.1. Esta licencia entra en vigencia al aceptar este contrato y se mantiene mientras el Licenciatario abone en tiempo y forma el periodo de licencia contratado.
+7.2. El Licenciante podra suspender o revocar remotamente el acceso al Software en caso de: falta de pago, incumplimiento de cualquiera de las restricciones de la Seccion 4, o uso fraudulento comprobado.
+7.3. Ante la finalizacion del contrato por cualquier causa, el Licenciatario debera desinstalar el Software. Los datos previamente respaldados en la nube podran conservarse por un periodo razonable para permitir su recuperacion, salvo requerimiento expreso de eliminacion.
+
+8. ACTUALIZACIONES
+El Software puede incluir un mecanismo de actualizacion automatica. El Licenciante podra publicar nuevas versiones que modifiquen, mejoren o discontinuen funcionalidades, sin que ello genere derecho a compensacion alguna a favor del Licenciatario.
+
+9. LEY APLICABLE Y JURISDICCION
+Este contrato se rige por las leyes de la Republica Argentina. Para cualquier controversia derivada de este contrato, las partes se someten a la jurisdiccion de los tribunales ordinarios competentes de la Republica Argentina, con renuncia expresa a cualquier otro fuero que pudiera corresponder.
+
+10. CONTACTO
+Ante cualquier consulta relacionada con este contrato o con el Software, el Licenciatario podra contactar al Licenciante a traves de: tadevstudio@gmail.com
+
+-----------------------------------------------------------
+
+Copyright (C) 2026 TADevStudio. Todos los derechos reservados.
+PeluApp es una marca de TADevStudio.
