@@ -1,5 +1,5 @@
 module.exports = {
-  '5.1.0': [
+  '5.2.0': [
     { titulo: 'La app te avisa cuando hay una actualización', desc: 'Ya no hace falta que te escriban para avisarte — apenas hay una versión nueva disponible, en la barra lateral aparece un aviso destacado en rojo para que la actualices cuando quieras.' },
     { titulo: 'Animaciones más prolijas en toda la app', desc: 'Los menús desplegables, los modales de confirmación y aviso, y los cambios entre secciones ahora tienen transiciones suaves en vez de aparecer o desaparecer de golpe.' },
     { titulo: 'Los totales ahora "cuentan" en vez de saltar', desc: 'En Dashboard, Caja, Reportes, Comparaciones, Liquidación, Gastos y Atenciones, los montos y totales suman en pantalla cada vez que cambian, en vez de reemplazarse en seco.' },
