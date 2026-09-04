@@ -153,7 +153,7 @@ export default function Agenda() {
   const [peluqueros, setPeluqueros] = useState([])
   const [servicios, setServicios]   = useState([])
   const [mostrarForm, setMostrarForm] = useState(false)
-  const [form, setForm]             = useState({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'pendiente' })
+  const [form, setForm]             = useState({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'confirmado' })
   const [guardandoTurno, setGuardandoTurno] = useState(false)
   const [modalConfirm, setModalConfirm] = useState(null)
   const [modalAlert, setModalAlert]     = useState(null)
@@ -311,7 +311,7 @@ export default function Agenda() {
     setGuardandoTurno(true)
     try {
       await window.electronAPI.createTurno({ ...form, fecha:diaSeleccionado, peluquero_id:Number(form.peluquero_id), servicio_id:form.servicio_id?Number(form.servicio_id):null })
-      setForm({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'pendiente' })
+      setForm({ peluquero_id:'', servicio_id:'', cliente_nombre:'', hora:'', notas:'', estado:'confirmado' })
       setMostrarForm(false)
       await cargarMes(); await cargarDia()
     } finally {

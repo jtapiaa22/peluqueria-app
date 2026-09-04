@@ -112,6 +112,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App
   getVersion:           ()      => ipcRenderer.invoke('app:getVersion'),
+  abrirLink:            (url)   => ipcRenderer.invoke('app:abrirLink', url),
   checkChangelog:       ()      => ipcRenderer.invoke('app:checkChangelog'),
   getChangelogCompleto: ()      => ipcRenderer.invoke('app:getChangelogCompleto'),
   guardarPDF:           (data)  => ipcRenderer.invoke('pdf:guardar', data),

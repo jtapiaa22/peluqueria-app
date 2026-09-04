@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
-import { ModalAlert } from '../../components/Modal'
+import { ModalAlert, ModalConfirm } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
-import { Upload, Sun, Moon, Globe, Link, Copy, Check, X, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2, LayoutDashboard, Users, Scissors, ClipboardList, BarChart2, GitCompare, TrendingDown, CloudUpload, CloudDownload, KeyRound, TriangleAlert, CircleCheck, CalendarClock, Sunrise, Sunset, Save, Banknote, Sparkles } from 'lucide-react'
+import { Upload, Sun, Moon, Globe, Link, Copy, Check, X, RefreshCw, Wifi, Clock, Pencil, HardDrive, Palette, DollarSign, CalendarDays, Shield, Lock, Unlock, Eye, EyeOff, Trash2, LayoutDashboard, Users, Scissors, ClipboardList, BarChart2, GitCompare, TrendingDown, CloudUpload, CloudDownload, KeyRound, TriangleAlert, CircleCheck, CalendarClock, Sunrise, Sunset, Save, Banknote, Sparkles, Mail, Smartphone } from 'lucide-react'
 
 const HORAS_DISPONIBLES = [
   '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -58,6 +58,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
   const [nombreInput, setNombreInput] = useState('')
   const [logoPreview, setLogoPreview] = useState(null)
   const [modalAlert, setModalAlert] = useState(null)
+  const [confirmandoDesvincular, setConfirmandoDesvincular] = useState(false)
   const [backups, setBackups] = useState([])
   const [webConfig, setWebConfig] = useState({ id: '', nombre: '', email: '' })
   const [webPaso, setWebPaso] = useState('cargando')
@@ -481,6 +482,21 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
     <div className="page-animation" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {modalAlert && <ModalAlert mensaje={modalAlert.mensaje} tipo={modalAlert.tipo} onClose={() => setModalAlert(null)} />}
 
+      {confirmandoDesvincular && (
+        <ModalConfirm
+          mensaje="¿Desvincular esta peluquería de la web? Esta PC va a dejar de recibir y responder reservas online hasta que la vincules de nuevo con el ID y la clave del panel. Los datos ya subidos a la web no se borran."
+          onConfirm={() => {
+            setConfirmandoDesvincular(false)
+            setWebConfig({ id: '', nombre: '', email: '', codigo: '' }); setWebPaso('sin_config')
+            window.electronAPI.setConfig({ clave: 'peluqueria_id', valor: '' })
+            window.electronAPI.setConfig({ clave: 'peluqueria_nombre', valor: '' })
+            window.electronAPI.setConfig({ clave: 'peluqueria_email', valor: '' })
+            window.electronAPI.setConfig({ clave: 'peluqueria_codigo', valor: '' })
+          }}
+          onCancel={() => setConfirmandoDesvincular(false)}
+        />
+      )}
+
       {/* Modal: backup encontrado en la nube */}
       {mostrarRestoreModal && (
         <div style={{
@@ -499,7 +515,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 Backup encontrado en la nube
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
-                Encontramos un backup anterior de esta peluquería. ¿Querés restaurar tus datos o empezar de cero?
+                Esta peluquería ya tiene un backup guardado en la nube. Elegí qué hacer —{' '}
+                <strong style={{ color: 'var(--text-main)' }}>ninguna opción borra lo que ya cargaste en esta PC</strong> hasta que vos lo confirmes.
               </p>
             </div>
 
@@ -508,12 +525,23 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
               borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 13,
               color: 'var(--text-muted)', lineHeight: 1.6,
             }}>
-              <strong style={{ color: 'var(--accent-strong)' }}>Restaurar</strong> va a reemplazar los datos actuales con los del backup (peluqueros, servicios, atenciones, gastos, cierres, etc.).<br /><br />
-              <strong style={{ color: 'var(--accent-strong)' }}>Empezar de cero</strong> va a mantener la base actual vacía y subir una nueva a la nube.
+              <strong style={{ color: 'var(--accent-strong)' }}>Restaurar backup de la nube</strong> reemplaza lo que tenés cargado en esta PC ahora mismo por los datos de ese backup (peluqueros, servicios, atenciones, gastos, cierres, etc.). Usalo si esta PC es nueva o todavía no cargaste nada acá.<br /><br />
+              <strong style={{ color: 'var(--accent-strong)' }}>Seguir con lo de esta PC</strong> no borra ni reemplaza nada de lo que ya hiciste acá — simplemente pasa a ser el nuevo backup en la nube.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button className="btn btn-primary"
+                disabled={restoreAutoLoading}
+                onClick={async () => {
+                  setMostrarRestoreModal(false)
+                  await window.electronAPI.syncBackupNube()
+                  setModalAlert({ mensaje: 'Listo, seguís con los datos de esta PC. Los subimos como nuevo backup a la nube.', tipo: 'success' })
+                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px' }}>
+                <HardDrive size={14} /> Seguir con lo de esta PC
+              </button>
+
+              <button className="btn btn-secondary"
                 disabled={restoreAutoLoading}
                 onClick={async () => {
                   setRestoreAutoLoading(true)
@@ -530,18 +558,7 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px' }}>
                 {restoreAutoLoading
                   ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Restaurando...</>
-                  : <><CloudDownload size={14} /> Restaurar mis datos</>}
-              </button>
-
-              <button className="btn btn-secondary"
-                disabled={restoreAutoLoading}
-                onClick={async () => {
-                  setMostrarRestoreModal(false)
-                  await window.electronAPI.syncBackupNube()
-                  setModalAlert({ mensaje: 'Base nueva creada. El backup anterior fue reemplazado.', tipo: 'success' })
-                }}
-                style={{ width: '100%', padding: '12px 20px' }}>
-                🆕 Empezar de cero
+                  : <><CloudDownload size={14} /> Restaurar backup de la nube</>}
               </button>
             </div>
           </div>
@@ -1180,17 +1197,17 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     )}
                   </div>
 
-                  {/* ID + link */}
+                  {/* Para tus clientes */}
                   <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <div className="form-group" style={{ margin: 0 }}>
-                      <label>ID de tu peluquería</label>
-                      <input className="input" readOnly value={webConfig.id}
-                        style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Guardá este ID para vincular otras PCs.</span>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Smartphone size={14} /> Para tus clientes
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>Compartí uno de estos dos para que entren a reservar.</div>
                     </div>
                     {webConfig.codigo && (
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><KeyRound size={13} /> Código para tus clientes</label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><KeyRound size={13} /> Código para reservar</label>
                         <div style={{ display: 'flex', gap: 8 }}>
                           <input className="input" readOnly value={webConfig.codigo}
                             style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700, letterSpacing: '0.15em', textAlign: 'center', color: 'var(--accent-bright)', flex: 1 }} />
@@ -1199,12 +1216,12 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                           </button>
                         </div>
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                          Pasáselo a tus clientes para que entren a reservar — es más fácil de escribir que el link completo.
+                          El más fácil de compartir hablando o por cartel — entran a la web y lo tipean.
                         </span>
                       </div>
                     )}
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={13} /> Link para compartir</label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Link size={13} /> Link directo</label>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input className="input" readOnly value={webLink} style={{ fontSize: 12, color: 'var(--accent-bright)', flex: 1 }} />
                         <button className="btn btn-secondary" onClick={copiarLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1213,8 +1230,18 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       </div>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Compartí por WhatsApp, Instagram o donde quieras.</span>
                     </div>
+                  </div>
+
+                  {/* Para vos */}
+                  <div style={{ borderBottom: '1px solid var(--border-soft)', paddingBottom: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Shield size={14} /> Para vos
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 2 }}>Uso interno — no se lo des a tus clientes.</div>
+                    </div>
                     <div className="form-group" style={{ margin: 0 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shield size={13} /> Link del panel (para responder turnos desde el celular)</label>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Link del panel (para responder turnos desde el celular)</label>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input className="input" readOnly value={adminLink} style={{ fontSize: 12, color: 'var(--accent-bright)', flex: 1 }} />
                         <button className="btn btn-secondary" onClick={copiarAdminLink} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1222,8 +1249,14 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                         </button>
                       </div>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                        Este es solo para vos — necesita la clave del panel de acá abajo para entrar.
+                        Necesita la clave del panel de acá abajo para entrar.
                       </span>
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label style={{ fontSize: 11, color: 'var(--text-muted)' }}>ID de tu peluquería</label>
+                      <input className="input" readOnly value={webConfig.id}
+                        style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--text-muted)' }} />
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>Solo lo vas a necesitar para vincular otra PC.</span>
                     </div>
                   </div>
 
@@ -1238,8 +1271,18 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                       </div>
                     )}
                     {!cargandoClavePanel && tieneClavePanel === true && (
-                      <div style={{ color: 'var(--success)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Check size={14} /> Configurada. Si se te olvidó, pedísela a PeluApp para que te la resetee.
+                      <div>
+                        <div style={{ color: 'var(--success)', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Check size={14} /> Configurada.
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                          ¿Se te olvidó? Escribinos a{' '}
+                          <a href="#" onClick={e => { e.preventDefault(); window.electronAPI.abrirLink('mailto:tadevstudio@gmail.com?subject=Reset%20clave%20del%20panel') }}
+                            style={{ color: 'var(--accent-bright)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Mail size={12} /> tadevstudio@gmail.com
+                          </a>{' '}
+                          para que te la reseteemos.
+                        </div>
                       </div>
                     )}
                     {!cargandoClavePanel && tieneClavePanel === false && (
@@ -1291,14 +1334,8 @@ export default function Configuracion({ onNombreChange, onLogoChange, tema, onTo
                     <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 12px' }}>
                       Para conectar otra peluquería, desvinculá la actual. Los datos web no se borran.
                     </p>
-                    <button className="btn btn-secondary"
-                      onClick={() => {
-                        setWebConfig({ id: '', nombre: '', email: '', codigo: '' }); setWebPaso('sin_config')
-                        window.electronAPI.setConfig({ clave: 'peluqueria_id', valor: '' })
-                        window.electronAPI.setConfig({ clave: 'peluqueria_nombre', valor: '' })
-                        window.electronAPI.setConfig({ clave: 'peluqueria_email', valor: '' })
-                        window.electronAPI.setConfig({ clave: 'peluqueria_codigo', valor: '' })
-                      }}
+                    <button className="btn btn-danger"
+                      onClick={() => setConfirmandoDesvincular(true)}
                       style={{ fontSize: 13 }}>
                       Desvincular esta peluquería
                     </button>
