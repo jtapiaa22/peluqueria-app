@@ -1,4 +1,12 @@
 module.exports = {
+  '5.2.2': [
+    { titulo: 'Reservas Web más clara', desc: 'En Configuración → Web y Backup separamos lo que le compartís a tus clientes (código y link para reservar) de lo que es solo para vos (link del panel, ID de la peluquería), para identificar cada cosa de un vistazo.' },
+    { titulo: 'Desvincular pide confirmación', desc: 'Al desvincular la peluquería de la web desde Configuración, ahora la app te pide confirmar antes de cortar la conexión, para que un click de más no te desconecte sin querer.' },
+    { titulo: '¿Se te olvidó la clave del panel?', desc: 'Ahora hay un link directo para escribirnos y que te reseteemos la clave del panel de turnos, en vez de tener que buscar cómo contactarnos.' },
+    { titulo: 'Backup en la nube: mensajes más claros', desc: 'Cuando la app encuentra un backup anterior en la nube al vincular una peluquería, el cartel ahora explica con más claridad qué hace cada botón, para que no haya dudas de si vas a perder algo de lo ya cargado en esa PC.' },
+    { titulo: 'Reservas online más firmes ante mucha demanda', desc: 'Reforzamos la protección contra sobrecarga en la web de reservas para que aguante mejor los momentos con muchos clientes reservando turno al mismo tiempo.' },
+  ],
+
   '5.2.0': [
     { titulo: 'La app te avisa cuando hay una actualización', desc: 'Ya no hace falta que te escriban para avisarte — apenas hay una versión nueva disponible, en la barra lateral aparece un aviso destacado en rojo para que la actualices cuando quieras.' },
     { titulo: 'Animaciones más prolijas en toda la app', desc: 'Los menús desplegables, los modales de confirmación y aviso, y los cambios entre secciones ahora tienen transiciones suaves en vez de aparecer o desaparecer de golpe.' },

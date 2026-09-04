@@ -1171,6 +1171,7 @@ ipcMain.handle('config:setNombreApp',(_,n)=>{ db.prepare("INSERT OR REPLACE INTO
 ipcMain.handle('config:getLogo',()=>{ const lp=path.join(getLogoBasePath(),'logo.png'); if(fs.existsSync(lp)) return `data:image/png;base64,${fs.readFileSync(lp).toString('base64')}`; return null })
 ipcMain.handle('config:setLogo',(_,ruta)=>{ try{ const lp=path.join(getLogoBasePath(),'logo.png'); if(ruta===null){if(fs.existsSync(lp))fs.unlinkSync(lp);return {ok:true}}; fs.copyFileSync(ruta,lp); return {ok:true} }catch{return {ok:false}} })
 ipcMain.handle('app:getVersion',()=>app.getVersion())
+ipcMain.handle('app:abrirLink', (e, url) => { shell.openExternal(url) })
 
 const CHANGELOG = require('./changelog')
 
